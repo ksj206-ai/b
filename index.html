@@ -77,16 +77,54 @@
         </nav>
       </section>
 
-      <!-- 가이드 (2·3단계에서 구현) -->
+      <!-- 가이드 -->
       <section id="screen-guide" class="screen" data-screen="guide">
         <div class="screen-head">
-          <button class="btn btn-back" data-nav="home">← 홈</button>
+          <button class="btn btn-back" id="guideBack" data-nav="home">← 홈</button>
           <h2 class="screen-title">🎬 운동 가이드</h2>
         </div>
-        <div class="placeholder">
-          <p class="placeholder-emoji">🎬</p>
-          <p class="placeholder-text">가이드 모듈은 곧 이곳에 들어옵니다.</p>
-          <p class="placeholder-sub">tracking 이식 → 가이드모듈 구현 순서로 진행합니다.</p>
+
+        <!-- 가이드 목록 -->
+        <div id="guideList" class="guide-list"></div>
+
+        <!-- 플레이어 -->
+        <div id="guidePlayer" class="guide-player" hidden>
+          <div class="gp-top">
+            <span id="gpName" class="gp-name">운동</span>
+            <span id="gpStep" class="gp-step">1/3</span>
+          </div>
+
+          <div class="gp-stage">
+            <canvas id="guideCanvas" class="guide-canvas" width="340" height="300"></canvas>
+            <div class="gp-pip">
+              <video id="guideVideo" class="cam-video" playsinline muted></video>
+              <span id="gpCam" class="gp-cam">카메라</span>
+            </div>
+          </div>
+
+          <p id="gpText" class="gp-text">준비 중…</p>
+          <p class="gp-safe">⚠ 통증이 느껴지면 즉시 중단하세요</p>
+          <div id="gpDots" class="gp-dots"></div>
+          <p id="gpHint" class="gp-hint"></p>
+
+          <div id="gpIdle" class="gp-idle" hidden>
+            <span>인식이 잘 안되나요?</span>
+            <div class="gp-idle-btns">
+              <button class="btn btn-back" id="gpRetry">계속 시도</button>
+              <button class="btn btn-back" id="gpProceed">손동작 없이 진행</button>
+            </div>
+          </div>
+
+          <div class="gp-btns">
+            <button class="btn btn-back" id="gpQuit">그만두기</button>
+            <button class="btn btn-back" id="gpSkip">건너뛰기</button>
+          </div>
+
+          <div id="gpDone" class="gp-done" hidden>
+            <p class="gp-done-emoji">🌟</p>
+            <p class="gp-done-text">잘하셨어요! 오늘도 손목을 돌봤어요.</p>
+            <button class="btn" id="gpToList">다른 운동 보기</button>
+          </div>
         </div>
       </section>
 

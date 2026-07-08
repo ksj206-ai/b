@@ -156,6 +156,59 @@ body{
 .placeholder-text{ font-family:"Jua",sans-serif; font-size:15px; color:var(--ink); margin:16px 0 6px; }
 .placeholder-sub{ font-size:12.5px; color:var(--muted); margin:0; line-height:1.6; }
 
+/* ─── 가이드: 목록 ─── */
+.guide-list{ display:flex; flex-direction:column; gap:12px; }
+.guide-card{
+  display:flex; align-items:center; gap:16px; text-align:left;
+  background:var(--cream); border:3px solid #fff; border-radius:var(--radius);
+  padding:16px 20px; cursor:pointer; font-family:inherit; color:inherit;
+  box-shadow:var(--shadow-sm), inset 0 0 0 2px var(--line);
+  transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
+}
+.guide-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow), inset 0 0 0 2px var(--sage); }
+.guide-card:active{ transform:translateY(1px) scale(.99); }
+.gc-emoji{
+  width:52px; height:52px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:28px;
+  background:radial-gradient(circle at 38% 32%, #fff, #eef6e4);
+  box-shadow:inset 0 0 0 2px #fff, 0 4px 10px rgba(90,140,95,.14);
+}
+.gc-name{ font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:18px; color:var(--moss-dd); }
+
+/* ─── 가이드: 플레이어 ─── */
+.guide-player{
+  background:var(--cream); border:3px solid #fff; border-radius:var(--radius);
+  padding:18px; box-shadow:var(--shadow-sm), inset 0 0 0 2px var(--line);
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.gp-top{ width:100%; display:flex; justify-content:space-between; align-items:center; }
+.gp-name{ font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:18px; color:var(--moss-dd); }
+.gp-step{ font-family:"Jua",sans-serif; font-size:12.5px; color:#fff; background:var(--sage); padding:4px 13px; border-radius:99px; }
+.gp-stage{
+  position:relative; width:100%; border-radius:24px; overflow:hidden;
+  background:linear-gradient(165deg,#f0fae8,#fff7ec); box-shadow:inset 0 0 0 2px var(--sage-soft);
+}
+.guide-canvas{ display:block; width:100%; height:auto; }
+.gp-pip{
+  position:absolute; top:12px; right:12px; width:96px; aspect-ratio:4/3;
+  border-radius:14px; overflow:hidden; background:#20302a; box-shadow:inset 0 0 0 2px #fff, var(--shadow-sm);
+}
+.gp-pip .cam-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+.gp-cam{ position:absolute; bottom:4px; left:6px; font-family:"Jua",sans-serif; font-size:9.5px; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,.6); }
+.gp-text{ font-family:"Jua",sans-serif; font-size:16px; color:var(--ink); text-align:center; margin:6px 0 0; word-break:keep-all; min-height:22px; }
+.gp-safe{ font-size:11.5px; color:var(--terra); margin:0; }
+.gp-dots{ display:flex; gap:9px; margin:4px 0; min-height:16px; }
+.gp-dot{ width:15px; height:15px; border-radius:50%; background:rgba(120,200,132,.22); box-shadow:inset 0 1px 2px rgba(0,0,0,.1); transition:.25s cubic-bezier(.3,1.5,.5,1); }
+.gp-dot.on{ background:linear-gradient(180deg,#8fdcab,#5fb872); box-shadow:0 3px 8px rgba(95,184,114,.45); transform:scale(1.12); }
+.gp-hint{ font-size:12.5px; color:var(--moss-d); margin:0; min-height:16px; text-align:center; }
+.gp-hint.warn{ color:var(--terra); }
+.gp-idle{ background:var(--sun-soft); border-radius:16px; padding:12px 14px; text-align:center; font-size:12.5px; color:var(--ink); display:flex; flex-direction:column; gap:8px; width:100%; }
+.gp-idle-btns{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.gp-btns{ display:flex; gap:8px; margin-top:4px; }
+.gp-done{ text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; padding:8px 0 4px; }
+.gp-done-emoji{ font-size:46px; margin:0; animation:bob 2.6s ease-in-out infinite; }
+.gp-done-text{ font-family:"Jua",sans-serif; font-size:15px; color:var(--ink); margin:0; }
+
 /* ─── 측정: 라이브 인식 프리뷰 ─── */
 .mzone{
   background:var(--cream); border:3px solid #fff; border-radius:var(--radius);
