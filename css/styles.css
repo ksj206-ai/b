@@ -156,6 +156,39 @@ body{
 .placeholder-text{ font-family:"Jua",sans-serif; font-size:15px; color:var(--ink); margin:16px 0 6px; }
 .placeholder-sub{ font-size:12.5px; color:var(--muted); margin:0; line-height:1.6; }
 
+/* ─── 측정: 라이브 인식 프리뷰 ─── */
+.mzone{
+  background:var(--cream); border:3px solid #fff; border-radius:var(--radius);
+  padding:18px; box-shadow:var(--shadow-sm), inset 0 0 0 2px var(--line);
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+}
+.cam-wrap{
+  position:relative; width:100%; aspect-ratio:4/3; border-radius:24px; overflow:hidden;
+  background:#20302a; box-shadow:inset 0 0 0 3px #fff;
+}
+.cam-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+.cam-badge{
+  position:absolute; top:12px; left:12px; font-family:"Jua",sans-serif; font-size:12px;
+  color:#fff; background:rgba(40,60,44,.72); padding:6px 14px; border-radius:99px;
+  backdrop-filter:blur(4px);
+}
+.mz-hint{ font-size:12.5px; color:var(--ink-soft); text-align:center; line-height:1.6; margin:0; word-break:keep-all; }
+.mz-note{ font-size:11px; color:var(--muted); text-align:center; margin:2px 0 0; line-height:1.55; }
+.metrics{
+  width:100%; display:grid; grid-template-columns:repeat(2,1fr); gap:8px;
+}
+.metric{
+  display:flex; justify-content:space-between; align-items:center;
+  background:var(--paper); border-radius:14px; padding:9px 14px; font-size:12.5px; color:var(--muted);
+}
+.metric b{ font-family:"Jua",sans-serif; font-size:14px; color:var(--ink); }
+.metric b.ok{ color:var(--moss-d); }
+.metric b.no{ color:#d98a8a; }
+.measure-actions{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.rom-out{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.rom-out b{ font-family:"Jua",sans-serif; font-size:15px; color:var(--moss-dd); }
+.rom-hold{ font-size:11px; color:var(--honey); font-family:"Jua",sans-serif; min-height:14px; }
+
 /* ─── 버튼 ─── */
 .btn{
   border:none; font-family:"Jua",sans-serif; font-weight:400; cursor:pointer;
