@@ -1,0 +1,16 @@
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Node (추후 도구 도입 시)
+node_modules/
+npm-debug.log*
+
+# Logs / temp
+*.log
+.tmp/

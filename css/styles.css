@@ -1,0 +1,186 @@
+/* ═══════════════════════════════════════════════════════════
+   손목 정원 — 전역 스타일 (둥글둥글·친근 테마)
+   디자인 토큰은 프로토타입(wrist-garden)에서 이식 + 따뜻하게 보정.
+   ═══════════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap');
+
+:root{
+  /* 잉크 / 배경 */
+  --ink:#3a4c3e; --muted:#8aa38e; --ink-soft:rgba(58,76,62,.6);
+  --cream:#fffdf7; --paper:#fbf5e9;
+  /* 이끼(메인) — 살짝 더 부드럽게 */
+  --moss:#78c884; --moss-d:#54ac63; --moss-dd:#469a54;
+  --sage:#b3d6a8; --sage-soft:#eaf5e1;
+  /* 강조 — 따뜻한 톤 */
+  --sun:#ffd47a; --sun-soft:#ffeeba; --honey:#f6b665;
+  --peach:#ffd9c2; --terra:#e79f77; --rose:#f6b3c2; --water:#8fcef0;
+  /* 선 / 그림자 — 더 폭신하게 */
+  --line:#ecefdf;
+  --radius:30px; --radius-lg:36px;
+  --shadow:0 14px 34px rgba(90,140,95,.16);
+  --shadow-sm:0 6px 16px rgba(90,140,95,.13);
+  --pop:0 6px 0; /* 3D 버튼 두께 */
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body{
+  margin:0; min-height:100vh; color:var(--ink);
+  background:
+    radial-gradient(60% 40% at 82% 12%, rgba(255,222,178,.5) 0%, transparent 60%),
+    radial-gradient(50% 40% at 12% 20%, rgba(178,224,180,.45) 0%, transparent 60%),
+    radial-gradient(120% 90% at 50% -10%, #f2f9e8 0%, #eaf5e0 45%, #f8f2e3 100%);
+  font-family:"Pretendard",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  display:flex; flex-direction:column; align-items:center;
+  padding:20px 12px 44px;
+}
+
+.app{ width:min(560px,95vw); display:flex; flex-direction:column; gap:18px; }
+
+/* ─── 헤더 ─── */
+.app-header{ text-align:center; }
+.app-title{
+  font-family:"Black Han Sans",sans-serif; font-size:33px; font-weight:700;
+  margin:2px 0 0; color:var(--moss-dd); letter-spacing:.5px;
+  display:flex; align-items:center; justify-content:center; gap:9px;
+  text-shadow:0 2px 0 #fff;
+}
+.app-logo{ font-size:31px; display:inline-block; animation:sway 3.4s ease-in-out infinite; }
+@keyframes sway{ 0%,100%{ transform:rotate(-7deg); } 50%{ transform:rotate(7deg); } }
+.app-tag{ color:var(--muted); font-size:13px; margin:6px 0 0; font-weight:500; }
+.streak{
+  display:inline-block; margin-top:10px; font-family:"Jua",sans-serif; font-size:13px;
+  color:var(--terra); background:var(--sun-soft); padding:6px 17px; border-radius:99px;
+  box-shadow:var(--shadow-sm);
+}
+.streak b{ color:var(--honey); }
+
+/* ─── 화면 전환 ─── */
+.screens{ position:relative; }
+.screen{ display:none; animation:fadeIn .28s cubic-bezier(.34,1.4,.5,1); }
+.screen.is-active{ display:block; }
+@keyframes fadeIn{ from{ opacity:0; transform:translateY(10px) scale(.98); } to{ opacity:1; transform:none; } }
+
+/* ─── 홈: 히어로 + 마스코트 ─── */
+.home-hero{
+  position:relative;
+  background:linear-gradient(165deg,#eef9e6 0%,#fff7ec 100%);
+  border:3px solid #fff; border-radius:var(--radius-lg);
+  padding:14px 24px 26px; text-align:center;
+  box-shadow:var(--shadow), inset 0 0 0 2px var(--sage-soft);
+}
+.mascot-wrap{ position:relative; display:flex; justify-content:center; margin-top:4px; }
+.mascot{
+  width:132px; height:132px;
+  filter:drop-shadow(0 8px 12px rgba(90,150,95,.22));
+  animation:bob 2.8s ease-in-out infinite;
+  transform-origin:60px 100px;
+}
+.mascot:hover{ animation:wiggle .6s ease-in-out; }
+@keyframes bob{ 0%,100%{ transform:translateY(0) rotate(-1.5deg); } 50%{ transform:translateY(-8px) rotate(1.5deg); } }
+@keyframes wiggle{ 0%,100%{ transform:rotate(0); } 25%{ transform:rotate(-9deg); } 75%{ transform:rotate(9deg); } }
+.mascot-shadow{ /* svg 내부, 참고용 */ }
+.speech{
+  position:absolute; top:6px; left:50%; transform:translateX(-50%);
+  font-family:"Jua",sans-serif; font-size:12.5px; color:var(--moss-dd);
+  background:#fff; padding:8px 15px; border-radius:99px; white-space:nowrap;
+  box-shadow:var(--shadow-sm); z-index:2; animation:pop-in .5s cubic-bezier(.3,1.5,.5,1);
+}
+.speech::after{
+  content:''; position:absolute; bottom:-6px; left:50%; transform:translateX(-50%) rotate(45deg);
+  width:12px; height:12px; background:#fff; border-radius:3px;
+}
+@keyframes pop-in{ from{ opacity:0; transform:translateX(-50%) translateY(6px) scale(.7); } to{ opacity:1; transform:translateX(-50%) scale(1); } }
+
+.home-hero-label{
+  font-family:"Jua",sans-serif; font-size:12.5px; color:var(--moss-d);
+  background:rgba(255,255,255,.85); display:inline-block; padding:5px 16px;
+  border-radius:99px; margin:2px 0 0; box-shadow:var(--shadow-sm);
+}
+.home-hero-title{
+  font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:21px;
+  color:var(--ink); margin:13px 0 18px; line-height:1.42; word-break:keep-all;
+}
+
+/* ─── 홈: 3 섹션 ─── */
+.sections{ display:flex; flex-direction:column; gap:14px; margin-top:2px; }
+.section-card{
+  position:relative; display:grid;
+  grid-template-columns:auto 1fr; grid-template-rows:auto auto;
+  column-gap:16px; row-gap:3px; align-items:center; text-align:left;
+  background:var(--cream); border:3px solid #fff; border-radius:var(--radius);
+  padding:18px 20px; cursor:pointer;
+  box-shadow:var(--shadow-sm), inset 0 0 0 2px var(--line);
+  transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
+  font-family:inherit; color:inherit;
+}
+.section-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow), inset 0 0 0 2px var(--sage-soft); }
+.section-card:active{ transform:translateY(1px) scale(.99); }
+.section-card.is-main{
+  background:linear-gradient(160deg,#f0fae8,#fffdf7);
+  box-shadow:var(--shadow-sm), inset 0 0 0 2px var(--sage);
+}
+.section-emoji{
+  grid-row:1 / 3; width:58px; height:58px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:30px;
+  background:radial-gradient(circle at 38% 32%, #fff, #eef6e4);
+  box-shadow:inset 0 0 0 2px #fff, 0 4px 10px rgba(90,140,95,.14);
+}
+.section-card:nth-child(2) .section-emoji{ background:radial-gradient(circle at 38% 32%,#fff,#e7f2fb); }
+.section-card:nth-child(3) .section-emoji{ background:radial-gradient(circle at 38% 32%,#fff,#fdeee2); }
+.section-name{
+  font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:20px;
+  color:var(--moss-dd);
+}
+.section-desc{ grid-column:2; font-size:12.5px; color:var(--ink-soft); }
+.section-badge{
+  position:absolute; top:15px; right:16px; font-family:"Jua",sans-serif;
+  font-size:11px; color:#fff; background:var(--moss-d);
+  padding:4px 12px; border-radius:99px; box-shadow:0 3px 7px rgba(84,172,99,.35);
+}
+.section-badge--sub{ background:var(--terra); box-shadow:0 3px 7px rgba(231,159,119,.35); }
+
+/* ─── 하위 화면 헤더 ─── */
+.screen-head{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.screen-title{
+  font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:22px;
+  color:var(--moss-dd); margin:0;
+}
+
+/* ─── 자리표시자 ─── */
+.placeholder{
+  background:var(--cream); border:3px dashed var(--sage); border-radius:var(--radius);
+  padding:52px 24px; text-align:center; box-shadow:var(--shadow-sm);
+}
+.placeholder-emoji{ font-size:56px; margin:0; animation:bob 3s ease-in-out infinite; }
+.placeholder-text{ font-family:"Jua",sans-serif; font-size:15px; color:var(--ink); margin:16px 0 6px; }
+.placeholder-sub{ font-size:12.5px; color:var(--muted); margin:0; line-height:1.6; }
+
+/* ─── 버튼 ─── */
+.btn{
+  border:none; font-family:"Jua",sans-serif; font-weight:400; cursor:pointer;
+  border-radius:99px; font-size:14.5px; padding:14px 28px; color:#fff;
+  background:linear-gradient(180deg,#7fd28a,#54ac63);
+  box-shadow:var(--pop) var(--moss-dd); transition:transform .06s;
+}
+.btn:active{ transform:translateY(4px); box-shadow:0 2px 0 var(--moss-dd); }
+.btn-hero{
+  padding:16px 40px; font-size:16px; margin-top:2px;
+  animation:breathe 2.8s ease-in-out infinite;
+}
+@keyframes breathe{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
+.btn-hero:active{ animation:none; }
+.btn-back{
+  background:#fff; color:var(--muted); font-size:13px; padding:11px 18px;
+  box-shadow:0 5px 0 var(--line); border:2px solid var(--line);
+}
+.btn-back:active{ transform:translateY(3px); box-shadow:0 2px 0 var(--line); }
+
+/* ─── 면책 ─── */
+.app-disc{
+  font-size:11px; color:var(--muted); line-height:1.65; text-align:center;
+  background:rgba(255,253,247,.7); border:2px solid var(--line); border-radius:22px;
+  padding:14px 18px; margin-top:4px;
+}
+
+@media (prefers-reduced-motion:reduce){ *{ animation:none!important; } }
