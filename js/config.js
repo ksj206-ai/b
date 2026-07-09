@@ -16,6 +16,7 @@ export const SCREENS = {
   GUIDE: 'guide',
   MEASURE: 'measure',
   GAME: 'game',
+  RECORDS: 'records',
 };
 export const DEFAULT_SCREEN = SCREENS.HOME;
 

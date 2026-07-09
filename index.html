@@ -75,6 +75,8 @@
             <span class="section-desc">미니게임으로 재미있게 한 번 더</span>
           </button>
         </nav>
+
+        <button class="btn btn-back home-records" data-nav="records">📈 내 손목 기록 보기</button>
       </section>
 
       <!-- 가이드 -->
@@ -132,39 +134,58 @@
       <section id="screen-measure" class="screen" data-screen="measure">
         <div class="screen-head">
           <button class="btn btn-back" data-nav="home">← 홈</button>
-          <h2 class="screen-title">📊 ROM 측정</h2>
+          <h2 class="screen-title">📊 손목 가동범위 측정</h2>
         </div>
 
-        <!-- 라이브 인식 프리뷰 (tracking 이식 확인용) -->
         <div class="mzone">
           <div class="cam-wrap">
             <video id="camVideo" class="cam-video" playsinline muted></video>
             <span id="camBadge" class="cam-badge">카메라 꺼짐</span>
+            <!-- 라이브 각도 오버레이 -->
+            <div id="mLive" class="m-live" hidden>
+              <span id="mLiveVal" class="m-live-val">0°</span>
+              <span id="mLiveCap" class="m-live-cap">현재 손목 각도</span>
+            </div>
+            <!-- 중립/유지 진행 바 -->
+            <div id="mProg" class="m-prog" hidden><div id="mProgBar" class="m-prog-bar"></div></div>
           </div>
 
-          <p id="mzHint" class="mz-hint">손바닥을 카메라에 보여주세요. 필요하면 팔꿈치까지 나오게 하면 보상동작도 감지돼요.</p>
-          <button class="btn" id="startTrackBtn">카메라 켜기</button>
+          <p id="mGuide" class="m-guide">손목을 옆에서 보이게 하고, 측정을 시작하세요.</p>
 
-          <div class="metrics" id="metrics" hidden>
-            <div class="metric"><span>손 인식</span><b id="mDet">–</b></div>
-            <div class="metric"><span>손목각 rel</span><b id="mRel">–</b></div>
-            <div class="metric"><span>보상동작</span><b id="mComp">–</b></div>
-            <div class="metric"><span>grip</span><b id="mGrip">–</b></div>
-            <div class="metric"><span>spread</span><b id="mSpread">–</b></div>
-            <div class="metric"><span>tipMCP</span><b id="mTip">–</b></div>
-            <div class="metric"><span>pinch</span><b id="mPinch">–</b></div>
-            <div class="metric"><span>팔뚝기준</span><b id="mPose">–</b></div>
+          <!-- idle -->
+          <div id="mIdle" class="m-panel">
+            <button class="btn" id="mStart">측정 시작하기</button>
           </div>
 
-          <div class="measure-actions" id="measureActions" hidden>
-            <button class="btn btn-back" id="neutralBtn">① 중립 잡기</button>
-            <div class="rom-out">
-              <span id="romHold" class="rom-hold"></span>
-              <b id="romOut">굽힘 –° · 폄 –°</b>
+          <!-- 측정 중: 굽힘·폄 캡처 -->
+          <div id="mCapture" class="m-caps" hidden>
+            <div id="capFlex" class="m-cap"><span class="m-cap-k">굽힘</span><b id="capFlexV" class="m-cap-v">–</b></div>
+            <div id="capExt" class="m-cap"><span class="m-cap-k">폄</span><b id="capExtV" class="m-cap-v">–</b></div>
+          </div>
+          <p id="mComp" class="m-comp" hidden>⚠ 팔은 그대로, 손목만 움직여요</p>
+
+          <div id="mActions" class="m-actions" hidden>
+            <button class="btn btn-back" id="mReneutral">중립 다시</button>
+            <button class="btn" id="mFinish">측정 완료</button>
+          </div>
+
+          <!-- 결과 -->
+          <div id="mResult" class="m-result" hidden>
+            <p class="m-result-title">오늘의 손목 가동범위</p>
+            <div class="m-result-grid">
+              <div><span>굽힘</span><b id="rFlex">–</b></div>
+              <div><span>폄</span><b id="rExt">–</b></div>
+              <div class="m-result-sum"><span>총 가동범위</span><b id="rSum">–</b></div>
+            </div>
+            <p id="rDelta" class="m-delta"></p>
+            <div class="m-result-btns">
+              <button class="btn btn-back" id="mAgain">다시 측정</button>
+              <button class="btn" data-nav="records">기록 보기</button>
             </div>
           </div>
+
+          <p class="m-disc">본 수치는 웹캠 기반 자가 참고값입니다. 질병의 진단·판정 목적이 아닙니다.</p>
         </div>
-        <p class="mz-note">※ 이 화면은 인식 파이프라인 확인용 임시 프리뷰입니다. 정식 측정 UX는 이후 단계에서 완성돼요.</p>
       </section>
 
       <!-- 게임 (후속 단계) -->
@@ -178,6 +199,54 @@
           <p class="placeholder-text">미니게임은 곧 이곳으로 이식됩니다.</p>
           <p class="placeholder-sub">운동 동작을 활용한 보조 콘텐츠입니다.</p>
         </div>
+      </section>
+
+      <!-- 기록 -->
+      <section id="screen-records" class="screen" data-screen="records">
+        <div class="screen-head">
+          <button class="btn btn-back" data-nav="home">← 홈</button>
+          <h2 class="screen-title">📈 내 손목 기록</h2>
+        </div>
+
+        <!-- ROM 추이 -->
+        <div class="rec-card">
+          <div class="rec-card-head">
+            <span class="rec-card-title">손목 가동범위 추이</span>
+            <span class="rec-range" id="recRange"></span>
+          </div>
+
+          <div id="recTrendWrap" class="rec-trend" hidden>
+            <div class="rec-stats">
+              <div class="rec-stat"><span>최근</span><b id="recLatest">–</b></div>
+              <div class="rec-stat"><span>지난 대비</span><b id="recDelta">–</b></div>
+              <div class="rec-stat"><span>최고 기록</span><b id="recBest">–</b></div>
+            </div>
+            <canvas id="recCanvas" class="rec-canvas"></canvas>
+            <p id="recTrendHint" class="rec-hint"></p>
+          </div>
+
+          <div id="recTrendEmpty" class="rec-empty" hidden>
+            <p class="rec-empty-emoji">🌱</p>
+            <p class="rec-empty-text">아직 측정 기록이 없어요.<br>손목 가동범위를 재고 변화를 지켜봐요.</p>
+            <button class="btn" data-nav="measure">측정하러 가기</button>
+          </div>
+        </div>
+
+        <!-- 가이드 완료 히스토리 -->
+        <div class="rec-card">
+          <div class="rec-card-head">
+            <span class="rec-card-title">운동 완료 기록</span>
+            <span class="rec-count" id="recGuideCount"></span>
+          </div>
+          <ul id="recHistory" class="rec-history"></ul>
+          <div id="recHistoryEmpty" class="rec-empty" hidden>
+            <p class="rec-empty-emoji">🎬</p>
+            <p class="rec-empty-text">아직 완료한 운동이 없어요.<br>가이드를 따라 첫 운동을 해봐요.</p>
+            <button class="btn" data-nav="guide">가이드 보러 가기</button>
+          </div>
+        </div>
+
+        <p class="m-disc">본 수치는 웹캠 기반 자가 참고값입니다. 질병의 진단·판정 목적이 아닙니다.</p>
       </section>
 
     </main>
