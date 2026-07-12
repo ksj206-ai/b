@@ -44,6 +44,7 @@ function defaults() {
     // 오늘의 루틴 캐시 — 반드시 null 유지(부분 객체 금지: load()의 얕은
     // 머지가 내부 키를 보호하지 못함). 생성·갱신은 routine.js가 담당.
     routine: null,
+    routineLog: [],       // 데일리 루틴 진행 기록 — 하루 1엔트리 { at, done, total }
   };
 }
 

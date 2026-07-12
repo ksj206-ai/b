@@ -1,33 +1,23 @@
 // ═══════════════════════════════════════════════════════════
 // routine.js — 오늘의 루틴 구성·진행 (습관 형성 장치)
 //
-// 구성 규칙: 카테고리 3종(mobility→glide→hold)에서 각 1개.
-//   같은 카테고리 안에서는 "가장 오래 안 한 운동" 우선, 동률이면
-//   날짜 시드로 교대 → 매일 결정론적으로 6종이 이틀 주기 순환.
+// 구성 규칙: 매일 동일한 풀코스 6종 (config ROUTINE.course, 고정 순서).
+//   고민할 것이 없어야 매일 한다 — 로테이션·커스터마이징 없음.
 //
-// 관대한 판정: 같은 카테고리 운동이면 어떤 것이든 슬롯 충족.
-//   스트릭은 운동 1개만 해도 유지(recordActivity, 기존 동작) —
-//   3슬롯 완주는 "추가 축하"일 뿐 스트릭의 조건이 아니다.
+// 관대한 판정: 중간에 끝내도 그날 활동으로 인정(스트릭은 운동 1개
+//   완료 시점에 이미 반영). 풀코스 완주(6/6)는 ⭐ 추가 축하일 뿐이다.
+//   진행은 routineLog에 "N/6"으로 하루 1엔트리 기록.
 //
 // ⚠ 규제 원칙(웰니스 판단기준): measurements(측정값)는 루틴 구성
 //   분기의 입력으로 사용하지 않는다. 측정→운동 연결은 "제안" 문구
-//   까지만 — 판정+처방 구조 금지. 루틴 구성 입력은 guideDone 이력뿐.
+//   까지만 — 판정+처방 구조 금지.
 //
 // 확장 지점: ids 원소는 현재 가이드 id 문자열. 향후 게임 슬롯이
 //   필요하면 { type:'game', id } 원소 도입으로 확장.
 // ═══════════════════════════════════════════════════════════
 import { load, save, todayStr } from './store.js';
 import { ROUTINE } from './config.js';
-import { GUIDES, getGuide } from './guide/guideData.js';
-
-const catOf = (id) => getGuide(id)?.cat || null;
-
-/** YYYY-MM-DD 문자열 해시 → 동률 타이브레이크용 결정론적 시드 */
-function hashDate(date) {
-  let h = 0;
-  for (let i = 0; i < date.length; i++) h = (h * 31 + date.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
+import { getGuide } from './guide/guideData.js';
 
 /** 두 YYYY-MM-DD 사이 일수 차 (b - a). 파싱 실패 시 NaN */
 function dayDiff(a, b) {
@@ -45,30 +35,24 @@ export function needMeasureSuggest(state = load(), date = todayStr()) {
   return Number.isNaN(diff) || diff >= ROUTINE.measureEveryDays;
 }
 
-/** 오늘의 루틴 취득 — 같은 날엔 캐시, 날이 바뀌면 새로 구성 */
-export function getTodayRoutine(state = load(), date = todayStr()) {
-  const r = state.routine;
-  // 캐시 유효성: 같은 날 + 모든 id가 여전히 존재하는 가이드 (id 변경·삭제 대비)
-  if (r && r.date === date && Array.isArray(r.ids) && r.ids.every((id) => getGuide(id))) return r;
+/** 오늘의 코스 운동 id 목록 (존재하는 가이드만 — id 변경·삭제 대비) */
+function courseIds() {
+  return ROUTINE.course.filter((id) => getGuide(id));
+}
 
-  // 카테고리별 "가장 오래 안 한 운동" 스캔 (입력은 guideDone 이력뿐 — 측정값 미사용)
-  const lastDoneAt = {};
-  for (const d of state.guideDone || []) {
-    if (!lastDoneAt[d.id] || d.at > lastDoneAt[d.id]) lastDoneAt[d.id] = d.at;
-  }
-  const seed = hashDate(date);
-  const ids = ROUTINE.order.map((cat, k) => {
-    const cands = GUIDES.filter((g) => g.cat === cat);
-    cands.sort((a, b) => {
-      const la = lastDoneAt[a.id] || '', lb = lastDoneAt[b.id] || '';
-      if (la !== lb) return la < lb ? -1 : 1;            // 오래 안 한(기록 없는) 것 우선
-      return (seed + k) % 2 === 0 ? -1 : 1;              // 동률 → 날짜 시드로 교대
-    });
-    return cands[0].id;
-  });
+/** 오늘의 루틴 취득 — 같은 날 + 같은 코스면 캐시, 아니면 새로 구성 */
+export function getTodayRoutine(state = load(), date = todayStr()) {
+  const ids = courseIds();
+  const r = state.routine;
+  const sameCourse = r && r.date === date && Array.isArray(r.ids)
+    && r.ids.length === ids.length && r.ids.every((id, i) => id === ids[i]);
+  if (sameCourse) return r;
 
   state.routine = {
-    v: 1, date, ids, doneIds: [],
+    v: 2, date, ids,
+    // 같은 날 코스 구성이 바뀐 경우(예: 앱 업데이트) 완료 표시는 승계
+    doneIds: (r && r.date === date && Array.isArray(r.doneIds))
+      ? r.doneIds.filter((id) => ids.includes(id)) : [],
     suggestMeasure: needMeasureSuggest(state, date),
     completedAt: null,
   };
@@ -76,34 +60,44 @@ export function getTodayRoutine(state = load(), date = todayStr()) {
   return state.routine;
 }
 
-/** 슬롯 i 충족 여부 — 같은 카테고리 운동이면 인정 (관대한 판정) */
+/** 슬롯 i 충족 여부 */
 export function isSlotDone(r, i) {
-  const cat = catOf(r.ids[i]);
-  return r.doneIds.some((id) => catOf(id) === cat);
+  return r.doneIds.includes(r.ids[i]);
 }
 
 export function routineProgress(r) {
-  const done = r.ids.reduce((n, _, i) => n + (isSlotDone(r, i) ? 1 : 0), 0);
+  const done = r.ids.reduce((n, id) => n + (r.doneIds.includes(id) ? 1 : 0), 0);
   return { done, total: r.ids.length };
 }
 
 export function isRoutineComplete(r) {
-  return r.ids.every((_, i) => isSlotDone(r, i));
+  return r.ids.every((id) => r.doneIds.includes(id));
 }
 
-/** 다음에 할 운동 id — 미충족 슬롯의 제안 운동. 완주면 null */
+/** 다음에 할 운동 id — 코스 순서상 첫 미완료. 완주면 null */
 export function nextRoutineExercise(r) {
-  const i = r.ids.findIndex((_, k) => !isSlotDone(r, k));
-  return i >= 0 ? r.ids[i] : null;
+  return r.ids.find((id) => !r.doneIds.includes(id)) ?? null;
 }
 
-/** 운동 완료 반영 → 갱신된 오늘 루틴 반환 (자정 넘김 안전: 항상 오늘 기준 재취득) */
+/** 운동 완료 반영 + 오늘 진행(N/6) 로그 업서트 (자정 넘김 안전) */
 export function markRoutineDone(guideId, state = load()) {
   const r = getTodayRoutine(state);
   if (!r.doneIds.includes(guideId)) r.doneIds.push(guideId);
   if (isRoutineComplete(r) && !r.completedAt) r.completedAt = new Date().toISOString();
+  upsertRoutineLog(state, r);
   save(state);
   return r;
+}
+
+/** routineLog: 하루 1엔트리 { at, done, total } — 기록 화면 "N/6 완료" 표시용 */
+function upsertRoutineLog(state, r) {
+  const { done, total } = routineProgress(r);
+  if (done === 0) return;
+  state.routineLog = state.routineLog || [];
+  const entry = { at: r.date, done, total };
+  const last = state.routineLog[state.routineLog.length - 1];
+  if (last && last.at === r.date) state.routineLog[state.routineLog.length - 1] = entry;
+  else state.routineLog.push(entry);
 }
 
 /** 가이드 1개 예상 소요(초): intro/outro dur + follow reps × 애니 1사이클 길이 */

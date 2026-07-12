@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════
 import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
 import { load, save, recordActivity, currentStreak, todayStr } from './store.js';
-import { SCREENS } from './config.js';
+import { SCREENS, ROUTINE } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateRoutineSec,
@@ -50,23 +50,23 @@ function renderHome() {
            `<span class="rc-mark">${isSlotDone(r, i) ? '🌸' : ''}</span></li>`;
   }).join('');
 
-  const min = Math.max(1, Math.round(estimateRoutineSec(r) / 60));
+  const min = Math.max(1, Math.ceil(estimateRoutineSec(r) / 60));
   const dur = $('routineDur');
   dur.textContent = `약 ${min}분`;
   dur.hidden = complete;
 
   const title = $('todayRoutine'), btn = $('routineStart'), speech = $('mascotSpeech');
   if (complete) {
-    title.textContent = '오늘 정원을 다 돌봤어요! 🌼';
+    title.textContent = '오늘 풀코스 완주! 정원이 활짝 피었어요 ⭐';
     btn.textContent = '한 번 더 하기';
-    speech.textContent = '와, 오늘 루틴 완주! 대단해요 🌼';
+    speech.textContent = '와, 풀코스 완주! 대단해요 🌼';
   } else if (done > 0) {
-    title.textContent = `잘하고 있어요! 다음은 ${getGuide(nextId).name}`;
+    title.textContent = `잘하고 있어요! 이어서 ${getGuide(nextId).name}`;
     btn.textContent = `이어서 하기 (${done}/${total}) →`;
     speech.textContent = '조금만 더! 이어서 해봐요 🌿';
   } else {
-    title.textContent = `오늘은 ${getGuide(r.ids[0]).name}부터 시작해요`;
-    btn.textContent = '오늘의 루틴 시작 🌱';
+    title.textContent = `오늘의 손목 풀코스, ${min}분이면 돼요`;
+    btn.textContent = '시작하기 🌱';
     speech.textContent = '오늘도 만나서 반가워요! 🌿';
   }
 
@@ -74,14 +74,17 @@ function renderHome() {
   $('routineMeasureChip').hidden = !r.suggestMeasure;
 }
 
+/** 홈/알림 → 루틴 원탭 진입 (중간 화면 없이 바로 재생) */
+function startRoutineDeep() {
+  const r = getTodayRoutine();
+  pendingGuideId = nextRoutineExercise(r) || r.ids[0]; // 완주 후 "한 번 더"는 처음부터
+  showScreen(SCREENS.GUIDE);
+}
+
 function boot() {
   renderHome();
 
-  document.getElementById('routineStart').addEventListener('click', () => {
-    const r = getTodayRoutine();
-    pendingGuideId = nextRoutineExercise(r) || r.ids[0]; // 완주 후 "한 번 더"는 처음부터
-    showScreen(SCREENS.GUIDE);
-  });
+  document.getElementById('routineStart').addEventListener('click', startRoutineDeep);
 
   initUI();
 
@@ -93,6 +96,12 @@ function boot() {
     if (name === SCREENS.GUIDE) initGuide();
     if (name === SCREENS.RECORDS) renderRecords();
   });
+
+  // ?routine=today — 알림 클릭 진입: 홈 건너뛰고 바로 루틴 시작 (이미 완주면 홈 유지)
+  const qp = new URLSearchParams(location.search);
+  if (qp.get('routine') === 'today' && !isRoutineComplete(getTodayRoutine())) {
+    startRoutineDeep();
+  }
 
   console.log('[손목 정원] 부팅 완료');
 }
@@ -298,6 +307,7 @@ async function initGuide() {
     els, ctx: els.canvas.getContext('2d'),
     engine: null, tracker: null, anim: null, cur: null, running: false, neutralTimer: null,
     lastParams: null, poseBlend: null,
+    routineMode: false, autoNextTimer: null, // 루틴 연속 재생 상태
   };
 
   // 목록 구성
@@ -308,18 +318,22 @@ async function initGuide() {
     b.dataset.guideId = g.id;
     b.innerHTML = `<span class="gc-emoji">${g.emoji}</span><span class="gc-name">${g.name}</span>` +
                   `<span class="gc-badge" hidden></span>`;
-    b.addEventListener('click', () => startGuide(g.id));
+    b.addEventListener('click', () => startGuide(g.id, false));
     els.list.appendChild(b);
   }
 
   // 버튼
-  els.quit.addEventListener('click', () => showGuideList());
+  els.quit.addEventListener('click', () => {
+    // 루틴 모드: [오늘은 여기까지] — 중간에 끝내도 그날 완료로 인정 (관대함)
+    if (guide.routineMode) endRoutineToday();
+    else showGuideList();
+  });
   els.toList.addEventListener('click', () => showGuideList());
   els.skip.addEventListener('click', () => { if (guide.engine) guide.engine.skip(performance.now()); });
   els.proceed.addEventListener('click', () => { if (guide.engine) guide.engine.skip(performance.now()); });
   els.retry.addEventListener('click', () => { guide.els.idle.hidden = true; });
   els.next.addEventListener('click', () => {
-    if (guide.routineNextId) startGuide(guide.routineNextId);
+    if (guide.routineNextId) startGuide(guide.routineNextId, guide.routineMode);
   });
 
   consumeAutoStart();
@@ -329,7 +343,7 @@ async function initGuide() {
 function consumeAutoStart() {
   const id = pendingGuideId;
   pendingGuideId = null;
-  if (id && getCurrentScreen() === SCREENS.GUIDE) startGuide(id);
+  if (id && getCurrentScreen() === SCREENS.GUIDE) startGuide(id, true); // 홈 원탭 = 루틴 모드
   else showGuideList();
 }
 
@@ -356,10 +370,14 @@ function refreshGuideBadges() {
   }
 }
 
-async function startGuide(id) {
+async function startGuide(id, routineMode = false) {
   const g = guide.mods.getGuide(id);
   if (!g) return;
   const { els, ctx, mods } = guide;
+  clearTimeout(guide.autoNextTimer);
+  guide.routineMode = routineMode;
+  // 루틴 모드에선 그만두기 대신 [오늘은 여기까지] — 언제 끝내도 괜찮다는 신호
+  els.quit.textContent = routineMode ? '오늘은 여기까지' : '그만두기';
   // 연속 진행(다음 운동): 카메라·스트림은 유지하고 감지 루프만 교체.
   // startLoop는 기존 rAF를 멈추지 않고 startCamera는 스트림을 누수하므로
   // 반드시 stopLoop 후 재시작하고 카메라 재호출은 건너뛴다.
@@ -512,6 +530,17 @@ function onGuideComplete(g) {
     e.next.textContent = `다음: ${ng.name} →`;
     e.next.hidden = false;
     e.measureGo.hidden = true;
+    // 루틴 모드: 연속 재생 — 잠깐의 완료 비트 후 자동으로 다음 운동
+    if (guide.routineMode) {
+      clearTimeout(guide.autoNextTimer);
+      guide.autoNextTimer = setTimeout(() => {
+        if (guide.routineMode && guide.routineNextId && getCurrentScreen() === SCREENS.GUIDE) {
+          startGuide(guide.routineNextId, true);
+        }
+      }, ROUTINE.nextAutoMs);
+    }
+  } else if (guide.routineMode) {
+    showRoutineDone(r);        // 풀코스 완주 — 새싹이 완료 멘트
   } else {
     e.doneEmoji.textContent = '🌼';
     e.doneText.textContent = '오늘의 루틴 완주! 정원이 활짝 피었어요';
@@ -521,9 +550,43 @@ function onGuideComplete(g) {
   }
 }
 
+/** [오늘은 여기까지] — 중간에 끝내도 그날 완료. 한 것이 없으면 조용히 홈으로 */
+function endRoutineToday() {
+  const r = getTodayRoutine();
+  if (routineProgress(r).done === 0) { showScreen(SCREENS.HOME); return; }
+  showRoutineDone(r);
+}
+
+/** 루틴 마무리 화면 — 새싹이 멘트 + N/6 (풀코스면 ⭐). 카메라 정지 */
+function showRoutineDone(r) {
+  const e = guide.els;
+  guide.routineMode = false;
+  stopGuideSession();
+  const { done, total } = routineProgress(r);
+  const full = isRoutineComplete(r);
+
+  e.btns.hidden = true;
+  e.idle.hidden = true;
+  e.dots.innerHTML = '';
+  e.hint.textContent = '';
+  e.text.textContent = '';
+  e.done.hidden = false;
+  e.doneEmoji.textContent = full ? '⭐' : '🌱';
+  e.doneText.textContent = full
+    ? `오늘도 손목 챙겼네요! 풀코스 완주 ⭐ (${done}/${total})`
+    : `오늘도 손목 챙겼네요! 🌱 (${done}/${total} 완료)`;
+  e.routineProg.innerHTML = r.ids.map((_, i) =>
+    `<span class="gp-dot${isSlotDone(r, i) ? ' on' : ''}"></span>`).join('');
+  e.routineProg.hidden = false;
+  e.next.hidden = true;
+  // 측정 "제안" — 괜찮을 때만, 판정 아님
+  e.measureGo.hidden = !(full && r.suggestMeasure);
+}
+
 function stopGuideSession() {
   if (!guide) return;
   clearTimeout(guide.neutralTimer);
+  clearTimeout(guide.autoNextTimer);
   if (guide.running) { guide.tracking.stopTracking(); guide.running = false; }
   guide.engine = null; guide.anim = null; guide.tracker = null;
   if (guide.els) guide.els.cam.textContent = '카메라';
@@ -550,6 +613,7 @@ async function renderRecords() {
       latest: $('recLatest'), delta: $('recDelta'), best: $('recBest'),
       canvas: $('recCanvas'), trendHint: $('recTrendHint'),
       guideCount: $('recGuideCount'), history: $('recHistory'), historyEmpty: $('recHistoryEmpty'),
+      routineCount: $('recRoutineCount'), routine: $('recRoutine'), routineEmpty: $('recRoutineEmpty'),
     };
   }
   if (!guideNameMap) {
@@ -558,7 +622,26 @@ async function renderRecords() {
   }
   const s = load();
   renderTrend(recordsEls, s.measurements || []);
+  renderRoutineLog(recordsEls, s.routineLog || []);
   renderHistory(recordsEls, s.guideDone || []);
+}
+
+/** 데일리 루틴 기록: 날짜별 "N/6 완료" (풀코스면 ⭐) */
+function renderRoutineLog(e, log) {
+  if (!log.length) {
+    e.routine.hidden = true; e.routineEmpty.hidden = false; e.routineCount.textContent = '';
+    return;
+  }
+  e.routineEmpty.hidden = true; e.routine.hidden = false;
+  const full = log.filter((l) => l.done >= l.total).length;
+  e.routineCount.textContent = `총 ${log.length}일 · 완주 ${full}회`;
+
+  const recent = [...log].reverse().slice(0, 14);
+  e.routine.innerHTML = recent.map((l) => {
+    const star = l.done >= l.total ? ' ⭐' : '';
+    return `<li class="rh-item"><span class="rh-date">${fmtMd(l.at)}</span>` +
+           `<span class="rh-name">${l.done}/${l.total} 완료${star}</span></li>`;
+  }).join('');
 }
 
 function renderTrend(e, ms) {

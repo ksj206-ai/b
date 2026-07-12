@@ -104,8 +104,10 @@ export const ROM = {
 
 // ─── 데일리 루틴 ───
 export const ROUTINE = {
-  order: ['mobility', 'glide', 'hold'], // 코스 순서: 가동 → 활주 → 유지 (side 운동이 앞이라 뷰 전환 최소)
-  measureEveryDays: 7,                  // 측정 "제안" 주기 (일) — 제안 문구까지만, 판정 아님
+  // 오늘의 루틴 = 매일 동일한 풀코스 (고정 순서 — 요일 로테이션 없음, "고민하게 만들면 안 한다")
+  course: ['flex_ext', 'deviation', 'tendon_glide', 'pinch_hold', 'grip_hold', 'finger_spread'],
+  measureEveryDays: 7,   // 측정 "제안" 주기 (일) — 제안 문구까지만, 판정 아님
+  nextAutoMs: 2200,      // 연속 재생: 완료 비트 후 다음 운동 자동 시작(ms)
 };
 
 // ─── localStorage 키 ───
