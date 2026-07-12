@@ -143,6 +143,7 @@ export function createStepEngine(guide, handlers = {}) {
   const steps = guide.steps;
   let i = -1, stepStart = 0, detector = null, count = 0;
   let armed = false, lastCountAt = 0, idleShown = false;
+  let done = false; // onComplete 1회 보장 (완료 후 update가 매 프레임 재발화하는 것 방지)
 
   function enter(index, now) {
     i = index;
@@ -157,13 +158,16 @@ export function createStepEngine(guide, handlers = {}) {
     }
   }
 
-  function start(now) { enter(0, now); }
+  function start(now) { done = false; enter(0, now); }
 
   /** 중립 준비 완료 → follow 카운트 시작 (컨트롤러가 호출) */
   function arm(now) { armed = true; lastCountAt = now ?? stepStart; if (detector) detector.reset(); }
 
   function next(now) {
-    if (i + 1 >= steps.length) { handlers.onComplete?.(); return; }
+    if (i + 1 >= steps.length) {
+      if (!done) { done = true; handlers.onComplete?.(); }
+      return;
+    }
     enter(i + 1, now);
   }
 
@@ -171,7 +175,7 @@ export function createStepEngine(guide, handlers = {}) {
   function skip(now) { next(now ?? performance.now()); }
 
   function update(now, snap) {
-    if (i < 0) return;
+    if (i < 0 || done) return;
     const step = steps[i];
 
     if (step.type === 'intro' || step.type === 'outro') {

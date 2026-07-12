@@ -72,7 +72,7 @@ export const GUIDES = [
       { type: 'intro', text: '손을 편하게 펴 주세요', dur: 3, pose: { curl: 0.2, spread: 0.4 } },
       {
         type: 'follow', text: '주먹을 꽉 쥐고 잠깐 유지해요', reps: 5, detect: 'gripHold',
-        base: { spread: 0.3 },
+        base: { spread: 0.4 }, // intro/outro pose와 동일하게 (스텝 전환 시 점프 방지)
         anim: [[0, { curl: 0.2 }], [0.6, { curl: 1.0 }], [3.6, { curl: 1.0 }], [4.4, { curl: 0.2 }]],
       },
       { type: 'outro', text: '수고했어요! 손을 털어요', dur: 3, pose: { curl: 0.2, spread: 0.4 } },

@@ -234,6 +234,7 @@ async function initGuide() {
     wired: true, tracking, mods: { drawGuideHand, createAnimPlayer, createStepEngine, createWristTracker, getGuide },
     els, ctx: els.canvas.getContext('2d'),
     engine: null, tracker: null, anim: null, cur: null, running: false, neutralTimer: null,
+    lastParams: null, poseBlend: null,
   };
 
   // 목록 구성
@@ -268,6 +269,8 @@ async function startGuide(id) {
   if (!g) return;
   const { els, ctx, mods } = guide;
   guide.cur = g;
+  guide.lastParams = null;
+  guide.poseBlend = null;
   els.list.hidden = true;
   els.player.hidden = false;
   els.done.hidden = true;
@@ -290,6 +293,10 @@ async function startGuide(id) {
         ? mods.createAnimPlayer(step.anim, step.base || {})
         : null;
       guide.staticPose = step.pose || {};
+      // 정적 스텝 진입 시: 직전 프레임 파라미터에서 pose로 0.3s 모핑 (하드컷 방지, 명세서 §7③)
+      guide.poseBlend = (!guide.anim && guide.lastParams)
+        ? { from: guide.lastParams, start: null }
+        : null;
     },
     onCount: (count, reps) => fillDots(count, reps),
     onStatus: ({ hint, comp, idle }) => {
@@ -318,9 +325,11 @@ async function startGuide(id) {
     guide.running = true;
     engine.start(performance.now());
     guide.tracking.startLoop(({ hand, pose, now }) => {
-      // 시범 손 그리기
-      const params = guide.anim ? guide.anim.sample(now) : (guide.staticPose || {});
-      drawStage(ctx, guide.els.canvas, mods.drawGuideHand, params, g.view);
+      // 시범 손 그리기 (정적 스텝 진입 직후엔 직전 자세에서 모핑)
+      let params = guide.anim ? guide.anim.sample(now) : (guide.staticPose || {});
+      if (!guide.anim && guide.poseBlend) params = blendPose(guide, params, now);
+      guide.lastParams = params;
+      drawStage(ctx, guide.els.canvas, mods.drawGuideHand, params, g.view, now);
       // 사용자 인식 → 스텝 진행
       const snap = tracker.update(hand, pose, { usePose: g.view === 'side' });
       engine.update(now, snap);
@@ -332,14 +341,29 @@ async function startGuide(id) {
   }
 }
 
-function drawStage(ctx, canvas, drawGuideHand, params, view) {
+/** 스텝 전환 모핑: 직전 파라미터 → 정적 pose로 0.3s 스무스 블렌드 (숫자 파라미터만) */
+function blendPose(guide, to, now) {
+  const bl = guide.poseBlend;
+  if (bl.start == null) bl.start = now;
+  const k = Math.min(1, (now - bl.start) / 300);
+  if (k >= 1) { guide.poseBlend = null; return to; }
+  const e = k * k * (3 - 2 * k);
+  const out = { ...to };
+  for (const key in out) {
+    const a = bl.from[key];
+    if (typeof a === 'number' && typeof out[key] === 'number') out[key] = a + (out[key] - a) * e;
+  }
+  return out;
+}
+
+function drawStage(ctx, canvas, drawGuideHand, params, view, now) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   // 은은한 배경 원
   ctx.save();
   ctx.fillStyle = 'rgba(120,200,132,.08)';
   ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height / 2, 128, 0, 7); ctx.fill();
   ctx.restore();
-  drawGuideHand(ctx, params, view, { cx: canvas.width / 2, cy: canvas.height / 2, scale: 1 });
+  drawGuideHand(ctx, params, view, { cx: canvas.width / 2, cy: canvas.height / 2, scale: 1, now });
 }
 
 function buildDots(reps) {

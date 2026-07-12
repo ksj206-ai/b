@@ -6,8 +6,11 @@
 //     → 손가락 시차(스태거) 같은 표현도 자연 지원
 // ═══════════════════════════════════════════════════════════
 
-export const easeInOut = (t) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+// 5차 smootherstep — 양끝에서 속도·가속도 모두 0이라 3차보다 말랑하게 붙고 떨어짐
+export const easeInOut = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+
+// 팔로우스루 지연(s): 손가락 등이 본체 움직임을 살짝 뒤따르는 데 쓰는 과거 샘플 간격
+const LAG_S = 0.09;
 
 /** 키프레임 [[t(s),{params}], ...] → { paramKey: [{t,v}, ...] } 트랙맵 */
 export function buildTracks(keyframes) {
@@ -53,6 +56,13 @@ export function createAnimPlayer(keyframes, base = {}) {
     const t = duration > 0 ? (((now - startTime) / 1000) % duration) : 0;
     const out = { ...base };
     for (const k in tracks) out[k] = sampleTrack(tracks[k], t);
+    // 팔로우스루: 약간 과거의 값과의 차이를 함께 전달 (그리기 쪽에서 잔류 효과에 사용)
+    if (duration > 0) {
+      const tp = (t - LAG_S + duration) % duration;
+      const lag = {};
+      for (const k in tracks) lag[k] = sampleTrack(tracks[k], tp) - out[k];
+      out.__lag = lag;
+    }
     return out;
   }
 
