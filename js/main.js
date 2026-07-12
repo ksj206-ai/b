@@ -9,6 +9,7 @@ import { SCREENS, ROUTINE } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateRoutineSec,
+  conditionOf, recordCondition,
 } from './routine.js';
 import { getGuide } from './guide/guideData.js';
 
@@ -57,13 +58,19 @@ function renderHome() {
 
   const title = $('todayRoutine'), btn = $('routineStart'), speech = $('mascotSpeech');
   if (complete) {
-    title.textContent = '오늘 풀코스 완주! 정원이 활짝 피었어요 ⭐';
+    title.textContent = r.gentle
+      ? '오늘 순한 코스 완주! 잘 쉬어가고 있어요 🌿'
+      : '오늘 풀코스 완주! 정원이 활짝 피었어요 ⭐';
     btn.textContent = '한 번 더 하기';
-    speech.textContent = '와, 풀코스 완주! 대단해요 🌼';
+    speech.textContent = '와, 오늘 코스 완주! 대단해요 🌼';
   } else if (done > 0) {
     title.textContent = `잘하고 있어요! 이어서 ${getGuide(nextId).name}`;
     btn.textContent = `이어서 하기 (${done}/${total}) →`;
     speech.textContent = '조금만 더! 이어서 해봐요 🌿';
+  } else if (r.gentle) {
+    title.textContent = `오늘은 순한 코스로 가볍게, ${min}분이면 돼요`;
+    btn.textContent = '시작하기 🌱';
+    speech.textContent = '어제 뻐근했죠? 오늘은 살살 해요 🌿';
   } else {
     title.textContent = `오늘의 손목 풀코스, ${min}분이면 돼요`;
     btn.textContent = '시작하기 🌱';
@@ -297,8 +304,9 @@ async function initGuide() {
     text: $('gpText'), dots: $('gpDots'), hint: $('gpHint'), idle: $('gpIdle'),
     skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
     retry: $('gpRetry'), proceed: $('gpProceed'),
-    doneEmoji: $('gpDoneEmoji'), doneText: $('gpDoneText'),
+    doneEmoji: $('gpDoneEmoji'), doneText: $('gpDoneText'), rest: $('gpRest'),
     routineProg: $('gpRoutineProg'), next: $('gpNext'), measureGo: $('gpMeasureGo'),
+    condition: $('gpCondition'), condSkip: $('gpCondSkip'),
     safe: document.querySelector('.gp-safe'), btns: document.querySelector('.gp-btns'),
   };
 
@@ -335,6 +343,14 @@ async function initGuide() {
   els.next.addEventListener('click', () => {
     if (guide.routineNextId) startGuide(guide.routineNextId, guide.routineMode);
   });
+  // 컨디션 기록: 탭 즉시 저장 → 완료 화면 (추가 질문 없음)
+  for (const b of els.condition.querySelectorAll('.gp-cond-btn')) {
+    b.addEventListener('click', () => {
+      recordCondition(b.dataset.cond);
+      finishConditionAsk(b.dataset.cond);
+    });
+  }
+  els.condSkip.addEventListener('click', () => finishConditionAsk(null));
 
   consumeAutoStart();
 }
@@ -389,6 +405,7 @@ async function startGuide(id, routineMode = false) {
   els.list.hidden = true;
   els.player.hidden = false;
   els.done.hidden = true;
+  els.condition.hidden = true;
   els.btns.hidden = false;
   els.idle.hidden = true;
   els.name.textContent = `${g.emoji} ${g.name}`;
@@ -540,7 +557,7 @@ function onGuideComplete(g) {
       }, ROUTINE.nextAutoMs);
     }
   } else if (guide.routineMode) {
-    showRoutineDone(r);        // 풀코스 완주 — 새싹이 완료 멘트
+    askCondition(r);           // 풀코스 완주 — 컨디션 한 화면 → 새싹이 완료 멘트
   } else {
     e.doneEmoji.textContent = '🌼';
     e.doneText.textContent = '오늘의 루틴 완주! 정원이 활짝 피었어요';
@@ -554,11 +571,35 @@ function onGuideComplete(g) {
 function endRoutineToday() {
   const r = getTodayRoutine();
   if (routineProgress(r).done === 0) { showScreen(SCREENS.HOME); return; }
-  showRoutineDone(r);
+  askCondition(r);
 }
 
-/** 루틴 마무리 화면 — 새싹이 멘트 + N/6 (풀코스면 ⭐). 카메라 정지 */
-function showRoutineDone(r) {
+/** 루틴 마무리 앞에 컨디션 한 화면 — 이미 오늘 기록했으면 건너뜀 (마찰 제거) */
+function askCondition(r) {
+  const e = guide.els;
+  guide.routineMode = false;
+  guide.pendingRoutine = r;
+  stopGuideSession();
+  const prev = conditionOf();
+  if (prev) { showRoutineDone(r, prev.condition); return; }
+
+  e.btns.hidden = true;
+  e.idle.hidden = true;
+  e.dots.innerHTML = '';
+  e.hint.textContent = '';
+  e.text.textContent = '';
+  e.done.hidden = true;
+  e.condition.hidden = false;
+}
+
+/** 컨디션 탭/건너뛰기 → 완료 화면으로 */
+function finishConditionAsk(condition) {
+  guide.els.condition.hidden = true;
+  showRoutineDone(guide.pendingRoutine || getTodayRoutine(), condition);
+}
+
+/** 루틴 마무리 화면 — 새싹이 멘트 + N/6 (풀코스면 ⭐) */
+function showRoutineDone(r, condition = null) {
   const e = guide.els;
   guide.routineMode = false;
   stopGuideSession();
@@ -570,11 +611,14 @@ function showRoutineDone(r) {
   e.dots.innerHTML = '';
   e.hint.textContent = '';
   e.text.textContent = '';
+  e.condition.hidden = true;
   e.done.hidden = false;
   e.doneEmoji.textContent = full ? '⭐' : '🌱';
   e.doneText.textContent = full
     ? `오늘도 손목 챙겼네요! 풀코스 완주 ⭐ (${done}/${total})`
     : `오늘도 손목 챙겼네요! 🌱 (${done}/${total} 완료)`;
+  // 뻐근해요: 쉬어가도 된다는 한 줄만 (판정·조언 아님)
+  e.rest.hidden = condition !== 'stiff';
   e.routineProg.innerHTML = r.ids.map((_, i) =>
     `<span class="gp-dot${isSlotDone(r, i) ? ' on' : ''}"></span>`).join('');
   e.routineProg.hidden = false;
@@ -614,6 +658,7 @@ async function renderRecords() {
       canvas: $('recCanvas'), trendHint: $('recTrendHint'),
       guideCount: $('recGuideCount'), history: $('recHistory'), historyEmpty: $('recHistoryEmpty'),
       routineCount: $('recRoutineCount'), routine: $('recRoutine'), routineEmpty: $('recRoutineEmpty'),
+      week: $('recWeek'),
     };
   }
   if (!guideNameMap) {
@@ -622,8 +667,27 @@ async function renderRecords() {
   }
   const s = load();
   renderTrend(recordsEls, s.measurements || []);
+  renderWeek(recordsEls, s.conditions || []);
   renderRoutineLog(recordsEls, s.routineLog || []);
   renderHistory(recordsEls, s.guideDone || []);
+}
+
+/** 최근 7일 컨디션 이모지 행 — 날짜별 표시 (기록 없으면 ·) */
+const COND_EMOJI = { good: '😊', soso: '😐', stiff: '😣' };
+function renderWeek(e, conditions) {
+  const byDate = Object.fromEntries(conditions.map((c) => [c.at, c.condition]));
+  const dayName = ['일', '월', '화', '수', '목', '금', '토'];
+  const cells = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = todayStr(d);
+    const emoji = COND_EMOJI[byDate[key]] || '·';
+    cells.push(`<div class="rw-day${i === 0 ? ' is-today' : ''}">` +
+               `<span class="rw-label">${dayName[d.getDay()]}</span>` +
+               `<span class="rw-emoji">${emoji}</span></div>`);
+  }
+  e.week.innerHTML = cells.join('');
 }
 
 /** 데일리 루틴 기록: 날짜별 "N/6 완료" (풀코스면 ⭐) */

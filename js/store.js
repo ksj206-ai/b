@@ -45,6 +45,7 @@ function defaults() {
     // 머지가 내부 키를 보호하지 못함). 생성·갱신은 routine.js가 담당.
     routine: null,
     routineLog: [],       // 데일리 루틴 진행 기록 — 하루 1엔트리 { at, done, total }
+    conditions: [],       // 손목 컨디션 기록 — 하루 1엔트리 { at, condition: good|soso|stiff }
   };
 }
 

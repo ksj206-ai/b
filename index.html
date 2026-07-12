@@ -125,9 +125,21 @@
             <button class="btn btn-back" id="gpSkip">건너뛰기</button>
           </div>
 
+          <!-- 컨디션 기록 — 탭 1번, 10초 데이터 (통증 언어 금지: 컨디션·피로 표현만) -->
+          <div id="gpCondition" class="gp-condition" hidden>
+            <p class="gp-cond-q">지금 손목 어때요?</p>
+            <div class="gp-cond-btns">
+              <button class="gp-cond-btn" data-cond="good">😊<span>좋아요</span></button>
+              <button class="gp-cond-btn" data-cond="soso">😐<span>보통이에요</span></button>
+              <button class="gp-cond-btn" data-cond="stiff">😣<span>뻐근해요</span></button>
+            </div>
+            <button class="btn btn-back" id="gpCondSkip">건너뛰기</button>
+          </div>
+
           <div id="gpDone" class="gp-done" hidden>
             <p class="gp-done-emoji" id="gpDoneEmoji">🌟</p>
             <p class="gp-done-text" id="gpDoneText">잘하셨어요! 오늘도 손목을 돌봤어요.</p>
+            <p class="gp-rest" id="gpRest" hidden>오늘은 무리하지 않아도 괜찮아요. 뻐근함이 계속되면 충분히 쉬어주세요.</p>
             <div id="gpRoutineProg" class="gp-routine-prog" hidden></div>
             <button class="btn" id="gpNext" hidden>다음 운동 →</button>
             <button class="btn" id="gpMeasureGo" data-nav="measure" hidden>📏 손목 상태도 기록해 볼까요?</button>
@@ -247,6 +259,7 @@
             <span class="rec-card-title">데일리 루틴</span>
             <span class="rec-count" id="recRoutineCount"></span>
           </div>
+          <div id="recWeek" class="rec-week" aria-label="최근 7일 손목 컨디션"></div>
           <ul id="recRoutine" class="rec-history"></ul>
           <div id="recRoutineEmpty" class="rec-empty" hidden>
             <p class="rec-empty-emoji">🌱</p>

@@ -35,14 +35,38 @@ export function needMeasureSuggest(state = load(), date = todayStr()) {
   return Number.isNaN(diff) || diff >= ROUTINE.measureEveryDays;
 }
 
+// ─── 손목 컨디션 (피로·컨디션 언어만 — 통증 표현·판정·조언 금지) ───
+
+/** 지정 날짜의 컨디션 기록 조회 */
+export function conditionOf(state = load(), date = todayStr()) {
+  return (state.conditions || []).find((c) => c.at === date) || null;
+}
+
+/** 오늘 컨디션 저장 — 하루 1엔트리 (다시 저장하면 덮어씀) */
+export function recordCondition(condition, state = load(), date = todayStr()) {
+  state.conditions = state.conditions || [];
+  const prev = state.conditions.find((c) => c.at === date);
+  if (prev) prev.condition = condition;
+  else state.conditions.push({ at: date, condition });
+  save(state);
+  return state;
+}
+
+/** 어제 "뻐근해요"였으면 오늘은 순한 코스 — 제안일 뿐, 판정 아님 */
+function isGentleDay(state, date) {
+  const last = (state.conditions || [])[state.conditions.length - 1];
+  return !!last && last.condition === 'stiff' && dayDiff(last.at, date) === 1;
+}
+
 /** 오늘의 코스 운동 id 목록 (존재하는 가이드만 — id 변경·삭제 대비) */
-function courseIds() {
-  return ROUTINE.course.filter((id) => getGuide(id));
+function courseIds(state, date) {
+  const base = isGentleDay(state, date) ? ROUTINE.gentleCourse : ROUTINE.course;
+  return base.filter((id) => getGuide(id));
 }
 
 /** 오늘의 루틴 취득 — 같은 날 + 같은 코스면 캐시, 아니면 새로 구성 */
 export function getTodayRoutine(state = load(), date = todayStr()) {
-  const ids = courseIds();
+  const ids = courseIds(state, date);
   const r = state.routine;
   const sameCourse = r && r.date === date && Array.isArray(r.ids)
     && r.ids.length === ids.length && r.ids.every((id, i) => id === ids[i]);
@@ -50,6 +74,7 @@ export function getTodayRoutine(state = load(), date = todayStr()) {
 
   state.routine = {
     v: 2, date, ids,
+    gentle: isGentleDay(state, date),
     // 같은 날 코스 구성이 바뀐 경우(예: 앱 업데이트) 완료 표시는 승계
     doneIds: (r && r.date === date && Array.isArray(r.doneIds))
       ? r.doneIds.filter((id) => ids.includes(id)) : [],
