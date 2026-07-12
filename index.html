@@ -57,6 +57,26 @@
             📏 괜찮다면 이번 주 손목 상태도 기록해 볼까요?</button>
         </div>
 
+        <!-- 리마인더 온보딩/설정 — 탭이 켜져 있을 때만 동작 (reminder.js 상단 주석 참고) -->
+        <div id="remindPanel" class="remind-panel" hidden>
+          <p class="remind-q" id="remindTitle">하루 중 언제 손목을 챙기고 싶어요?</p>
+          <p class="remind-sub">상황에 맞게 1~2개 골라주세요 (최대 3개)</p>
+          <div class="remind-presets" id="remindPresets"></div>
+          <div class="remind-custom">
+            <label for="remindCustom">직접 입력</label>
+            <input type="time" id="remindCustom" />
+            <button class="btn btn-back" id="remindAdd">추가</button>
+          </div>
+          <div class="remind-selected" id="remindSelected"></div>
+          <p class="remind-note" id="remindNote" hidden>
+            브라우저 알림 권한이 꺼져 있어 알림이 가지 않아요. (주소창 자물쇠 → 알림에서 켤 수 있어요)</p>
+          <div class="remind-btns">
+            <button class="btn" id="remindSave">알림 받기 🔔</button>
+            <button class="btn btn-back" id="remindOff" hidden>알림 끄기</button>
+            <button class="btn btn-back" id="remindSkip">건너뛰기</button>
+          </div>
+        </div>
+
         <nav class="sections" aria-label="주요 기능">
           <button class="section-card is-main" data-nav="guide">
             <span class="section-emoji">🎬</span>
@@ -79,6 +99,7 @@
           </button>
         </nav>
 
+        <button class="btn btn-back home-records" id="remindEntry">🔔 알림 설정</button>
         <button class="btn btn-back home-records" data-nav="records">📈 내 손목 기록 보기</button>
       </section>
 

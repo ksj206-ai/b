@@ -12,6 +12,10 @@ import {
   conditionOf, recordCondition,
 } from './routine.js';
 import { getGuide } from './guide/guideData.js';
+import {
+  REMINDER_PRESETS, REMINDER_MAX, getReminder, saveReminder,
+  requestPermission, isBlocked, startReminderLoop,
+} from './reminder.js';
 
 /** 홈 헤더의 연속 달성 배지를 현재 스트릭으로 갱신 */
 function renderStreak() {
@@ -79,6 +83,98 @@ function renderHome() {
 
   // 측정 "제안" 칩 — 제안 문구까지만 (측정값은 루틴 구성에 쓰지 않음)
   $('routineMeasureChip').hidden = !r.suggestMeasure;
+
+  renderRemindEntry();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 리마인더 온보딩/설정 UI — 한 화면, 프리셋 + 직접 입력, 상한 3회
+// 발송 로직·한계(탭 켜짐 필요)는 reminder.js 참고
+// ═══════════════════════════════════════════════════════════
+let remindEls = null;
+let remindSel = []; // 패널에서 고른 시간들
+
+function initReminderUI() {
+  const $ = (id) => document.getElementById(id);
+  remindEls = {
+    panel: $('remindPanel'), title: $('remindTitle'), presets: $('remindPresets'),
+    custom: $('remindCustom'), add: $('remindAdd'), selected: $('remindSelected'),
+    note: $('remindNote'), save: $('remindSave'), off: $('remindOff'),
+    skip: $('remindSkip'), entry: $('remindEntry'),
+  };
+
+  remindEls.presets.innerHTML = REMINDER_PRESETS.map((p) =>
+    `<button class="remind-preset" data-time="${p.time}">` +
+    `${p.emoji} ${p.label}<span>${p.time}</span></button>`).join('');
+  for (const b of remindEls.presets.querySelectorAll('.remind-preset')) {
+    b.addEventListener('click', () => toggleRemindTime(b.dataset.time));
+  }
+  remindEls.add.addEventListener('click', () => {
+    if (remindEls.custom.value) toggleRemindTime(remindEls.custom.value);
+  });
+  remindEls.save.addEventListener('click', () => {
+    saveReminder({ times: remindSel, enabled: true });
+    closeRemindPanel();
+    requestPermission(); // 첫 설정 시에만 실제 프롬프트 — 거부해도 다시 조르지 않음
+  });
+  remindEls.skip.addEventListener('click', () => {
+    // 온보딩 건너뛰기 → 13:00 하나로 조용히 시작 (권한 요청 없음)
+    if (!getReminder()) saveReminder({ times: ['13:00'], enabled: true });
+    closeRemindPanel();
+  });
+  remindEls.off.addEventListener('click', () => {
+    saveReminder({ enabled: false });
+    closeRemindPanel();
+  });
+  remindEls.entry.addEventListener('click', () => openRemindPanel('settings'));
+
+  if (!getReminder()) openRemindPanel('onboard'); // 알림 첫 활성화 — 온보딩 한 화면
+}
+
+function toggleRemindTime(t) {
+  if (remindSel.includes(t)) remindSel = remindSel.filter((x) => x !== t);
+  else if (remindSel.length < REMINDER_MAX) remindSel = [...remindSel, t].sort();
+  renderRemindPanel();
+}
+
+function openRemindPanel(mode) {
+  const r = getReminder();
+  remindSel = (mode === 'settings' && r) ? [...r.times] : [];
+  remindEls.title.textContent = mode === 'settings'
+    ? '🔔 알림 시간' : '하루 중 언제 손목을 챙기고 싶어요?';
+  remindEls.save.textContent = mode === 'settings' ? '저장' : '알림 받기 🔔';
+  remindEls.skip.textContent = mode === 'settings' ? '닫기' : '건너뛰기';
+  remindEls.off.hidden = !(mode === 'settings' && r && r.enabled);
+  remindEls.note.hidden = !isBlocked(r);
+  remindEls.panel.hidden = false;
+  renderRemindPanel();
+}
+
+function closeRemindPanel() {
+  remindEls.panel.hidden = true;
+  renderRemindEntry();
+}
+
+function renderRemindPanel() {
+  for (const b of remindEls.presets.querySelectorAll('.remind-preset')) {
+    b.classList.toggle('is-on', remindSel.includes(b.dataset.time));
+  }
+  remindEls.selected.innerHTML = remindSel.map((t) =>
+    `<button class="remind-chip" data-time="${t}" aria-label="${t} 삭제">${t} ✕</button>`).join('');
+  for (const c of remindEls.selected.querySelectorAll('.remind-chip')) {
+    c.addEventListener('click', () => toggleRemindTime(c.dataset.time));
+  }
+  remindEls.save.disabled = remindSel.length === 0;
+}
+
+/** 홈 진입 버튼 요약: 켜짐 → 시간 나열, 꺼짐/미설정 → 알림 설정 */
+function renderRemindEntry() {
+  const e = remindEls?.entry;
+  if (!e) return;
+  const r = getReminder();
+  e.textContent = (r && r.enabled && r.times.length)
+    ? `🔔 알림 ${r.times.join(' · ')}${isBlocked(r) ? ' (권한 꺼짐)' : ''}`
+    : '🔔 알림 설정';
 }
 
 /** 홈/알림 → 루틴 원탭 진입 (중간 화면 없이 바로 재생) */
@@ -103,6 +199,9 @@ function boot() {
     if (name === SCREENS.GUIDE) initGuide();
     if (name === SCREENS.RECORDS) renderRecords();
   });
+
+  initReminderUI();
+  startReminderLoop();
 
   // ?routine=today — 알림 클릭 진입: 홈 건너뛰고 바로 루틴 시작 (이미 완주면 홈 유지)
   const qp = new URLSearchParams(location.search);

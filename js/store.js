@@ -46,6 +46,9 @@ function defaults() {
     routine: null,
     routineLog: [],       // 데일리 루틴 진행 기록 — 하루 1엔트리 { at, done, total }
     conditions: [],       // 손목 컨디션 기록 — 하루 1엔트리 { at, condition: good|soso|stiff }
+    // 리마인더 설정 — null이면 온보딩 전. 생성·갱신은 reminder.js가 담당
+    // (부분 객체 기본값 금지 — routine과 같은 얕은 머지 함정)
+    reminder: null,
   };
 }
 
