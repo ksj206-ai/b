@@ -41,6 +41,9 @@ function defaults() {
     lastVisit: null,      // ISO 날짜
     measurements: [],     // ROM 측정 기록 (2단계 이후)
     guideDone: [],        // 완료한 가이드 기록 (가이드 모듈 이후)
+    // 오늘의 루틴 캐시 — 반드시 null 유지(부분 객체 금지: load()의 얕은
+    // 머지가 내부 키를 보호하지 못함). 생성·갱신은 routine.js가 담당.
+    routine: null,
   };
 }
 

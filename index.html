@@ -49,9 +49,12 @@
               <path d="M52 71 Q60 79 68 71" stroke="#3c6b47" stroke-width="3" fill="none" stroke-linecap="round" />
             </svg>
           </div>
-          <p class="home-hero-label">오늘의 루틴</p>
+          <p class="home-hero-label">오늘의 루틴 <span id="routineDur" class="routine-dur" hidden></span></p>
+          <ol id="routineCourse" class="routine-course" aria-label="오늘의 루틴 코스"></ol>
           <p class="home-hero-title" id="todayRoutine">1분, 손목 굽힘·폄부터 시작해요</p>
-          <button class="btn btn-primary btn-hero" data-nav="guide">새싹이랑 시작하기 🌱</button>
+          <button class="btn btn-primary btn-hero" id="routineStart">새싹이랑 시작하기 🌱</button>
+          <button class="routine-chip" id="routineMeasureChip" data-nav="measure" hidden>
+            📏 괜찮다면 이번 주 손목 상태도 기록해 볼까요?</button>
         </div>
 
         <nav class="sections" aria-label="주요 기능">
@@ -123,9 +126,15 @@
           </div>
 
           <div id="gpDone" class="gp-done" hidden>
-            <p class="gp-done-emoji">🌟</p>
-            <p class="gp-done-text">잘하셨어요! 오늘도 손목을 돌봤어요.</p>
-            <button class="btn" id="gpToList">다른 운동 보기</button>
+            <p class="gp-done-emoji" id="gpDoneEmoji">🌟</p>
+            <p class="gp-done-text" id="gpDoneText">잘하셨어요! 오늘도 손목을 돌봤어요.</p>
+            <div id="gpRoutineProg" class="gp-routine-prog" hidden></div>
+            <button class="btn" id="gpNext" hidden>다음 운동 →</button>
+            <button class="btn" id="gpMeasureGo" data-nav="measure" hidden>📏 손목 상태도 기록해 볼까요?</button>
+            <div class="gp-done-btns">
+              <button class="btn btn-back" id="gpToList">다른 운동 보기</button>
+              <button class="btn btn-back" data-nav="home">홈으로</button>
+            </div>
           </div>
         </div>
       </section>

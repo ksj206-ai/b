@@ -102,6 +102,12 @@ export const ROM = {
   neutralMinSamples: 3, // 중립 평균에 필요한 최소 표본 (원본 L828, L1169)
 };
 
+// ─── 데일리 루틴 ───
+export const ROUTINE = {
+  order: ['mobility', 'glide', 'hold'], // 코스 순서: 가동 → 활주 → 유지 (side 운동이 앞이라 뷰 전환 최소)
+  measureEveryDays: 7,                  // 측정 "제안" 주기 (일) — 제안 문구까지만, 판정 아님
+};
+
 // ─── localStorage 키 ───
 export const STORAGE_KEYS = {
   ROOT: 'wristGarden',

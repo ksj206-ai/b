@@ -7,7 +7,7 @@
 export const GUIDES = [
   // ① 손목 굽힘·폄 (side) — 마일스톤
   {
-    id: 'flex_ext', name: '손목 굽힘·폄 스트레칭', view: 'side', emoji: '✋',
+    id: 'flex_ext', name: '손목 굽힘·폄 스트레칭', view: 'side', emoji: '✋', cat: 'mobility', short: '굽힘·폄',
     steps: [
       { type: 'intro', text: '팔을 편하게 두고 손에 힘을 빼요', dur: 3, pose: { wristAngle: 0, curl: 0.15 } },
       {
@@ -22,7 +22,7 @@ export const GUIDES = [
 
   // ② 좌우 편위 (front)
   {
-    id: 'deviation', name: '손목 좌우 편위', view: 'front', emoji: '🖐️',
+    id: 'deviation', name: '손목 좌우 편위', view: 'front', emoji: '🖐️', cat: 'mobility', short: '좌우 편위',
     steps: [
       { type: 'intro', text: '손바닥을 카메라로 향해 펴 주세요', dur: 3, pose: { devAngle: 0, spread: 0.5 } },
       {
@@ -37,7 +37,7 @@ export const GUIDES = [
 
   // ③ 힘줄 활주: 쫙→갈고리→주먹 (front)
   {
-    id: 'tendon_glide', name: '힘줄 활주 운동', view: 'front', emoji: '🤚',
+    id: 'tendon_glide', name: '힘줄 활주 운동', view: 'front', emoji: '🤚', cat: 'glide', short: '힘줄 활주',
     steps: [
       { type: 'intro', text: '손바닥을 펴고 시작해요', dur: 3, pose: { curl: 0, curlTip: 0, spread: 0.8 } },
       {
@@ -53,7 +53,7 @@ export const GUIDES = [
 
   // ④ 핀치 (front)
   {
-    id: 'pinch_hold', name: '핀치 집기', view: 'front', emoji: '🤏',
+    id: 'pinch_hold', name: '핀치 집기', view: 'front', emoji: '🤏', cat: 'hold', short: '핀치',
     steps: [
       { type: 'intro', text: '엄지와 검지를 준비해요', dur: 3, pose: { pinchGap: 1, spread: 0.4 } },
       {
@@ -67,7 +67,7 @@ export const GUIDES = [
 
   // ⑤ 악력 유지 (front)
   {
-    id: 'grip_hold', name: '악력 유지', view: 'front', emoji: '✊',
+    id: 'grip_hold', name: '악력 유지', view: 'front', emoji: '✊', cat: 'hold', short: '악력',
     steps: [
       { type: 'intro', text: '손을 편하게 펴 주세요', dur: 3, pose: { curl: 0.2, spread: 0.4 } },
       {
@@ -81,7 +81,7 @@ export const GUIDES = [
 
   // ⑥ 손가락 벌리기 (front)
   {
-    id: 'finger_spread', name: '손가락 벌리기', view: 'front', emoji: '🖐️',
+    id: 'finger_spread', name: '손가락 벌리기', view: 'front', emoji: '🖐️', cat: 'glide', short: '벌리기',
     steps: [
       { type: 'intro', text: '손바닥을 펴 주세요', dur: 3, pose: { spread: 0.3, curl: 0 } },
       {
