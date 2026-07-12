@@ -4,7 +4,7 @@
 // 지연 로드해 라이브 인식 프리뷰를 구동(파이프라인 확인용).
 // ═══════════════════════════════════════════════════════════
 import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
-import { load, save, recordActivity, currentStreak, todayStr } from './store.js';
+import { load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr } from './store.js';
 import { SCREENS, ROUTINE } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
@@ -757,7 +757,7 @@ async function renderRecords() {
       canvas: $('recCanvas'), trendHint: $('recTrendHint'),
       guideCount: $('recGuideCount'), history: $('recHistory'), historyEmpty: $('recHistoryEmpty'),
       routineCount: $('recRoutineCount'), routine: $('recRoutine'), routineEmpty: $('recRoutineEmpty'),
-      week: $('recWeek'),
+      week: $('recWeek'), freeze: $('recFreeze'),
     };
   }
   if (!guideNameMap) {
@@ -766,14 +766,16 @@ async function renderRecords() {
   }
   const s = load();
   renderTrend(recordsEls, s.measurements || []);
-  renderWeek(recordsEls, s.conditions || []);
+  // 프리즈 사용 표시 — 숨기지 않고 그대로 보여준다 (신뢰)
+  recordsEls.freeze.hidden = !freezeUsedThisWeek(s);
+  renderWeek(recordsEls, s.conditions || [], s.lastFreezeAt);
   renderRoutineLog(recordsEls, s.routineLog || []);
   renderHistory(recordsEls, s.guideDone || []);
 }
 
-/** 최근 7일 컨디션 이모지 행 — 날짜별 표시 (기록 없으면 ·) */
+/** 최근 7일 컨디션 이모지 행 — 날짜별 표시 (프리즈 날 🧊, 기록 없으면 ·) */
 const COND_EMOJI = { good: '😊', soso: '😐', stiff: '😣' };
-function renderWeek(e, conditions) {
+function renderWeek(e, conditions, freezeAt) {
   const byDate = Object.fromEntries(conditions.map((c) => [c.at, c.condition]));
   const dayName = ['일', '월', '화', '수', '목', '금', '토'];
   const cells = [];
@@ -781,7 +783,7 @@ function renderWeek(e, conditions) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const key = todayStr(d);
-    const emoji = COND_EMOJI[byDate[key]] || '·';
+    const emoji = COND_EMOJI[byDate[key]] || (key === freezeAt ? '🧊' : '·');
     cells.push(`<div class="rw-day${i === 0 ? ' is-today' : ''}">` +
                `<span class="rw-label">${dayName[d.getDay()]}</span>` +
                `<span class="rw-emoji">${emoji}</span></div>`);
