@@ -1,2 +1,19 @@
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Node (추후 도구 도입 시)
+node_modules/
+npm-debug.log*
+
+# Logs / temp
+*.log
+.tmp/
+
 # 로컬 참고 자료 (웹 수집 이미지 등 - 저장소에 올리지 않음)
 model/
