@@ -215,13 +215,27 @@ function boot() {
 // ═══════════════════════════════════════════════════════════
 // 측정 화면: 손목 가동범위(굽힘·폄) 측정 → 저장 (지연 로드)
 // 흐름(phase): idle → neutral(중립 잡기) → measure(끝범위 유지-캡처) → result(저장)
-// tracking.js/measurement.js의 검증된 로직 재사용. rel<0=굽힘(A), rel>0=폄(B).
+// tracking.js/measurement.js의 검증된 로직 재사용. rel<0=굽힘(A), rel>0=폄(B)
+// — 이 부호는 왼손 기준. 오른손은 화면상 각도가 거울 반대라 측정 시 부호를 반전한다.
+// 손(left/right)은 사용자가 직접 선택한다 — MediaPipe handedness는 측면 뷰에서
+// 신뢰할 수 없어 자동 인식을 쓰지 않는다. 마지막 선택은 lastMeasureHand로 기억.
 // ═══════════════════════════════════════════════════════════
 let measure = null;
+let measureIniting = false; // import await 중 재진입으로 리스너가 이중 배선되는 것 방지
 const NEUTRAL_MS = 1600; // 중립 자세 유지 시간
 
 async function initMeasure() {
   if (measure && measure.wired) { setMeasurePhase('idle'); return; }
+  if (measureIniting) return;
+  measureIniting = true;
+  try {
+    await wireMeasure();
+  } finally {
+    measureIniting = false;
+  }
+}
+
+async function wireMeasure() {
   const tracking = await import('./tracking.js');
   const { createWristTracker, createRomMeasurer } = await import('./measurement.js');
 
@@ -236,21 +250,27 @@ async function initMeasure() {
     mActions: $('mActions'), mReneutral: $('mReneutral'), mFinish: $('mFinish'),
     mResult: $('mResult'), rFlex: $('rFlex'), rExt: $('rExt'), rSum: $('rSum'),
     rDelta: $('rDelta'), mAgain: $('mAgain'),
+    mHandSel: $('mHandSel'), mHandChip: $('mHandChip'),
   };
 
   const tracker = createWristTracker('measure');
   const rom = createRomMeasurer();
+  const savedHand = load().lastMeasureHand;
   measure = {
     wired: true, tracking, tracker, rom, els, running: false, phase: 'idle', neutralStart: null,
-    hand: null,       // 이번 측정의 손 ('left'|'right') — 중립 완료 시 확정
-    handVotes: null,  // 중립 유지 동안 handedness 프레임 투표 { left, right }
+    hand: savedHand === 'left' ? 'left' : 'right', // 측정할 손 — 사용자가 선택 (마지막 선택 기억)
   };
 
   els.mStart.addEventListener('click', () => startMeasure());
   els.mReneutral.addEventListener('click', () => { if (measure.running) enterNeutral(); });
   els.mFinish.addEventListener('click', () => finishMeasure());
   els.mAgain.addEventListener('click', () => { if (measure.running) enterNeutral(); else startMeasure(); });
+  for (const b of els.mHandSel.querySelectorAll('.m-hand-btn')) {
+    b.addEventListener('click', () => setHand(b.dataset.hand));
+  }
+  els.mHandChip.addEventListener('click', () => setHand(measure.hand === 'right' ? 'left' : 'right'));
 
+  renderHandUI();
   setMeasurePhase('idle');
 }
 
@@ -266,8 +286,8 @@ async function startMeasure() {
     m.running = true;
     m.tracker.reset(); m.rom.reset();
     enterNeutral();
-    tracking.startLoop(({ hand, pose, handLabel, now }) => {
-      measureFrame(now, m.tracker.update(hand, pose, { usePose: true }), handLabel);
+    tracking.startLoop(({ hand, pose, now }) => {
+      measureFrame(now, m.tracker.update(hand, pose, { usePose: true }));
     }, { pose: true });
   } catch (e) {
     els.camBadge.textContent = '오류'; els.mStart.disabled = false;
@@ -276,14 +296,41 @@ async function startMeasure() {
   }
 }
 
-/** 중립 재수집 시작 — 손(좌/우)도 다시 확정한다 (손 바꿔 측정 대비) */
+/** 중립 재수집 시작 */
 function enterNeutral() {
   measure.neutralStart = null;
-  measure.hand = null;
-  measure.handVotes = { left: 0, right: 0 };
   measure.rom.reset();
   setMeasurePhase('neutral');
 }
+
+/** 측정할 손 선택/전환 — 측정 중 전환 시 이미 캡처된 굽힘/폄 값도 서로 맞바꾼다
+ *  (거울상 보정 방향이 바뀌면 기존 A/B 캡처의 물리적 의미가 뒤바뀌기 때문) */
+function setHand(hand) {
+  const m = measure;
+  if (!m || (hand !== 'left' && hand !== 'right') || m.hand === hand) return;
+  m.hand = hand;
+  if (m.phase === 'measure') {
+    const st = m.rom.state;
+    [st.maxA, st.maxB] = [st.maxB, st.maxA];
+    [st.latchA, st.latchB] = [st.latchB, st.latchA];
+    st.holdRef = null; st.holdSamp = []; // 진행 중이던 끝범위 유지는 새로 시작
+    setCapVal(m.els.capFlexV, st.maxA); setCapVal(m.els.capExtV, st.maxB);
+    m.els.mFinish.disabled = !(st.maxA > 0 || st.maxB > 0);
+  }
+  renderHandUI();
+}
+
+/** 손 선택 UI 동기화: idle 선택 버튼 + 측정 중 전환 칩 */
+function renderHandUI() {
+  const m = measure; if (!m) return;
+  for (const b of m.els.mHandSel.querySelectorAll('.m-hand-btn')) {
+    b.classList.toggle('is-on', b.dataset.hand === m.hand);
+  }
+  m.els.mHandChip.textContent =
+    `${m.hand === 'right' ? '🫱' : '🫲'} ${HAND_KO[m.hand]} 측정 중 · 바꾸기`;
+}
+
+const HAND_KO = { left: '왼손', right: '오른손' };
 
 const fmtLive = (rel) => {
   const a = Math.round(Math.abs(rel));
@@ -294,30 +341,17 @@ const setCapVal = (el, v) => { el.textContent = v > 0 ? v + '°' : '–'; };
 const setProg = (p) => { measure.els.mProgBar.style.width = (Math.max(0, Math.min(1, p)) * 100) + '%'; };
 function pulseCap(chip) { chip.classList.remove('pop'); void chip.offsetWidth; chip.classList.add('pop'); }
 
-function measureFrame(now, snap, handLabel) {
+function measureFrame(now, snap) {
   const m = measure, e = m.els;
 
   if (m.phase === 'neutral') {
     if (snap.detected) {
-      // 유지 시도가 새로 시작될 때마다 투표도 리셋 — 인식 끊김으로 중단된
-      // 이전 시도(다른 손일 수 있음)의 표가 이월되면 반대 손이 기록될 수 있다
-      if (m.neutralStart == null) {
-        m.neutralStart = now;
-        m.handVotes = { left: 0, right: 0 };
-        m.tracker.beginNeutral();
-      }
-      // handedness 투표 — 원시 프레임(비반전) 입력이라 MediaPipe 라벨이
-      // 실제 손과 반대('Left'=오른손). 뒤집어서 실제 손 기준으로 센다.
-      if (handLabel) m.handVotes[handLabel === 'Left' ? 'right' : 'left']++;
+      if (m.neutralStart == null) { m.neutralStart = now; m.tracker.beginNeutral(); }
       const p = Math.min(1, (now - m.neutralStart) / NEUTRAL_MS);
       setProg(p);
       e.mLiveVal.textContent = '중립 잡는 중';
       e.mLiveCap.textContent = `손목을 곧게 편 채 유지 (${Math.ceil((NEUTRAL_MS - (now - m.neutralStart)) / 1000)}s)`;
-      if (p >= 1) {
-        const { left, right } = m.handVotes; // 다수결로 확정 (라벨 없던 프레임뿐이면 null)
-        m.hand = left + right === 0 ? null : (left >= right ? 'left' : 'right');
-        m.tracker.commitNeutral(); m.rom.reset(); m.neutralStart = null; setMeasurePhase('measure');
-      }
+      if (p >= 1) { m.tracker.commitNeutral(); m.rom.reset(); m.neutralStart = null; setMeasurePhase('measure'); }
     } else {
       m.neutralStart = null; setProg(0);
       e.mLiveVal.textContent = '손을 보여주세요';
@@ -327,9 +361,12 @@ function measureFrame(now, snap, handLabel) {
   }
 
   if (m.phase === 'measure') {
-    e.mLiveVal.textContent = snap.detected ? fmtLive(snap.rel) : '손을 보여주세요';
+    // 왼손/오른손 거울상 보정 — 옆모습에서 두 손은 거울상이라 굽힘 때 기우는
+    // 방향이 반대. rel 부호는 왼손 기준이므로 오른손이면 여기 한 곳에서 반전한다.
+    const rel = m.hand === 'right' ? -snap.rel : snap.rel;
+    e.mLiveVal.textContent = snap.detected ? fmtLive(rel) : '손을 보여주세요';
     e.mLiveCap.textContent = snap.detected ? '최대한 굽혔다 → 폈다' : '';
-    const r = m.rom.feed(snap.rel, now, snap.comp || !snap.detected);
+    const r = m.rom.feed(rel, now, snap.comp || !snap.detected);
     setCapVal(e.capFlexV, r.maxA); setCapVal(e.capExtV, r.maxB);
     if (r.captured) pulseCap(r.captured.side === 'A' ? e.capFlex : e.capExt);
     setProg(r.progress > 0 && r.progress < 1 ? r.progress : 0);
@@ -347,6 +384,7 @@ function finishMeasure() {
   s.measurements = s.measurements || [];
   const prev = s.measurements[s.measurements.length - 1] || null;
   s.measurements.push({ v: 1, at: todayStr(), hand: m.hand, flex, ext, rom: sum });
+  s.lastMeasureHand = m.hand; // 다음 측정의 기본 선택
   save(s);
   recordActivity(s); // 측정도 오늘 활동으로 스트릭 반영
   renderStreak();
@@ -373,6 +411,7 @@ function setMeasurePhase(phase) {
   show(e.mResult, phase === 'result');
   show(e.mLive, phase === 'neutral' || phase === 'measure');
   show(e.mProg, phase === 'neutral' || phase === 'measure');
+  show(e.mHandChip, phase === 'neutral' || phase === 'measure');
   show(e.mComp, false);
 
   if (phase === 'idle') {

@@ -353,6 +353,26 @@ body{
 
 .m-guide{ font-family:"Jua",sans-serif; font-size:13.5px; color:var(--ink); text-align:center; line-height:1.6; margin:0; word-break:keep-all; min-height:20px; }
 .m-panel{ display:flex; justify-content:center; }
+.m-panel-col{ flex-direction:column; align-items:center; gap:12px; }
+
+/* 측정할 손 선택 (idle) + 측정 중 전환 칩 */
+.m-hand-sel{ display:flex; gap:8px; }
+.m-hand-btn{
+  font-family:"Jua",sans-serif; font-size:13.5px; cursor:pointer;
+  padding:10px 24px; border-radius:99px; background:#fff; color:var(--muted);
+  border:2px solid var(--line); box-shadow:0 4px 0 var(--line); transition:transform .06s;
+}
+.m-hand-btn:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--line); }
+.m-hand-btn.is-on{
+  background:var(--sage-soft); border-color:var(--moss-d); color:var(--moss-dd);
+  box-shadow:0 4px 0 var(--sage);
+}
+.m-hand-chip{
+  position:absolute; top:12px; right:12px; font-family:"Jua",sans-serif; font-size:12px;
+  color:#fff; background:rgba(40,60,44,.72); border:none; border-radius:99px;
+  padding:6px 12px; cursor:pointer;
+}
+.m-hand-chip:active{ transform:translateY(1px); }
 
 /* 굽힘·폄 캡처 칩 */
 .m-caps{ display:flex; gap:12px; width:100%; }

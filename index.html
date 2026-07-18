@@ -183,6 +183,8 @@
           <div class="cam-wrap">
             <video id="camVideo" class="cam-video" playsinline muted></video>
             <span id="camBadge" class="cam-badge">카메라 꺼짐</span>
+            <!-- 측정 중 손 표시 + 탭하면 왼손↔오른손 전환 -->
+            <button id="mHandChip" class="m-hand-chip" hidden>🫱 오른손 측정 중 · 바꾸기</button>
             <!-- 라이브 각도 오버레이 -->
             <div id="mLive" class="m-live" hidden>
               <span id="mLiveVal" class="m-live-val">0°</span>
@@ -194,8 +196,12 @@
 
           <p id="mGuide" class="m-guide">손목을 옆에서 보이게 하고, 측정을 시작하세요.</p>
 
-          <!-- idle -->
-          <div id="mIdle" class="m-panel">
+          <!-- idle: 측정할 손 선택 + 시작 -->
+          <div id="mIdle" class="m-panel m-panel-col">
+            <div id="mHandSel" class="m-hand-sel" role="group" aria-label="측정할 손 선택">
+              <button class="m-hand-btn" data-hand="left">🫲 왼손</button>
+              <button class="m-hand-btn" data-hand="right">🫱 오른손</button>
+            </div>
             <button class="btn" id="mStart">측정 시작하기</button>
           </div>
 
