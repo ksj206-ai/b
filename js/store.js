@@ -36,11 +36,12 @@ export function update(patch) {
 
 function defaults() {
   return {
+    schemaVersion: 1,     // 저장 구조 버전 — 구조가 바뀌면 올리고 load()에서 마이그레이션
     streakDays: 0,        // 연속 달성일 (마지막 활동일 기준으로 누적)
     lastActiveDate: null, // 마지막으로 활동(가이드 완료·측정)한 날 (YYYY-MM-DD, 로컬)
     lastFreezeAt: null,   // 스트릭 프리즈로 건너뛴 공백일 (YYYY-MM-DD) — 주 1회 자동
     lastVisit: null,      // ISO 날짜
-    measurements: [],     // ROM 측정 기록 (2단계 이후)
+    measurements: [],     // ROM 측정 기록 — v1: { v, at, hand: 'left'|'right'|null, flex, ext, rom }
     guideDone: [],        // 완료한 가이드 기록 (가이드 모듈 이후)
     // 오늘의 루틴 캐시 — 반드시 null 유지(부분 객체 금지: load()의 얕은
     // 머지가 내부 키를 보호하지 못함). 생성·갱신은 routine.js가 담당.
