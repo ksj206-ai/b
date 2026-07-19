@@ -515,6 +515,49 @@ body{
 }
 
 /* ─── 모바일 (좁은 화면 큰 틀 대응) ─── */
+/* ─── 데스크톱 와이드 레이아웃 (모바일 세로형은 그대로) ─── */
+@media (min-width:960px){
+  .app{ width:min(1080px,92vw); }
+
+  /* 홈: 히어로(좌) + 알림·카드(우) */
+  #screen-home.is-active{
+    display:grid; grid-template-columns:1.25fr 1fr; gap:18px; align-items:start;
+  }
+  #screen-home > .home-hero{ grid-column:1; grid-row:1 / span 4; }
+  #screen-home > .remind-entry-chip,
+  #screen-home > .remind-panel,
+  #screen-home > .sections{ grid-column:2; }
+  #screen-home > .remind-entry-chip{ margin:0 auto; }
+  #screen-home > .sections{ flex-direction:column; margin-top:0; }
+
+  /* 기록: 추이 카드 전체 폭 + 나머지 2단 */
+  #screen-records.is-active{
+    display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start;
+  }
+  #screen-records > .screen-head{ grid-column:1 / -1; margin-bottom:0; }
+  #screen-records > .rec-card{ margin-bottom:0; }
+  #screen-records > .screen-head + .rec-card{ grid-column:1 / -1; }
+
+  /* 손목 체크: 카메라(좌) + 안내·패널(우) */
+  #screen-measure .mzone{
+    display:grid; grid-template-columns:1.4fr 1fr;
+    column-gap:20px; row-gap:14px; align-items:start;
+  }
+  #screen-measure .mzone > .cam-wrap{ grid-column:1; grid-row:1 / span 6; }
+  #screen-measure .mzone > :not(.cam-wrap){ grid-column:2; }
+
+  /* 오늘의 루틴: 목록 2단, 플레이어는 시범(좌) + 안내(우) */
+  #screen-guide .guide-list{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  #screen-guide .guide-player{
+    display:grid; grid-template-columns:1.4fr 1fr;
+    column-gap:20px; row-gap:10px; align-items:start;
+    justify-items:stretch;
+  }
+  #screen-guide .guide-player > .gp-top{ grid-column:1 / -1; }
+  #screen-guide .guide-player > .gp-stage{ grid-column:1; grid-row:2 / span 9; }
+  #screen-guide .guide-player > :not(.gp-top):not(.gp-stage){ grid-column:2; }
+}
+
 @media (max-width:420px){
   body{ padding:14px 8px 36px; }
   .app{ width:100%; }
