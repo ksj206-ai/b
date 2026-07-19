@@ -13,18 +13,27 @@ const IDLE_MS = 15000; // follow에서 이 시간동안 카운트 0이면 탈출
 // feed(snap, now) → { justCounted, hint, progress? }
 //   snap = { detected, rel, comp, fingers }
 
-/** 굽힘·폄: rel 왕복(굽힘 끝 + 폄 끝) 1세트 = 1회. 폄 목표는 낮게(2D 한계). comp 무효 */
+/** 굽힘·폄: rel 왕복(굽힘 끝 + 폄 끝) 1세트 = 1회. 폄 목표는 낮게(2D 한계).
+ *  comp(보상동작)는 무효 처리하지 않는다 — 가이드는 관대한 판정(§6).
+ *  감지값은 스냅샷에 남아 컨트롤러가 세션 비율만 집계한다(추후 코칭 힌트용). */
 function flexExtDetector({ flexT = 24, extT = 12 } = {}) {
   let reachedFlex = false, reachedExt = false;
+  let logAt = 0; // TODO(임시 진단 로그): 스로틀용 — 판정 점검 끝나면 로그와 함께 제거
   return {
     feed(snap) {
       if (!snap.detected) return { justCounted: false, hint: '손을 카메라에 보여주세요' };
-      if (snap.comp) return { justCounted: false, hint: '팔은 그대로, 손목만 움직여요' };
       const rel = snap.rel;
       if (rel <= -flexT) reachedFlex = true;
       if (rel >= extT) reachedExt = true;
       let justCounted = false;
       if (reachedFlex && reachedExt) { justCounted = true; reachedFlex = false; reachedExt = false; }
+      // TODO(임시 진단 로그): 판정 점검 끝나면 제거
+      const t = performance.now();
+      if (justCounted || t - logAt > 200) {
+        logAt = t;
+        console.log(`[flexExt] rel=${rel.toFixed(1)}° (굽힘 인정 ≤ -${flexT} / 폄 인정 ≥ +${extT}) ` +
+                    `굽힘도달=${reachedFlex} 폄도달=${reachedExt}${justCounted ? ' ✅ 1회 인정' : ''}`);
+      }
       const hint = reachedFlex ? '좋아요, 이제 위로 펴세요 ⬆'
         : reachedExt ? '이제 아래로 굽혀요 ⬇'
         : '천천히 굽혔다 펴세요';

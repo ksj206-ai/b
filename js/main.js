@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════
 import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
 import { load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr } from './store.js';
-import { SCREENS, ROUTINE } from './config.js';
+import { SCREENS, ROUTINE, HAND_LM } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
@@ -484,7 +484,9 @@ async function initGuide() {
     lastParams: null, poseBlend: null,
     routineMode: false, autoNextTimer: null, // 루틴 연속 재생 상태
     handSeen: false, seenN: 0, lostN: 0,     // 손 감지 칩 히스테리시스
-    lmCtx: null,
+    lmCtx: null, diagAt: 0,
+    compN: 0, frameN: 0, lastCompRatio: null, // 세션 comp 비율 (추후 코칭 힌트용)
+    neutralWait: null, baseWrist: null,       // ⓑ 중립 대기 / ⓐ 중립 시점 손목 기준점
   };
 
   // 목록 구성
@@ -600,20 +602,18 @@ async function startGuide(id, routineMode = false) {
         : null;
     },
     onCount: (count, reps) => { fillDots(count, reps); if (count > 0) repFeedback(count); },
-    onStatus: ({ hint, comp, idle }) => {
-      els.hint.textContent = comp ? '⚠ 팔은 그대로, 손목만 움직여요' : (hint || '');
-      els.hint.classList.toggle('warn', !!comp);
+    // comp는 힌트를 덮지 않는다 — 감지만 집계(관대한 판정, 코칭 힌트는 추후)
+    onStatus: ({ hint, idle }) => {
+      els.hint.textContent = hint || '';
+      els.hint.classList.remove('warn');
       els.idle.hidden = !idle;
     },
+    // ⓑ 중립 견고화: 고정 타이머 대신 "손이 보이는 프레임"이 충분히 모이면
+    //   루프에서 commit (미감지 시 타임아웃까지 연기 — 허공 중립 방지)
     onNeedNeutral: () => {
       els.text.textContent = '준비… 손을 편하게 보여주세요';
       tracker.beginNeutral();
-      clearTimeout(guide.neutralTimer);
-      guide.neutralTimer = setTimeout(() => {
-        tracker.commitNeutral();
-        guide.engine.arm(performance.now());
-        els.text.textContent = guide.engine.step?.text || '';
-      }, 900);
+      guide.neutralWait = { frames: 0, started: performance.now() };
     },
     onComplete: () => onGuideComplete(g),
   });
@@ -625,11 +625,13 @@ async function startGuide(id, routineMode = false) {
       await guide.tracking.startCamera(els.video);
     }
     guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
+    guide.compN = 0; guide.frameN = 0; // 세션 comp 비율 집계 (추후 코칭 힌트용)
+    guide.neutralWait = null; guide.baseWrist = null;
     els.cam.textContent = '🖐 손을 화면에 보여주세요';
     els.cam.classList.remove('ok');
     guide.running = true;
     engine.start(performance.now());
-    guide.tracking.startLoop(({ hand, pose, now }) => {
+    guide.tracking.startLoop(({ hand, pose, handLabel, now }) => {
       // 시범 손 그리기 (정적 스텝 진입 직후엔 직전 자세에서 모핑)
       let params = guide.anim ? guide.anim.sample(now) : (guide.staticPose || {});
       if (!guide.anim && guide.poseBlend) params = blendPose(guide, params, now);
@@ -638,10 +640,47 @@ async function startGuide(id, routineMode = false) {
       // 인식 가시화: 감지 칩(히스테리시스) + 관절점 오버레이
       updateHandStatus(!!hand);
       drawLandmarks(hand);
-      // 사용자 인식 → 스텝 진행
-      const snap = tracker.update(hand, pose, { usePose: g.view === 'side' });
+      // 사용자 인식 → 스텝 진행.
+      // 가이드는 usePose를 끈다(A안): 팔꿈치 인식이 오락가락하면 각도 좌표계가
+      // "팔뚝 상대각 ↔ 화면 절대각"으로 뒤바뀌어 rel이 ±90°대로 튀는 문제의 근본 원인.
+      // 절대각 단일 좌표계로 고정 (손목 체크 화면은 기존 usePose 유지 — 별도 경로).
+      const snap = tracker.update(hand, pose, { usePose: false });
+
+      // ⓑ 중립 대기: 손이 보이는 프레임이 모여야 commit.
+      //   손을 전혀 못 본 채 타임아웃되면 commit하지 않고(중립=null 방지) 창만 갱신해
+      //   계속 기다린다 — 진행을 원하면 [건너뛰기]가 항상 있다.
+      const nw = guide.neutralWait;
+      if (nw) {
+        if (snap.detected) nw.frames++;
+        const timedOut = now - nw.started > NEUTRAL_MAX_MS;
+        if (nw.frames >= NEUTRAL_FRAMES || (timedOut && nw.frames >= 3)) {
+          guide.neutralWait = null;
+          tracker.commitNeutral();
+          guide.baseWrist = hand ? { x: hand[HAND_LM.WRIST].x, y: hand[HAND_LM.WRIST].y } : null;
+          engine.arm(now);
+          guide.els.text.textContent = engine.step?.text || '';
+        } else if (timedOut) {
+          nw.started = now; nw.frames = 0;
+        }
+      }
+
+      // ⓐ 가이드 전용 보상동작 지표: 중립 시점 손목점 대비 이동량을
+      //   손 크기(손목~중지너클 거리)로 정규화 — 손목만 움직이면 손목점은 고정
+      let compMove = 0;
+      if (hand && guide.baseWrist) {
+        const hw = hand[HAND_LM.WRIST];
+        compMove = d2(hw, guide.baseWrist) / (d2(hw, hand[HAND_LM.MIDDLE_MCP]) || 0.001);
+      }
+      const compG = compMove > GUIDE_COMP_MOVE;
+      if (snap.detected) { guide.frameN++; if (compG) guide.compN++; }
+
+      // TODO(임시 진단 로그): 손 라벨·상대각 확인용 — 판정 점검 끝나면 제거
+      if (snap.detected && now - guide.diagAt > 250) {
+        guide.diagAt = now;
+        console.log(`[guide-diag] label=${handLabel} rel=${snap.rel.toFixed(1)}° move=${compMove.toFixed(2)} comp=${compG}`);
+      }
       engine.update(now, snap);
-    }, { pose: g.view === 'side' });
+    }, { pose: false });
   } catch (e) {
     els.cam.textContent = '오류';
     els.text.textContent = '카메라/모델을 열 수 없어요: ' + e.message;
@@ -666,6 +705,11 @@ function blendPose(guide, to, now) {
 
 /** 손 감지 칩 — 몇 프레임 연속일 때만 전환해 깜빡임 방지 */
 const HAND_ON_FRAMES = 5, HAND_OFF_FRAMES = 12;
+/** ⓑ 중립: 손 보이는 프레임 이 수만큼 모이면 확정 (타임아웃 시 강제) */
+const NEUTRAL_FRAMES = 14, NEUTRAL_MAX_MS = 8000;
+/** ⓐ 보상동작 임계: 손목점 이동량 / 손 크기 비율 */
+const GUIDE_COMP_MOVE = 0.5;
+const d2 = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 function updateHandStatus(seen) {
   const g = guide;
   if (seen) { g.seenN++; g.lostN = 0; } else { g.lostN++; g.seenN = 0; }
@@ -730,7 +774,18 @@ function fillDots(count, reps) {
   guide.els.text.textContent = `${guide.cur?.steps[guide.engine.index]?.text || ''}`;
 }
 
+/** 세션 comp 비율 집계 마감 — 추후 코칭 힌트 데이터로 승격 예정 */
+function flushCompRatio() {
+  const g = guide;
+  if (!g || !g.frameN) return;
+  g.lastCompRatio = Math.round((g.compN / g.frameN) * 100);
+  // TODO(임시 진단 로그): 판정 점검 끝나면 제거
+  console.log(`[guide-diag] 세션 comp 비율: ${g.compN}/${g.frameN} (${g.lastCompRatio}%)`);
+  g.compN = 0; g.frameN = 0;
+}
+
 function onGuideComplete(g) {
+  flushCompRatio();
   const e = guide.els;
   e.btns.hidden = true;
   e.idle.hidden = true;
@@ -847,11 +902,13 @@ function showRoutineDone(r, condition = null) {
 
 function stopGuideSession() {
   if (!guide) return;
+  flushCompRatio();
   clearTimeout(guide.neutralTimer);
   clearTimeout(guide.autoNextTimer);
   if (guide.running) { guide.tracking.stopTracking(); guide.running = false; }
   guide.engine = null; guide.anim = null; guide.tracker = null;
   guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
+  guide.neutralWait = null; guide.baseWrist = null;
   if (guide.els) {
     guide.els.cam.textContent = '카메라';
     guide.els.cam.classList.remove('ok');
