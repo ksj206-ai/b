@@ -16,6 +16,7 @@
 // ═══════════════════════════════════════════════════════════
 
 const SKIN = '#f4c69f';
+const SKIN_BACK = '#eab488';  // 뒤층 손가락(측면 겹침) — 살짝 어두워 깊이감
 const SKIN_LINE = '#e3a97f';
 const SLEEVE = '#7fd28a';
 const SLEEVE_LINE = '#54ac63';
@@ -41,7 +42,7 @@ function curlOf(p, i) {
 
 /** 손 부위를 모아 2패스로 렌더 — ① 윤곽(두껍게) ② 채움.
  *  부위끼리 경계선이 생기지 않아 둥근 한 덩어리 실루엣이 된다. */
-function partRenderer(ctx) {
+function partRenderer(ctx, fill = SKIN, line = SKIN_LINE) {
   const caps = [];   // 캡슐 부위 (push 순서 = 채움 순서: 나중 부위가 위)
   const paths = [];  // 패스 부위 (손바닥 등 — 채움 시 캡슐보다 아래)
   function strokeCaps(color, extra) {
@@ -57,13 +58,13 @@ function partRenderer(ctx) {
     render() {
       ctx.lineJoin = 'round';
       // ① 윤곽: 모든 부위를 윤곽색으로 두껍게
-      ctx.fillStyle = SKIN_LINE; ctx.strokeStyle = SKIN_LINE; ctx.lineWidth = 5;
+      ctx.fillStyle = line; ctx.strokeStyle = line; ctx.lineWidth = 5;
       for (const b of paths) { b(ctx); ctx.fill(); ctx.stroke(); }
-      strokeCaps(SKIN_LINE, 5);
+      strokeCaps(line, 5);
       // ② 채움: 손바닥 → 손가락·엄지 순 (접힌 손가락이 손바닥 위로)
-      ctx.fillStyle = SKIN;
+      ctx.fillStyle = fill;
       for (const b of paths) { b(ctx); ctx.fill(); }
-      strokeCaps(SKIN, 0);
+      strokeCaps(fill, 0);
     },
   };
 }
@@ -96,6 +97,8 @@ export function drawGuideHand(ctx, p = {}, view = 'side', opts = {}) {
 }
 
 // ─── side 뷰: 팔뚝(고정) + 손(wristAngle 회전) ───
+// 손가락을 2겹으로: 뒤층(약지·새끼, 어두운 톤·짧게·먼저 굽음)과
+// 앞층(검지·중지)이 살짝 어긋나 측면에서도 손가락이 읽힌다 (model/ 참고).
 function drawSide(ctx, p, br, br2) {
   const wa = (p.wristAngle ?? 0) + br * 0.5;  // -45 굽힘(아래) ~ +45 폄(위)
   const lagW = Math.max(-8, Math.min(8, (p.__lag && p.__lag.wristAngle) || 0));
@@ -110,23 +113,35 @@ function drawSide(ctx, p, br, br2) {
   ctx.translate(wx, wy);
   ctx.rotate(-wa * D2R);
 
-  const parts = partRenderer(ctx);
-  const palmLen = 66;
-  parts.cap(0, 0, palmLen, 0, 40);             // 손바닥(손날)
-
-  // 손가락(측면에선 한 덩어리): curl 굽힘 + 손목을 살짝 뒤따르는 팔로우스루
   const c = clamp01(curlOf(p, 1) + br2 * 0.015);
   const trail = -lagW * 0.45 * D2R;
-  const seg1 = 30, seg2 = 30;
-  const a2 = trail + c * 78 * D2R;             // 손바닥 쪽(+y)으로 굽음
-  const mx = palmLen + Math.cos(trail) * seg1, my = Math.sin(trail) * seg1;
-  const tx = mx + Math.cos(a2) * seg2, ty = my + Math.sin(a2) * seg2;
-  parts.cap(palmLen, 0, mx, my, 30);
-  parts.cap(mx, my, tx, ty, 25);
 
-  // 엄지: 2마디, 손바닥 아래쪽에서 살짝 굽어 앞으로
-  parts.cap(14, 14, 32, 26, 18);
-  parts.cap(32, 26, 46, 29, 15);
+  // 뒤층: 약지·새끼 뭉치 — 위(-y)로 살짝 어긋나고 짧으며 조금 더 굽어 시차
+  const back = partRenderer(ctx, SKIN_BACK, SKIN_LINE);
+  const bKn = 58, bY = -8;                     // 너클 위치(짧은 손바닥)
+  const bA2 = trail + (c * 82 + 7) * D2R;
+  const bmx = bKn + Math.cos(trail) * 25, bmy = bY + Math.sin(trail) * 25;
+  back.cap(bKn, bY, bmx, bmy, 24);
+  back.cap(bmx, bmy, bmx + Math.cos(bA2) * 22, bmy + Math.sin(bA2) * 22, 20);
+  back.render();
+
+  // 앞층: 손바닥(손날) + 검지·중지 뭉치
+  const parts = partRenderer(ctx);
+  const palmLen = 64;
+  parts.cap(0, 2, palmLen, 2, 40);
+
+  const a2 = trail + c * 78 * D2R;             // 손바닥 쪽(+y)으로 굽음
+  const seg1 = 30, seg2 = 28;
+  const mx = palmLen + Math.cos(trail) * seg1, my = 5 + Math.sin(trail) * seg1;
+  const tx = mx + Math.cos(a2) * seg2, ty = my + Math.sin(a2) * seg2;
+  parts.cap(palmLen, 5, mx, my, 28);
+  parts.cap(mx, my, tx, ty, 23);
+
+  // 엄지: 카메라 쪽(앞) — 손바닥 중간에서 대각선 아래·앞으로 2마디
+  const thc = clamp01(curlOf(p, 0) + c * 0.4); // 손가락 굽힘을 살짝 따라감
+  const t1x = 34 + 4 * (1 - thc), t1y = 24 + thc * 4;
+  parts.cap(16, 13, t1x, t1y, 18);
+  parts.cap(t1x, t1y, t1x + 18 - thc * 8, t1y + 4 + thc * 6, 15);
 
   parts.render();
   if (c > 0.25) creaseLine(ctx, mx, my, trail + Math.PI / 2, 9, (c - 0.25) * 0.6);
@@ -267,13 +282,14 @@ function drawFront(ctx, p, br, br2) {
 
     // 접기 모델: 몸마디는 굽을수록 짧아지고(카메라 쪽 접힘),
     // 끝마디는 손바닥 쪽으로 접혀 내려옴 (curl+curlTip)
+    // 마디 길이를 덜 줄여 주먹에서도 접힌 손가락 덩어리가 남게 (model/ 주먹 참고)
     const ci = clamp01(c + (i > 0 ? pinch * 0.15 : 0)); // 핀치 중 나머지 손가락 살짝 이완
     const bend = clamp01(ci * 0.85 + t);
     bendSum += bend;
-    const L1p = L1 * (1 - 0.62 * ci);
+    const L1p = L1 * (1 - 0.46 * ci);
     const mx = bx + Math.cos(th) * L1p, my = by + Math.sin(th) * L1p;
-    const th2 = th + bend * 168 * D2R;
-    const L2p = L2 * (1 - 0.45 * bend);
+    const th2 = th + bend * 155 * D2R;
+    const L2p = L2 * (1 - 0.22 * bend);
     parts.cap(bx, by, mx, my, w1);
     parts.cap(mx, my, mx + Math.cos(th2) * L2p, my + Math.sin(th2) * L2p, w2);
     if (bend > 0.22) {
@@ -287,12 +303,17 @@ function drawFront(ctx, p, br, br2) {
   gx += (PINCH_C.x - gx) * pinch; gy += (PINCH_C.y - gy) * pinch;
   gx += (2 - gx) * tc; gy += (32 - gy) * tc;
   const tk = ik2(TH_BASE.x, TH_BASE.y, gx, gy, TH_L1, TH_L2, 1);
-  parts.cap(TH_BASE.x, TH_BASE.y, tk.mx, tk.my, 20);
-  parts.cap(tk.mx, tk.my, tk.tx, tk.ty, 17);
 
   // ── 2패스 렌더 (한 덩어리 실루엣) → 은은한 주름 디테일 ──
   parts.render();
   palmCreases(ctx, 1 - clamp01((bendSum / 3) * 1.1));    // 주먹 쥘수록 손금 감춤
+
+  // 엄지는 별도 레이어(자체 윤곽) — 주먹·핀치에서 손바닥을 가로지르는 게
+  // 실루엣에 묻히지 않고 보인다 (model/ 주먹·OK 사인 참고)
+  const thumb = partRenderer(ctx);
+  thumb.cap(TH_BASE.x, TH_BASE.y, tk.mx, tk.my, 20);
+  thumb.cap(tk.mx, tk.my, tk.tx, tk.ty, 17);
+  thumb.render();
   const tb = Math.max(pinch, tc);
   if (tb > 0.35) {
     creases.push([tk.mx, tk.my, Math.atan2(tk.ty - tk.my, tk.tx - tk.mx) + Math.PI / 2,
