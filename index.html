@@ -223,7 +223,6 @@
             <div class="m-result-grid">
               <div><span>굽힘</span><b id="rFlex">–</b></div>
               <div><span>폄</span><b id="rExt">–</b></div>
-              <div class="m-result-sum"><span>총 가동범위</span><b id="rSum">–</b></div>
             </div>
             <p id="rDelta" class="m-delta"></p>
             <div class="m-result-btns">
@@ -259,15 +258,19 @@
         <!-- ROM 추이 -->
         <div class="rec-card">
           <div class="rec-card-head">
-            <span class="rec-card-title">손목 가동범위 추이</span>
+            <span class="rec-card-title">손목 굽힘·폄 추이</span>
             <span class="rec-range" id="recRange"></span>
           </div>
 
           <div id="recTrendWrap" class="rec-trend" hidden>
             <div class="rec-stats">
-              <div class="rec-stat"><span>최근</span><b id="recLatest">–</b></div>
-              <div class="rec-stat"><span>지난 대비</span><b id="recDelta">–</b></div>
-              <div class="rec-stat"><span>최고 기록</span><b id="recBest">–</b></div>
+              <div class="rec-stat rec-stat--dual"><span>최근</span><b id="recLatest">–</b></div>
+              <div class="rec-stat rec-stat--dual"><span>지난 대비</span><b id="recDelta">–</b></div>
+              <div class="rec-stat rec-stat--dual"><span>최고 기록</span><b id="recBest">–</b></div>
+            </div>
+            <div class="rec-legend">
+              <span><i class="rec-dot rec-dot--flex"></i>굽힘</span>
+              <span><i class="rec-dot rec-dot--ext"></i>폄</span>
             </div>
             <canvas id="recCanvas" class="rec-canvas"></canvas>
             <p id="recTrendHint" class="rec-hint"></p>

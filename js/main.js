@@ -248,7 +248,7 @@ async function wireMeasure() {
     mCapture: $('mCapture'), capFlex: $('capFlex'), capFlexV: $('capFlexV'),
     capExt: $('capExt'), capExtV: $('capExtV'), mComp: $('mComp'),
     mActions: $('mActions'), mReneutral: $('mReneutral'), mFinish: $('mFinish'),
-    mResult: $('mResult'), rFlex: $('rFlex'), rExt: $('rExt'), rSum: $('rSum'),
+    mResult: $('mResult'), rFlex: $('rFlex'), rExt: $('rExt'),
     rDelta: $('rDelta'), mAgain: $('mAgain'),
     mHandSel: $('mHandSel'), mHandChip: $('mHandChip'),
   };
@@ -389,10 +389,10 @@ function finishMeasure() {
   recordActivity(s); // 측정도 오늘 활동으로 스트릭 반영
   renderStreak();
 
-  e.rFlex.textContent = flex + '°'; e.rExt.textContent = ext + '°'; e.rSum.textContent = sum + '°';
+  e.rFlex.textContent = flex + '°'; e.rExt.textContent = ext + '°';
   if (prev) {
-    const d = sum - prev.rom;
-    e.rDelta.textContent = `지난 측정 ${prev.rom}° 대비 ${d > 0 ? '+' : ''}${d}° (참고값)`;
+    const f = (d) => `${d > 0 ? '+' : ''}${d}°`;
+    e.rDelta.textContent = `지난 측정 대비 굽힘 ${f(flex - prev.flex)} · 폄 ${f(ext - prev.ext)} (참고값)`;
   } else {
     e.rDelta.textContent = '첫 측정이에요. 다음부터 지난 기록과 비교해 드려요.';
   }
@@ -874,27 +874,33 @@ function renderTrend(e, ms) {
   }
   e.trendEmpty.hidden = true; e.trendWrap.hidden = false;
 
+  const flexes = ms.map((m) => m.flex || 0);
+  const exts = ms.map((m) => m.ext || 0);
   const last = ms[ms.length - 1];
   const prev = ms[ms.length - 2] || null;
-  const best = Math.max(...ms.map((m) => m.rom));
+  const pair = (f, x) =>
+    `<i class="rec-dot rec-dot--flex"></i>${f} <i class="rec-dot rec-dot--ext"></i>${x}`;
 
-  e.latest.textContent = last.rom + '°';
-  e.best.textContent = best + '°';
+  e.latest.innerHTML = pair((last.flex || 0) + '°', (last.ext || 0) + '°');
+  e.best.innerHTML = pair(Math.max(...flexes) + '°', Math.max(...exts) + '°');
   if (prev) {
-    const d = last.rom - prev.rom;
-    e.delta.textContent = (d > 0 ? '+' : '') + d + '°';
-    e.delta.className = d > 0 ? 'up' : (d < 0 ? 'down' : '');
+    const sgn = (d) => (d > 0 ? '+' : '') + d + '°';
+    e.delta.innerHTML = pair(sgn((last.flex || 0) - (prev.flex || 0)),
+                             sgn((last.ext || 0) - (prev.ext || 0)));
   } else {
-    e.delta.textContent = '—'; e.delta.className = '';
+    e.delta.textContent = '—';
   }
   e.range.textContent = ms.length > 1 ? `${fmtMd(ms[0].at)} ~ ${fmtMd(last.at)}` : fmtMd(last.at);
   e.trendHint.textContent = ms.length < 2 ? '측정을 2번 이상 하면 변화 추이가 그려져요.' : `총 ${ms.length}회 측정 · 참고값`;
 
-  drawTrend(e.canvas, ms.map((m) => m.rom));
+  drawTrend(e.canvas, [
+    { data: flexes, color: '#469a54', label: '굽힘' }, // --moss-dd
+    { data: exts, color: '#3f8fc9', label: '폄' },     // --water-d
+  ]);
 }
 
-/** 총 가동범위(°) 수열을 시간순 라인차트로 그림 */
-function drawTrend(canvas, data) {
+/** 굽힘/폄(°) 시계열을 시간순 라인차트로 그림 — series: [{data, color, label}] */
+function drawTrend(canvas, series) {
   const dpr = window.devicePixelRatio || 1;
   const cssW = canvas.clientWidth || 460, cssH = 170;
   canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
@@ -902,11 +908,14 @@ function drawTrend(canvas, data) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cssW, cssH);
 
-  const padL = 34, padR = 14, padT = 14, padB = 22;
+  ctx.font = '10px Jua, sans-serif';
+  const labelW = Math.max(...series.map((s) => ctx.measureText(s.label).width));
+  const padL = 34, padR = 9 + labelW + 8, padT = 14, padB = 22;
   const w = cssW - padL - padR, h = cssH - padT - padB;
-  const n = data.length;
+  const n = series[0].data.length;
+  const all = series.flatMap((s) => s.data);
 
-  let mn = Math.min(...data), mx = Math.max(...data);
+  let mn = Math.min(...all), mx = Math.max(...all);
   if (mn === mx) { mn -= 10; mx += 10; }
   const gap = (mx - mn) * 0.15; mn = Math.max(0, mn - gap); mx += gap;
 
@@ -914,7 +923,7 @@ function drawTrend(canvas, data) {
   const Y = (v) => padT + h - ((v - mn) / (mx - mn)) * h;
 
   // 기준선 3개 + y라벨
-  ctx.font = '10px Jua, sans-serif'; ctx.textBaseline = 'middle';
+  ctx.textBaseline = 'middle';
   for (let g = 0; g <= 2; g++) {
     const val = mn + (mx - mn) * g / 2, yy = Y(val);
     ctx.strokeStyle = 'rgba(120,200,132,.18)'; ctx.lineWidth = 1;
@@ -922,24 +931,31 @@ function drawTrend(canvas, data) {
     ctx.fillStyle = '#8aa38e'; ctx.fillText(Math.round(val) + '°', 4, yy);
   }
 
-  const linePath = () => { ctx.beginPath(); data.forEach((v, i) => { const x = X(i), y = Y(v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); };
-
-  // 면적 채우기
-  linePath();
-  ctx.lineTo(X(n - 1), padT + h); ctx.lineTo(X(0), padT + h); ctx.closePath();
-  ctx.fillStyle = 'rgba(120,200,132,.14)'; ctx.fill();
-
   // 선
-  linePath();
-  ctx.strokeStyle = '#54ac63'; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+  for (const s of series) {
+    ctx.beginPath();
+    s.data.forEach((v, i) => { const x = X(i), y = Y(v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.strokeStyle = s.color; ctx.lineWidth = 2.5; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke();
+  }
 
-  // 점 (마지막 강조)
-  data.forEach((v, i) => {
-    const x = X(i), y = Y(v), lastPt = i === n - 1;
-    ctx.beginPath(); ctx.arc(x, y, lastPt ? 5 : 3.5, 0, 7);
-    ctx.fillStyle = lastPt ? '#469a54' : '#7fd28a'; ctx.fill();
-    ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
-  });
+  // 점 (마지막 강조, 흰 테두리로 겹침 구분)
+  for (const s of series) {
+    s.data.forEach((v, i) => {
+      const x = X(i), y = Y(v), lastPt = i === n - 1;
+      ctx.beginPath(); ctx.arc(x, y, lastPt ? 5 : 3.5, 0, 7);
+      ctx.fillStyle = s.color; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.stroke();
+    });
+  }
+
+  // 끝점 라벨 — 겹치면 위아래로 밀어냄
+  const ys = series.map((s) => Y(s.data[n - 1]));
+  for (let a = 0; a < ys.length; a++) for (let b = a + 1; b < ys.length; b++) {
+    const d = ys[b] - ys[a];
+    if (Math.abs(d) < 12) { const push = (12 - Math.abs(d)) / 2; ys[a] += d >= 0 ? -push : push; ys[b] += d >= 0 ? push : -push; }
+  }
+  ctx.fillStyle = '#3a4c3e';
+  series.forEach((s, k) => ctx.fillText(s.label, X(n - 1) + 9, ys[k]));
 }
 
 function renderHistory(e, done) {
