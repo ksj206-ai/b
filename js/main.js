@@ -466,7 +466,8 @@ async function initGuide() {
   const $ = (id) => document.getElementById(id);
   const els = {
     list: $('guideList'), player: $('guidePlayer'), canvas: $('guideCanvas'),
-    video: $('guideVideo'), cam: $('gpCam'), name: $('gpName'), step: $('gpStep'),
+    video: $('guideVideo'), cam: $('gpCam'), pip: $('gpPip'), lm: $('gpLm'),
+    name: $('gpName'), step: $('gpStep'),
     text: $('gpText'), dots: $('gpDots'), hint: $('gpHint'), idle: $('gpIdle'),
     skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
     retry: $('gpRetry'), proceed: $('gpProceed'),
@@ -482,6 +483,8 @@ async function initGuide() {
     engine: null, tracker: null, anim: null, cur: null, running: false, neutralTimer: null,
     lastParams: null, poseBlend: null,
     routineMode: false, autoNextTimer: null, // 루틴 연속 재생 상태
+    handSeen: false, seenN: 0, lostN: 0,     // 손 감지 칩 히스테리시스
+    lmCtx: null,
   };
 
   // 목록 구성
@@ -596,7 +599,7 @@ async function startGuide(id, routineMode = false) {
         ? { from: guide.lastParams, start: null }
         : null;
     },
-    onCount: (count, reps) => fillDots(count, reps),
+    onCount: (count, reps) => { fillDots(count, reps); if (count > 0) repFeedback(count); },
     onStatus: ({ hint, comp, idle }) => {
       els.hint.textContent = comp ? '⚠ 팔은 그대로, 손목만 움직여요' : (hint || '');
       els.hint.classList.toggle('warn', !!comp);
@@ -621,7 +624,9 @@ async function startGuide(id, routineMode = false) {
       await guide.tracking.initModels();
       await guide.tracking.startCamera(els.video);
     }
-    els.cam.textContent = '인식 중';
+    guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
+    els.cam.textContent = '🖐 손을 화면에 보여주세요';
+    els.cam.classList.remove('ok');
     guide.running = true;
     engine.start(performance.now());
     guide.tracking.startLoop(({ hand, pose, now }) => {
@@ -630,6 +635,9 @@ async function startGuide(id, routineMode = false) {
       if (!guide.anim && guide.poseBlend) params = blendPose(guide, params, now);
       guide.lastParams = params;
       drawStage(ctx, guide.els.canvas, mods.drawGuideHand, params, g.view, now);
+      // 인식 가시화: 감지 칩(히스테리시스) + 관절점 오버레이
+      updateHandStatus(!!hand);
+      drawLandmarks(hand);
       // 사용자 인식 → 스텝 진행
       const snap = tracker.update(hand, pose, { usePose: g.view === 'side' });
       engine.update(now, snap);
@@ -654,6 +662,50 @@ function blendPose(guide, to, now) {
     if (typeof a === 'number' && typeof out[key] === 'number') out[key] = a + (out[key] - a) * e;
   }
   return out;
+}
+
+/** 손 감지 칩 — 몇 프레임 연속일 때만 전환해 깜빡임 방지 */
+const HAND_ON_FRAMES = 5, HAND_OFF_FRAMES = 12;
+function updateHandStatus(seen) {
+  const g = guide;
+  if (seen) { g.seenN++; g.lostN = 0; } else { g.lostN++; g.seenN = 0; }
+  const next = g.handSeen ? g.lostN < HAND_OFF_FRAMES : g.seenN >= HAND_ON_FRAMES;
+  if (next === g.handSeen) return;
+  g.handSeen = next;
+  g.els.cam.textContent = next ? '✓ 손이 잘 보여요' : '🖐 손을 화면에 보여주세요';
+  g.els.cam.classList.toggle('ok', next);
+}
+
+/** 인식 관절점 오버레이 — 표시 영상이 거울(scaleX(-1)) + cover 크롭이라
+ *  동일 매핑(x = 1 − x, cover 스케일·오프셋)을 적용해야 점이 손 위에 얹힌다 */
+function drawLandmarks(hand) {
+  const g = guide, cv = g.els.lm, v = g.els.video;
+  const cw = cv.clientWidth, ch = cv.clientHeight;
+  if (!cw || !ch) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = Math.round(cw * dpr), H = Math.round(ch * dpr);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const ctx = g.lmCtx || (g.lmCtx = cv.getContext('2d'));
+  ctx.clearRect(0, 0, W, H);
+  if (!hand || !v.videoWidth) return;
+  const sc = Math.max(W / v.videoWidth, H / v.videoHeight);
+  const ox = (W - v.videoWidth * sc) / 2, oy = (H - v.videoHeight * sc) / 2;
+  ctx.fillStyle = 'rgba(143,220,171,.95)';
+  ctx.strokeStyle = 'rgba(32,48,42,.55)';
+  ctx.lineWidth = 1;
+  for (const lm of hand) {
+    const x = ox + (1 - lm.x) * v.videoWidth * sc;
+    const y = oy + lm.y * v.videoHeight * sc;
+    ctx.beginPath(); ctx.arc(x, y, 2 * dpr, 0, 7); ctx.fill(); ctx.stroke();
+  }
+}
+
+/** 회수 인정 순간 피드백 — 방금 채워진 점 통통 + 카메라 테두리 초록 반짝 */
+function repFeedback(count) {
+  const g = guide;
+  const dot = g.els.dots.children[count - 1];
+  if (dot) { dot.classList.remove('pop'); void dot.offsetWidth; dot.classList.add('pop'); }
+  g.els.pip.classList.remove('flash'); void g.els.pip.offsetWidth; g.els.pip.classList.add('flash');
 }
 
 function drawStage(ctx, canvas, drawGuideHand, params, view, now) {
@@ -799,7 +851,13 @@ function stopGuideSession() {
   clearTimeout(guide.autoNextTimer);
   if (guide.running) { guide.tracking.stopTracking(); guide.running = false; }
   guide.engine = null; guide.anim = null; guide.tracker = null;
-  if (guide.els) guide.els.cam.textContent = '카메라';
+  guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
+  if (guide.els) {
+    guide.els.cam.textContent = '카메라';
+    guide.els.cam.classList.remove('ok');
+    guide.els.pip.classList.remove('flash');
+    if (guide.lmCtx) guide.lmCtx.clearRect(0, 0, guide.els.lm.width, guide.els.lm.height);
+  }
 }
 
 function stopGuide() { stopGuideSession(); }
