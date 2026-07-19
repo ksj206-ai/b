@@ -8,8 +8,8 @@ import { load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr
 import { SCREENS, ROUTINE } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
-  routineProgress, isRoutineComplete, isSlotDone, estimateRoutineSec,
-  conditionOf, recordCondition,
+  routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
+  needMeasureSuggest, conditionOf, recordCondition,
 } from './routine.js';
 import { getGuide } from './guide/guideData.js';
 import {
@@ -39,50 +39,55 @@ let pendingGuideId = null; // 홈 딥스타트 → 가이드 화면 진입 시 1
 function renderHome() {
   renderStreak();
   const $ = (id) => document.getElementById(id);
-  const course = $('routineCourse');
-  if (!course) return;
+  const dots = $('rpDots');
+  if (!dots) return;
 
   const r = getTodayRoutine();
   const { done, total } = routineProgress(r);
   const complete = isRoutineComplete(r);
   const nextId = nextRoutineExercise(r);
+  const nextNo = nextId ? r.ids.indexOf(nextId) + 1 : 0; // 다음 미완료의 코스 순번
 
-  course.innerHTML = r.ids.map((id, i) => {
-    const g = getGuide(id);
-    const cls = isSlotDone(r, i) ? ' is-done' : (id === nextId ? ' is-next' : '');
-    return `<li class="rc-step${cls}"><span class="rc-emoji">${g.emoji}</span>` +
-           `<span class="rc-name">${g.short || g.name}</span>` +
-           `<span class="rc-mark">${isSlotDone(r, i) ? '🌸' : ''}</span></li>`;
-  }).join('');
+  // 남은 시간 — 미완료 운동만 합산
+  const leftSec = r.ids.filter((id) => !r.doneIds.includes(id))
+    .reduce((s, id) => s + estimateGuideSec(getGuide(id) || { steps: [] }), 0);
+  const leftMin = Math.max(1, Math.ceil(leftSec / 60));
 
-  const min = Math.max(1, Math.ceil(estimateRoutineSec(r) / 60));
-  const dur = $('routineDur');
-  dur.textContent = `약 ${min}분`;
-  dur.hidden = complete;
+  dots.innerHTML = r.ids.map((id, i) =>
+    `<i class="rp-dot${isSlotDone(r, i) ? ' is-done' : ''}"></i>`).join('');
+  $('rpText').textContent = complete ? `오늘 ${done}/${total} 완주 ⭐`
+    : done > 0 ? `오늘 ${done}/${total} · 남은 시간 약 ${leftMin}분`
+    : `${total}개 운동 · 약 ${leftMin}분`;
 
   const title = $('todayRoutine'), btn = $('routineStart'), speech = $('mascotSpeech');
+  const streak = currentStreak();
+  btn.disabled = complete;
+  btn.classList.toggle('btn-done', complete);
   if (complete) {
     title.textContent = r.gentle
       ? '오늘 순한 코스 완주! 잘 쉬어가고 있어요 🌿'
       : '오늘 풀코스 완주! 정원이 활짝 피었어요 ⭐';
-    btn.textContent = '한 번 더 하기';
-    speech.textContent = '와, 오늘 코스 완주! 대단해요 🌼';
+    btn.textContent = '오늘 완료! 내일 만나요';
+    speech.textContent = '오늘 몫 끝! 내일 만나요 🌙';
   } else if (done > 0) {
     title.textContent = `잘하고 있어요! 이어서 ${getGuide(nextId).name}`;
-    btn.textContent = `이어서 하기 (${done}/${total}) →`;
-    speech.textContent = '조금만 더! 이어서 해봐요 🌿';
+    btn.textContent = `이어하기 (${nextNo}번째부터)`;
+    speech.textContent = '아까 하던 거 이어서 할까요?';
   } else if (r.gentle) {
-    title.textContent = `오늘은 순한 코스로 가볍게, ${min}분이면 돼요`;
+    title.textContent = `오늘은 순한 코스로 가볍게, ${leftMin}분이면 돼요`;
     btn.textContent = '시작하기 🌱';
     speech.textContent = '어제 뻐근했죠? 오늘은 살살 해요 🌿';
   } else {
-    title.textContent = `오늘의 손목 풀코스, ${min}분이면 돼요`;
+    title.textContent = `오늘의 손목 풀코스, ${leftMin}분이면 돼요`;
     btn.textContent = '시작하기 🌱';
-    speech.textContent = '오늘도 만나서 반가워요! 🌿';
+    speech.textContent = streak >= 2 ? `${streak}일 연속이에요! 🔥` : '오늘도 만나서 반가워요! 🌿';
   }
 
-  // 측정 "제안" 칩 — 제안 문구까지만 (측정값은 루틴 구성에 쓰지 않음)
-  $('routineMeasureChip').hidden = !r.suggestMeasure;
+  // 손목 체크 카드 주간 상태 칩 — 실시간 판정(체크 직후 홈 복귀 시 바로 갱신)
+  const chip = $('measureChip');
+  const need = needMeasureSuggest();
+  chip.textContent = need ? '📏 이번 주 체크 전이에요' : '✓ 이번 주 체크 완료';
+  chip.classList.toggle('is-need', need);
 
   renderRemindEntry();
 }
@@ -129,6 +134,7 @@ function initReminderUI() {
   remindEls.entry.addEventListener('click', () => openRemindPanel('settings'));
 
   if (!getReminder()) openRemindPanel('onboard'); // 알림 첫 활성화 — 온보딩 한 화면
+  renderRemindEntry(); // 부팅 시 renderHome은 remindEls 준비 전이라 여기서 첫 렌더
 }
 
 function toggleRemindTime(t) {
@@ -148,6 +154,7 @@ function openRemindPanel(mode) {
   remindEls.note.hidden = !isBlocked(r);
   remindEls.panel.hidden = false;
   renderRemindPanel();
+  renderRemindEntry(); // 패널이 열리면 입구 칩은 숨김
 }
 
 function closeRemindPanel() {
@@ -167,14 +174,16 @@ function renderRemindPanel() {
   remindEls.save.disabled = remindSel.length === 0;
 }
 
-/** 홈 진입 버튼 요약: 켜짐 → 시간 나열, 꺼짐/미설정 → 알림 설정 */
+/** 알림 요약 칩: 켜짐 → "⏰ 시간 알림 · 변경", 꺼짐 → 켜기 입구.
+ *  패널이 열려 있는 동안(온보딩 포함)은 숨겨 입구를 하나로 유지 */
 function renderRemindEntry() {
   const e = remindEls?.entry;
   if (!e) return;
   const r = getReminder();
+  e.hidden = !remindEls.panel.hidden;
   e.textContent = (r && r.enabled && r.times.length)
-    ? `🔔 알림 ${r.times.join(' · ')}${isBlocked(r) ? ' (권한 꺼짐)' : ''}`
-    : '🔔 알림 설정';
+    ? `⏰ ${r.times.join(' · ')} 알림 · 변경${isBlocked(r) ? ' (권한 꺼짐)' : ''}`
+    : '⏰ 알림 꺼짐 · 켜기';
 }
 
 /** 홈/알림 → 루틴 원탭 진입 (중간 화면 없이 바로 재생) */
@@ -327,7 +336,7 @@ function renderHandUI() {
     b.classList.toggle('is-on', b.dataset.hand === m.hand);
   }
   m.els.mHandChip.textContent =
-    `${m.hand === 'right' ? '🫱' : '🫲'} ${HAND_KO[m.hand]} 측정 중 · 바꾸기`;
+    `${m.hand === 'right' ? '🫱' : '🫲'} ${HAND_KO[m.hand]} 체크 중 · 바꾸기`;
 }
 
 const HAND_KO = { left: '왼손', right: '오른손' };
@@ -392,9 +401,9 @@ function finishMeasure() {
   e.rFlex.textContent = flex + '°'; e.rExt.textContent = ext + '°';
   if (prev) {
     const f = (d) => `${d > 0 ? '+' : ''}${d}°`;
-    e.rDelta.textContent = `지난 측정 대비 굽힘 ${f(flex - prev.flex)} · 폄 ${f(ext - prev.ext)} (참고값)`;
+    e.rDelta.textContent = `지난 체크 대비 굽힘 ${f(flex - prev.flex)} · 폄 ${f(ext - prev.ext)} (참고값)`;
   } else {
-    e.rDelta.textContent = '첫 측정이에요. 다음부터 지난 기록과 비교해 드려요.';
+    e.rDelta.textContent = '첫 체크예요. 다음부터 지난 기록과 비교해 드려요.';
   }
   setMeasurePhase('result');
 }
@@ -416,7 +425,7 @@ function setMeasurePhase(phase) {
 
   if (phase === 'idle') {
     show(e.mGuide, true);
-    e.mGuide.textContent = '손목을 옆에서 보이게 하고(팔꿈치까지 나오면 더 좋아요), 측정을 시작하세요.';
+    e.mGuide.textContent = '손목을 옆에서 보이게 하고(팔꿈치까지 나오면 더 좋아요), 체크를 시작하세요.';
     e.mStart.disabled = false; setProg(0);
     e.camBadge.textContent = m.running ? '인식 중' : '카메라 꺼짐';
   } else if (phase === 'neutral') {
@@ -891,7 +900,7 @@ function renderTrend(e, ms) {
     e.delta.textContent = '—';
   }
   e.range.textContent = ms.length > 1 ? `${fmtMd(ms[0].at)} ~ ${fmtMd(last.at)}` : fmtMd(last.at);
-  e.trendHint.textContent = ms.length < 2 ? '측정을 2번 이상 하면 변화 추이가 그려져요.' : `총 ${ms.length}회 측정 · 참고값`;
+  e.trendHint.textContent = ms.length < 2 ? '체크를 2번 이상 하면 변화 추이가 그려져요.' : `총 ${ms.length}회 체크 · 참고값`;
 
   drawTrend(e.canvas, [
     { data: flexes, color: '#469a54', label: '굽힘' }, // --moss-dd

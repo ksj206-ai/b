@@ -104,38 +104,26 @@ body{
   color:var(--ink); margin:13px 0 18px; line-height:1.42; word-break:keep-all;
 }
 
-/* ─── 홈: 오늘의 루틴 코스 ─── */
-.routine-dur{
-  font-size:11px; color:var(--honey); background:var(--sun-soft);
-  padding:2px 9px; border-radius:99px; margin-left:4px;
+/* ─── 홈: 오늘의 루틴 진행 (점 + 요약 한 줄) ─── */
+.routine-progress{
+  display:flex; flex-direction:column; align-items:center; gap:7px; margin-top:14px;
 }
-.routine-course{
-  list-style:none; margin:14px 0 0; padding:0;
-  display:flex; justify-content:center; gap:8px; flex-wrap:wrap;
+.rp-dots{ display:flex; gap:7px; }
+.rp-dot{
+  width:11px; height:11px; border-radius:50%; box-sizing:border-box;
+  background:#fff; border:2px solid var(--sage);
 }
-.rc-step{
-  display:flex; align-items:center; gap:6px;
+.rp-dot.is-done{ background:var(--moss); border-color:var(--moss-d); }
+.rp-text{ font-family:"Jua",sans-serif; font-size:12.5px; color:var(--ink-soft); }
+
+/* ─── 홈: 알림 요약 칩 (설정의 유일한 입구) ─── */
+.remind-entry-chip{
+  display:block; margin:12px auto; cursor:pointer;
   background:rgba(255,255,255,.85); border:2px solid var(--line);
-  border-radius:99px; padding:7px 14px;
-  font-family:"Jua",sans-serif; font-size:12.5px; color:var(--ink-soft);
+  color:var(--ink-soft); font-family:"Jua",sans-serif; font-size:12.5px;
+  padding:8px 16px; border-radius:99px; box-shadow:var(--shadow-sm);
 }
-.rc-step.is-next{
-  border-color:var(--sage); color:var(--moss-dd);
-  box-shadow:0 4px 10px rgba(120,200,132,.25);
-}
-.rc-step.is-done{
-  background:var(--sage-soft); border-color:var(--sage);
-  color:var(--moss-d); text-decoration:none;
-}
-.rc-emoji{ font-size:15px; }
-.rc-mark{ font-size:12px; }
-.routine-chip{
-  display:block; margin:12px auto 0; border:2px solid var(--sun);
-  background:var(--sun-soft); color:var(--terra); cursor:pointer;
-  font-family:"Jua",sans-serif; font-size:12.5px;
-  padding:9px 18px; border-radius:99px; box-shadow:var(--shadow-sm);
-}
-.routine-chip:active{ transform:translateY(1px); }
+.remind-entry-chip:active{ transform:translateY(1px); }
 
 /* ─── 리마인더 온보딩/설정 ─── */
 .remind-panel{
@@ -220,6 +208,16 @@ body{
   padding:3px 8px; border-radius:99px; box-shadow:0 3px 7px rgba(84,172,99,.35);
 }
 .section-badge--sub{ background:var(--terra); box-shadow:0 3px 7px rgba(231,159,119,.35); }
+.section-chip{
+  font-family:"Jua",sans-serif; font-size:10.5px; padding:4px 10px;
+  border-radius:99px; background:var(--sage-soft); color:var(--moss-dd);
+}
+.section-chip.is-need{ background:var(--sun-soft); color:var(--terra); }
+.section-link{
+  font-family:"Jua",sans-serif; font-size:11px; color:var(--muted);
+  text-decoration:underline; text-underline-offset:2px; padding:2px 6px;
+}
+.section-link:hover{ color:var(--moss-dd); }
 
 /* ─── 하위 화면 헤더 ─── */
 .screen-head{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
@@ -414,7 +412,6 @@ body{
 .m-disc{ font-size:10.5px; color:var(--muted); text-align:center; line-height:1.55; margin:2px 0 0; word-break:keep-all; }
 
 /* ─── 홈: 기록 링크 ─── */
-.home-records{ display:block; width:100%; margin-top:6px; font-size:14px; color:var(--moss-d); }
 
 /* ─── 기록 화면 ─── */
 .rec-card{
@@ -500,6 +497,15 @@ body{
   box-shadow:0 5px 0 var(--line); border:2px solid var(--line);
 }
 .btn-back:active{ transform:translateY(3px); box-shadow:0 2px 0 var(--line); }
+.btn-line{
+  background:#fff; color:var(--moss-dd); font-size:13.5px; padding:11px 20px;
+  border:2px solid var(--sage); box-shadow:0 5px 0 var(--sage);
+}
+.btn-line:active{ transform:translateY(3px); box-shadow:0 2px 0 var(--sage); }
+.btn-done{
+  background:var(--sage-soft); color:var(--moss-dd);
+  box-shadow:none; animation:none; cursor:default;
+}
 
 /* ─── 면책 ─── */
 .app-disc{
@@ -520,7 +526,6 @@ body{
   .gp-pip{ width:78px; }
   .btn{ padding:13px 22px; }
   .btn-hero{ padding:15px 30px; font-size:15px; }
-  .rc-step{ padding:6px 11px; font-size:11.5px; }
 }
 
 @media (prefers-reduced-motion:reduce){ *{ animation:none!important; } }

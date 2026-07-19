@@ -49,13 +49,17 @@
               <path d="M52 71 Q60 79 68 71" stroke="#3c6b47" stroke-width="3" fill="none" stroke-linecap="round" />
             </svg>
           </div>
-          <p class="home-hero-label">오늘의 루틴 <span id="routineDur" class="routine-dur" hidden></span></p>
-          <ol id="routineCourse" class="routine-course" aria-label="오늘의 루틴 코스"></ol>
+          <p class="home-hero-label">오늘의 루틴</p>
+          <div class="routine-progress" aria-label="오늘의 루틴 진행">
+            <span id="rpDots" class="rp-dots" aria-hidden="true"></span>
+            <span id="rpText" class="rp-text"></span>
+          </div>
           <p class="home-hero-title" id="todayRoutine">1분, 손목 굽힘·폄부터 시작해요</p>
-          <button class="btn btn-primary btn-hero" id="routineStart">새싹이랑 시작하기 🌱</button>
-          <button class="routine-chip" id="routineMeasureChip" data-nav="measure" hidden>
-            📏 괜찮다면 이번 주 손목 상태도 기록해 볼까요?</button>
+          <button class="btn btn-primary btn-hero" id="routineStart">시작하기 🌱</button>
         </div>
+
+        <!-- 알림 요약 칩 — 설정의 유일한 입구 (미설정이면 아래 온보딩 패널이 대신 열림) -->
+        <button class="remind-entry-chip" id="remindEntry" hidden>⏰ 알림 설정</button>
 
         <!-- 리마인더 온보딩/설정 — 탭이 켜져 있을 때만 동작 (reminder.js 상단 주석 참고) -->
         <div id="remindPanel" class="remind-panel" hidden>
@@ -71,7 +75,7 @@
           <p class="remind-note" id="remindNote" hidden>
             브라우저 알림 권한이 꺼져 있어 알림이 가지 않아요. (주소창 자물쇠 → 알림에서 켤 수 있어요)</p>
           <div class="remind-btns">
-            <button class="btn" id="remindSave">알림 받기 🔔</button>
+            <button class="btn btn-line" id="remindSave">알림 받기 🔔</button>
             <button class="btn btn-back" id="remindOff" hidden>알림 끄기</button>
             <button class="btn btn-back" id="remindSkip">건너뛰기</button>
           </div>
@@ -80,34 +84,35 @@
         <nav class="sections" aria-label="주요 기능">
           <button class="section-card is-main" data-nav="guide">
             <span class="section-emoji">🎬</span>
-            <span class="section-name">가이드</span>
-            <span class="section-badge">메인</span>
+            <span class="section-name">오늘의 루틴</span>
+            <span class="section-badge">매일</span>
             <span class="section-desc">1~3분 숏폼 운동을 따라 해요</span>
           </button>
 
           <button class="section-card" data-nav="measure">
             <span class="section-emoji">📊</span>
-            <span class="section-name">측정</span>
-            <span class="section-desc">손목 가동범위를 재고 기록해요</span>
+            <span class="section-name">손목 체크·기록</span>
+            <span class="section-badge section-badge--sub">가끔</span>
+            <span class="section-desc">손목 상태를 재고 변화를 봐요</span>
+            <span class="section-chip" id="measureChip"></span>
+            <span class="section-link" data-nav="records">기록 보기 →</span>
           </button>
 
-          <button class="section-card" data-nav="game">
+          <!-- 게임: 이식 전까지 숨김 — hidden만 지우면 복구됨 -->
+          <button class="section-card" data-nav="game" hidden>
             <span class="section-emoji">🎮</span>
             <span class="section-name">게임</span>
             <span class="section-badge section-badge--sub">보조</span>
             <span class="section-desc">미니게임으로 재미있게 한 번 더</span>
           </button>
         </nav>
-
-        <button class="btn btn-back home-records" id="remindEntry">🔔 알림 설정</button>
-        <button class="btn btn-back home-records" data-nav="records">📈 내 손목 기록 보기</button>
       </section>
 
       <!-- 가이드 -->
       <section id="screen-guide" class="screen" data-screen="guide">
         <div class="screen-head">
           <button class="btn btn-back" id="guideBack" data-nav="home">← 홈</button>
-          <h2 class="screen-title">🎬 운동 가이드</h2>
+          <h2 class="screen-title">🎬 오늘의 루틴</h2>
         </div>
 
         <!-- 가이드 목록 -->
@@ -176,7 +181,7 @@
       <section id="screen-measure" class="screen" data-screen="measure">
         <div class="screen-head">
           <button class="btn btn-back" data-nav="home">← 홈</button>
-          <h2 class="screen-title">📊 손목 가동범위 측정</h2>
+          <h2 class="screen-title">📏 손목 체크</h2>
         </div>
 
         <div class="mzone">
@@ -184,7 +189,7 @@
             <video id="camVideo" class="cam-video" playsinline muted></video>
             <span id="camBadge" class="cam-badge">카메라 꺼짐</span>
             <!-- 측정 중 손 표시 + 탭하면 왼손↔오른손 전환 -->
-            <button id="mHandChip" class="m-hand-chip" hidden>🫱 오른손 측정 중 · 바꾸기</button>
+            <button id="mHandChip" class="m-hand-chip" hidden>🫱 오른손 체크 중 · 바꾸기</button>
             <!-- 라이브 각도 오버레이 -->
             <div id="mLive" class="m-live" hidden>
               <span id="mLiveVal" class="m-live-val">0°</span>
@@ -194,15 +199,15 @@
             <div id="mProg" class="m-prog" hidden><div id="mProgBar" class="m-prog-bar"></div></div>
           </div>
 
-          <p id="mGuide" class="m-guide">손목을 옆에서 보이게 하고, 측정을 시작하세요.</p>
+          <p id="mGuide" class="m-guide">손목을 옆에서 보이게 하고, 체크를 시작하세요.</p>
 
-          <!-- idle: 측정할 손 선택 + 시작 -->
+          <!-- idle: 체크할 손 선택 + 시작 -->
           <div id="mIdle" class="m-panel m-panel-col">
-            <div id="mHandSel" class="m-hand-sel" role="group" aria-label="측정할 손 선택">
+            <div id="mHandSel" class="m-hand-sel" role="group" aria-label="체크할 손 선택">
               <button class="m-hand-btn" data-hand="left">🫲 왼손</button>
               <button class="m-hand-btn" data-hand="right">🫱 오른손</button>
             </div>
-            <button class="btn" id="mStart">측정 시작하기</button>
+            <button class="btn" id="mStart">체크 시작하기</button>
           </div>
 
           <!-- 측정 중: 굽힘·폄 캡처 -->
@@ -214,7 +219,7 @@
 
           <div id="mActions" class="m-actions" hidden>
             <button class="btn btn-back" id="mReneutral">중립 다시</button>
-            <button class="btn" id="mFinish">측정 완료</button>
+            <button class="btn" id="mFinish">체크 완료</button>
           </div>
 
           <!-- 결과 -->
@@ -226,7 +231,7 @@
             </div>
             <p id="rDelta" class="m-delta"></p>
             <div class="m-result-btns">
-              <button class="btn btn-back" id="mAgain">다시 측정</button>
+              <button class="btn btn-back" id="mAgain">다시 체크</button>
               <button class="btn" data-nav="records">기록 보기</button>
             </div>
           </div>
@@ -278,8 +283,8 @@
 
           <div id="recTrendEmpty" class="rec-empty" hidden>
             <p class="rec-empty-emoji">🌱</p>
-            <p class="rec-empty-text">아직 측정 기록이 없어요.<br>손목 가동범위를 재고 변화를 지켜봐요.</p>
-            <button class="btn" data-nav="measure">측정하러 가기</button>
+            <p class="rec-empty-text">아직 체크 기록이 없어요.<br>손목 상태를 재고 변화를 지켜봐요.</p>
+            <button class="btn" data-nav="measure">체크하러 가기</button>
           </div>
         </div>
 
