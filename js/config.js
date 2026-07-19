@@ -117,3 +117,8 @@ export const STORAGE_KEYS = {
   ROOT: 'wristGarden',
   ROM_HISTORY: 'wb_romHistory', // 프로토타입 호환 키
 };
+
+// ─── 디버그 ───
+// 가이드 인식 진단 로그([guide-diag]/[flexExt])를 콘솔에 출력할지.
+// 평소 false — 테스트 중 인식 문제를 살펴볼 때만 true로 켠다.
+export const DEBUG_GUIDE = false;

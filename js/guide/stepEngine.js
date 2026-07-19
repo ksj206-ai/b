@@ -5,7 +5,7 @@
 // UX(명세서 §6): 시범과 카운트 독립, 관대한 목표, 조용한 피드백,
 //                15초 인식0 시 탈출구, 보상동작은 안내만(카운트 막지 않음… 단 flexExt는 무효화).
 // ═══════════════════════════════════════════════════════════
-import { ROM } from '../config.js';
+import { ROM, DEBUG_GUIDE } from '../config.js';
 
 const IDLE_MS = 15000; // follow에서 이 시간동안 카운트 0이면 탈출구 안내
 
@@ -18,7 +18,7 @@ const IDLE_MS = 15000; // follow에서 이 시간동안 카운트 0이면 탈출
  *  감지값은 스냅샷에 남아 컨트롤러가 세션 비율만 집계한다(추후 코칭 힌트용). */
 function flexExtDetector({ flexT = 24, extT = 12 } = {}) {
   let reachedFlex = false, reachedExt = false;
-  let logAt = 0; // TODO(임시 진단 로그): 스로틀용 — 판정 점검 끝나면 로그와 함께 제거
+  let logAt = 0; // 진단 로그 스로틀 (DEBUG_GUIDE 켰을 때만 사용)
   return {
     feed(snap) {
       if (!snap.detected) return { justCounted: false, hint: '손을 카메라에 보여주세요' };
@@ -27,12 +27,14 @@ function flexExtDetector({ flexT = 24, extT = 12 } = {}) {
       if (rel >= extT) reachedExt = true;
       let justCounted = false;
       if (reachedFlex && reachedExt) { justCounted = true; reachedFlex = false; reachedExt = false; }
-      // TODO(임시 진단 로그): 판정 점검 끝나면 제거
-      const t = performance.now();
-      if (justCounted || t - logAt > 200) {
-        logAt = t;
-        console.log(`[flexExt] rel=${rel.toFixed(1)}° (굽힘 인정 ≤ -${flexT} / 폄 인정 ≥ +${extT}) ` +
-                    `굽힘도달=${reachedFlex} 폄도달=${reachedExt}${justCounted ? ' ✅ 1회 인정' : ''}`);
+      // 진단 로그 — config.DEBUG_GUIDE를 켰을 때만 출력
+      if (DEBUG_GUIDE) {
+        const t = performance.now();
+        if (justCounted || t - logAt > 200) {
+          logAt = t;
+          console.log(`[flexExt] rel=${rel.toFixed(1)}° (굽힘 인정 ≤ -${flexT} / 폄 인정 ≥ +${extT}) ` +
+                      `굽힘도달=${reachedFlex} 폄도달=${reachedExt}${justCounted ? ' ✅ 1회 인정' : ''}`);
+        }
       }
       const hint = reachedFlex ? '좋아요, 이제 위로 펴세요 ⬆'
         : reachedExt ? '이제 아래로 굽혀요 ⬇'

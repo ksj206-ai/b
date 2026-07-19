@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════
 import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
 import { load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr } from './store.js';
-import { SCREENS, ROUTINE, HAND_LM } from './config.js';
+import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
@@ -674,8 +674,8 @@ async function startGuide(id, routineMode = false) {
       const compG = compMove > GUIDE_COMP_MOVE;
       if (snap.detected) { guide.frameN++; if (compG) guide.compN++; }
 
-      // TODO(임시 진단 로그): 손 라벨·상대각 확인용 — 판정 점검 끝나면 제거
-      if (snap.detected && now - guide.diagAt > 250) {
+      // 진단 로그 — config.DEBUG_GUIDE를 켰을 때만 출력 (손 라벨·상대각·이동 지표)
+      if (DEBUG_GUIDE && snap.detected && now - guide.diagAt > 250) {
         guide.diagAt = now;
         console.log(`[guide-diag] label=${handLabel} rel=${snap.rel.toFixed(1)}° move=${compMove.toFixed(2)} comp=${compG}`);
       }
@@ -779,8 +779,8 @@ function flushCompRatio() {
   const g = guide;
   if (!g || !g.frameN) return;
   g.lastCompRatio = Math.round((g.compN / g.frameN) * 100);
-  // TODO(임시 진단 로그): 판정 점검 끝나면 제거
-  console.log(`[guide-diag] 세션 comp 비율: ${g.compN}/${g.frameN} (${g.lastCompRatio}%)`);
+  // 진단 로그 — config.DEBUG_GUIDE를 켰을 때만 출력
+  if (DEBUG_GUIDE) console.log(`[guide-diag] 세션 comp 비율: ${g.compN}/${g.frameN} (${g.lastCompRatio}%)`);
   g.compN = 0; g.frameN = 0;
 }
 
