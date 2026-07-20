@@ -3,6 +3,7 @@
 // 하나의 루트 키(wristGarden) 아래 JSON 트리로 보관.
 // ═══════════════════════════════════════════════════════════
 import { STORAGE_KEYS } from './config.js';
+import { CONSTELLATIONS, getConstellation, constellationsBySeason } from './constellations.js';
 
 const ROOT = STORAGE_KEYS.ROOT;
 
@@ -52,6 +53,9 @@ function defaults() {
     // 리마인더 설정 — null이면 온보딩 전. 생성·갱신은 reminder.js가 담당
     // (부분 객체 기본값 금지 — routine과 같은 얕은 머지 함정)
     reminder: null,
+    // 우주(별자리) 상태 — null이면 아직 배정 전. routine/reminder와 같은 이유로
+    // null 기본값(얕은 머지 함정 회피). 구조 생성·갱신은 아래 sky 헬퍼가 담당.
+    sky: null,
   };
 }
 
@@ -140,4 +144,129 @@ export function currentStreak(state = load(), date = todayStr()) {
   if (diff <= 1) return state.streakDays;
   if (diff === 2 && freezeAvailable(state, addDays(state.lastActiveDate, 1))) return state.streakDays;
   return 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 우주(별자리) 상태 — 오늘의 별자리 / 켠 별 / 완성 누적
+// 데이터·판정 로직만 제공한다. 화면 렌더와 실제 호출부는 다음 단계에서 붙인다.
+// sky 구조:
+//   { today: { constellationId, litStars:[], complete, date, plan:[6] } | null,
+//     constellations: [{ id, name, date, starCount }] }
+// (today는 배정 전 null. plan/date는 렌더·재배정 판정에 필요해 추가한 필드.)
+// ═══════════════════════════════════════════════════════════
+
+/** 계절 판정 (로컬 월 기준): 3~5 봄 / 6~8 여름 / 9~11 가을 / 12~2 겨울 */
+export function seasonOf(date = todayStr()) {
+  const m = Number(String(date).split('-')[1]);
+  if (m >= 3 && m <= 5) return 'spring';
+  if (m >= 6 && m <= 8) return 'summer';
+  if (m >= 9 && m <= 11) return 'fall';
+  return 'winter';
+}
+
+/** sky 기본 구조 (null 기본값에서 필요 시 생성) */
+function defaultSky() {
+  return { today: null, constellations: [] };
+}
+
+/** 현재 sky 반환 (없으면 기본 구조 — 저장은 하지 않음) */
+export function getSky(state = load()) {
+  return state.sky || defaultSky();
+}
+
+/** 날짜 문자열 → 안정 해시 (같은 날 = 같은 별자리 배정) */
+function hashDate(dateStr) {
+  let h = 0;
+  const s = String(dateStr);
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+/** 별 개수를 운동 slots개에 배분: 고르게 나눈 뒤 나머지를 서로 다른 칸에 랜덤 배치.
+ *  반환: 길이 slots의 정수 배열(합 = starCount). 점등은 별 인덱스(그리는 순서)대로. */
+export function distributeStars(starCount, slots = 6) {
+  const n = Math.max(0, starCount | 0);
+  const base = Math.floor(n / slots);
+  const rem = n % slots;
+  const plan = new Array(slots).fill(base);
+  const idx = [...Array(slots).keys()];
+  for (let i = idx.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  for (let k = 0; k < rem; k++) plan[idx[k]]++;
+  return plan;
+}
+
+/** 오늘의 별자리 배정: 계절에 맞는 별자리 중 하나(최근 완성한 것은 가능하면 회피).
+ *  같은 날 재호출 시 동일 결과(멱등). force=true면 재배정.
+ *  반환: 배정된 별자리 객체(없으면 null). 아직 호출부 없음 — 다음 단계에서 연결. */
+export function assignTodayConstellation(state = load(), date = todayStr(), force = false) {
+  const sky = getSky(state);
+  if (!force && sky.today && sky.today.date === date) {
+    state.sky = sky;
+    return getConstellation(sky.today.constellationId);
+  }
+  const pool = constellationsBySeason(seasonOf(date));
+  if (pool.length === 0) return null;
+  const recent = new Set((sky.constellations || []).slice(-3).map((c) => c.id));
+  let candidates = pool.filter((c) => !recent.has(c.id));
+  if (candidates.length === 0) candidates = pool;
+  const chosen = candidates[hashDate(date) % candidates.length];
+  sky.today = {
+    constellationId: chosen.id,
+    litStars: [],
+    complete: false,
+    date,
+    plan: distributeStars(chosen.stars.length),
+  };
+  state.sky = sky;
+  save(state);
+  return chosen;
+}
+
+/** 다음 별 count개를 켠다(그리는 순서 = 별 인덱스 순). 완성되면 today.complete=true.
+ *  반환: 갱신된 state. */
+export function lightStars(state = load(), count = 1) {
+  const sky = getSky(state);
+  if (!sky.today) return state;
+  const con = getConstellation(sky.today.constellationId);
+  const total = con ? con.stars.length : 0;
+  const lit = new Set(sky.today.litStars);
+  for (let i = 0, added = 0; i < total && added < count; i++) {
+    if (!lit.has(i)) { lit.add(i); added++; }
+  }
+  sky.today.litStars = [...lit].sort((a, b) => a - b);
+  sky.today.complete = total > 0 && sky.today.litStars.length >= total;
+  state.sky = sky;
+  save(state);
+  return state;
+}
+
+/** 오늘의 별자리 완성 판정 (모든 별이 켜졌는가) */
+export function isTodayComplete(state = load()) {
+  const sky = getSky(state);
+  if (!sky.today) return false;
+  const con = getConstellation(sky.today.constellationId);
+  return !!con && sky.today.litStars.length >= con.stars.length;
+}
+
+/** 완성한 오늘의 별자리를 누적 목록에 추가(같은 날 중복 방지). 반환: 갱신된 state. */
+export function completeTodayConstellation(state = load(), date = todayStr()) {
+  const sky = getSky(state);
+  if (!sky.today || !isTodayComplete(state)) return state;
+  const con = getConstellation(sky.today.constellationId);
+  if (con) {
+    sky.today.complete = true;
+    const dup = (sky.constellations || []).some((c) => c.id === con.id && c.date === date);
+    if (!dup) {
+      sky.constellations = [
+        ...(sky.constellations || []),
+        { id: con.id, name: con.name, date, starCount: con.stars.length },
+      ];
+    }
+  }
+  state.sky = sky;
+  save(state);
+  return state;
 }
