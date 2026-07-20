@@ -16,6 +16,7 @@
   /* ── 색: 강조 ── */
   --sun:#ffd47a; --sun-soft:#ffeeba; --honey:#f6b665;
   --peach:#ffd9c2; --terra:#e79f77; --rose:#f6b3c2; --water:#8fcef0; --water-d:#3f8fc9;
+  --peach-soft:#fdeee2;                                     /* 살구 파스텔 (이모지 틴트) */
   /* ── 색: 표면/스크림/글로우 ── */
   --card-border:#fff;                                       /* 카드 흰 테두리 */
   --grad-surface:linear-gradient(165deg,#f0fae8,#fff7ec);   /* 히어로·스테이지·결과 표면 통일 */
@@ -23,16 +24,23 @@
   --grad-bar:linear-gradient(90deg,#8fdcab,#54ac63);        /* 진행 바 */
   --cam-bg:#20302a; --scrim:rgba(40,60,44,.72); --scrim-2:rgba(40,60,44,.62); /* 카메라 다크/오버레이 */
   --glow:95,184,114;                                        /* 초록 글로우 → rgba(var(--glow),a) */
+  --moss-rgb:120,200,132; --moss-dd-rgb:70,154,84;          /* 알파 조합용 rgb 트리플렛 */
   --water-soft:#e8f3fa; --water-ink:#5b93b8;                /* 프리즈(파랑) */
+  --white-a85:rgba(255,255,255,.85); --white-a60:rgba(255,255,255,.6); --white-a35:rgba(255,255,255,.35); /* 반투명 흰 표면 */
+  --bg-page:                                                /* 페이지 배경(3중 파스텔 그라디언트) */
+    radial-gradient(60% 40% at 82% 12%, rgba(255,222,178,.5) 0%, transparent 60%),
+    radial-gradient(50% 40% at 12% 20%, rgba(178,224,180,.45) 0%, transparent 60%),
+    radial-gradient(120% 90% at 50% -10%, #f2f9e8 0%, #eaf5e0 45%, #f8f2e3 100%);
   /* ── 선 ── */
   --line:#ecefdf;
 
   /* ── 모서리 반경 ── */
-  --r-chip:8px; --r-sm:14px; --r-md:18px; --r-lg:24px;
+  --r-xs:4px; --r-chip:8px; --r-sm:14px; --r-md:18px; --r-lg:24px;
   --r-card:30px; --r-hero:36px; --r-pill:99px;
   --radius:var(--r-card); --radius-lg:var(--r-hero);        /* 구 이름 호환 */
 
   /* ── 간격 리듬 (몇 개의 정해진 값만) ── */
+  --sp-3xs:2px; --sp-2xs:4px;                               /* 마이크로 간격 */
   --sp-xs:6px; --sp-sm:8px; --sp:10px; --sp-md:12px; --sp-lg:16px; --sp-xl:20px; --sp-2xl:24px;
   --pad-card:18px; --pad-card-sm:14px;                      /* 카드 안 여백(모바일 축소) */
 
@@ -40,6 +48,8 @@
   --fs-2xs:10px; --fs-xs:11.5px; --fs-sm:12.5px; --fs-base:14px;
   --fs-md:16px; --fs-lg:18px; --fs-xl:22px;
   --fs-num:24px; --fs-count:36px; --fs-title:33px;          /* 디스플레이(수치·제목) */
+  --fs-emoji-sm:28px; --fs-emoji:32px; --fs-emoji-lg:44px; --fs-emoji-xl:56px; /* 장식 이모지 */
+  --lh:1.6; --lh-title:1.4;                                 /* 행간(멀티라인 본문/제목) */
 
   /* ── 그림자 ── */
   --shadow:0 14px 34px rgba(90,140,95,.16);
@@ -49,6 +59,10 @@
   --shadow-badge:0 3px 7px rgba(84,172,99,.35);             /* 배지/칩 */
   --shadow-emoji:inset 0 0 0 2px #fff, 0 4px 10px rgba(90,140,95,.14); /* 이모지 원 */
   --btn-lift:6px; --btn-lift-sm:5px;                        /* 3D 버튼 두께(주/보조) */
+  --ring-white:inset 0 0 0 2px #fff;                        /* 카메라/이모지 흰 링 */
+  --ring-accent:inset 0 0 0 2px var(--sage);                /* 강조 상태 링(선택·오늘) */
+  --shadow-badge-terra:0 3px 7px rgba(231,159,119,.35);     /* 배지(살구 변형) */
+  --btn-pad:14px 28px; --btn-pad-sm:12px 20px; --btn-pad-hero:20px 52px; /* 버튼 패딩(주/보조/히어로) */
   --pop:0 6px 0; /* 구 호환 */
 }
 
