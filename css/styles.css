@@ -5,21 +5,51 @@
 @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap');
 
 :root{
-  /* 잉크 / 배경 */
+  /* ═══ 디자인 토큰 (단일 출처) — 값은 여기서만 바꾸면 전 화면에 반영 ═══ */
+
+  /* ── 색: 잉크/배경 ── */
   --ink:#3a4c3e; --muted:#8aa38e; --ink-soft:rgba(58,76,62,.6);
   --cream:#fffdf7; --paper:#fbf5e9;
-  /* 이끼(메인) — 살짝 더 부드럽게 */
-  --moss:#78c884; --moss-d:#54ac63; --moss-dd:#469a54;
+  /* ── 색: 이끼(메인) ── */
+  --moss:#78c884; --moss-l:#8fdcab; --moss-d:#54ac63; --moss-dd:#469a54;
   --sage:#b3d6a8; --sage-soft:#eaf5e1;
-  /* 강조 — 따뜻한 톤 */
+  /* ── 색: 강조 ── */
   --sun:#ffd47a; --sun-soft:#ffeeba; --honey:#f6b665;
   --peach:#ffd9c2; --terra:#e79f77; --rose:#f6b3c2; --water:#8fcef0; --water-d:#3f8fc9;
-  /* 선 / 그림자 — 더 폭신하게 */
+  /* ── 색: 표면/스크림/글로우 ── */
+  --card-border:#fff;                                       /* 카드 흰 테두리 */
+  --grad-surface:linear-gradient(165deg,#f0fae8,#fff7ec);   /* 히어로·스테이지·결과 표면 통일 */
+  --grad-primary:linear-gradient(180deg,#7fd28a,#54ac63);   /* 채운 주버튼 */
+  --grad-bar:linear-gradient(90deg,#8fdcab,#54ac63);        /* 진행 바 */
+  --cam-bg:#20302a; --scrim:rgba(40,60,44,.72); --scrim-2:rgba(40,60,44,.62); /* 카메라 다크/오버레이 */
+  --glow:95,184,114;                                        /* 초록 글로우 → rgba(var(--glow),a) */
+  --water-soft:#e8f3fa; --water-ink:#5b93b8;                /* 프리즈(파랑) */
+  /* ── 선 ── */
   --line:#ecefdf;
-  --radius:30px; --radius-lg:36px;
+
+  /* ── 모서리 반경 ── */
+  --r-chip:8px; --r-sm:14px; --r-md:18px; --r-lg:24px;
+  --r-card:30px; --r-hero:36px; --r-pill:99px;
+  --radius:var(--r-card); --radius-lg:var(--r-hero);        /* 구 이름 호환 */
+
+  /* ── 간격 리듬 (몇 개의 정해진 값만) ── */
+  --sp-xs:6px; --sp-sm:8px; --sp:10px; --sp-md:12px; --sp-lg:16px; --sp-xl:20px; --sp-2xl:24px;
+  --pad-card:18px; --pad-card-sm:14px;                      /* 카드 안 여백(모바일 축소) */
+
+  /* ── 폰트 크기 스케일 ── */
+  --fs-2xs:10px; --fs-xs:11.5px; --fs-sm:12.5px; --fs-base:14px;
+  --fs-md:16px; --fs-lg:18px; --fs-xl:22px;
+  --fs-num:24px; --fs-count:36px; --fs-title:33px;          /* 디스플레이(수치·제목) */
+
+  /* ── 그림자 ── */
   --shadow:0 14px 34px rgba(90,140,95,.16);
   --shadow-sm:0 6px 16px rgba(90,140,95,.13);
-  --pop:0 6px 0; /* 3D 버튼 두께 */
+  --ring:inset 0 0 0 2px var(--line);                       /* 카드 안쪽 링 */
+  --ring-sage:inset 0 0 0 2px var(--sage-soft);
+  --shadow-badge:0 3px 7px rgba(84,172,99,.35);             /* 배지/칩 */
+  --shadow-emoji:inset 0 0 0 2px #fff, 0 4px 10px rgba(90,140,95,.14); /* 이모지 원 */
+  --btn-lift:6px; --btn-lift-sm:5px;                        /* 3D 버튼 두께(주/보조) */
+  --pop:0 6px 0; /* 구 호환 */
 }
 
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -37,22 +67,22 @@ body{
   padding:20px 12px 44px;
 }
 
-.app{ width:min(560px,95vw); display:flex; flex-direction:column; gap:18px; }
+.app{ width:min(560px,95vw); display:flex; flex-direction:column; gap:var(--sp-xl); }
 
 /* ─── 헤더 ─── */
 .app-header{ text-align:center; }
 .app-title{
-  font-family:"Black Han Sans",sans-serif; font-size:33px; font-weight:700;
+  font-family:"Black Han Sans",sans-serif; font-size:var(--fs-title); font-weight:700;
   margin:2px 0 0; color:var(--moss-dd); letter-spacing:.5px;
-  display:flex; align-items:center; justify-content:center; gap:9px;
+  display:flex; align-items:center; justify-content:center; gap:var(--sp-sm);
   text-shadow:0 2px 0 #fff;
 }
 .app-logo{ font-size:31px; display:inline-block; animation:sway 3.4s ease-in-out infinite; }
 @keyframes sway{ 0%,100%{ transform:rotate(-7deg); } 50%{ transform:rotate(7deg); } }
-.app-tag{ color:var(--muted); font-size:13px; margin:6px 0 0; font-weight:500; }
+.app-tag{ color:var(--muted); font-size:var(--fs-sm); margin:6px 0 0; font-weight:500; }
 .streak{
-  display:inline-block; margin-top:10px; font-family:"Jua",sans-serif; font-size:13px;
-  color:var(--terra); background:var(--sun-soft); padding:6px 17px; border-radius:99px;
+  display:inline-block; margin-top:var(--sp); font-family:"Jua",sans-serif; font-size:var(--fs-sm);
+  color:var(--terra); background:var(--sun-soft); padding:var(--sp-xs) var(--sp-lg); border-radius:var(--r-pill);
   box-shadow:var(--shadow-sm);
 }
 .streak b{ color:var(--honey); }
@@ -220,9 +250,9 @@ body{
 .section-link:hover{ color:var(--moss-dd); }
 
 /* ─── 하위 화면 헤더 ─── */
-.screen-head{ display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.screen-head{ display:flex; align-items:center; gap:var(--sp-md); margin-bottom:var(--sp-lg); }
 .screen-title{
-  font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:22px;
+  font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-xl);
   color:var(--moss-dd); margin:0;
 }
 
@@ -527,28 +557,28 @@ body{
 .rec-empty-emoji{ font-size:40px; margin:0; animation:bob 3s ease-in-out infinite; }
 .rec-empty-text{ font-family:"Jua",sans-serif; font-size:13px; color:var(--ink-soft); line-height:1.6; margin:0; }
 
-/* ─── 버튼 ─── */
+/* ─── 버튼 (위계: 화면당 채운 주버튼 .btn 1개 + 나머지 테두리형) ─── */
 .btn{
   border:none; font-family:"Jua",sans-serif; font-weight:400; cursor:pointer;
-  border-radius:99px; font-size:14.5px; padding:14px 28px; color:#fff;
-  background:linear-gradient(180deg,#7fd28a,#54ac63);
-  box-shadow:var(--pop) var(--moss-dd); transition:transform .06s;
+  border-radius:var(--r-pill); font-size:var(--fs-base); padding:14px 28px; color:#fff;
+  background:var(--grad-primary);
+  box-shadow:0 var(--btn-lift) 0 var(--moss-dd); transition:transform .06s;
 }
 .btn:active{ transform:translateY(4px); box-shadow:0 2px 0 var(--moss-dd); }
 .btn-hero{
-  padding:19px 52px; font-size:18px; margin-top:4px;
+  padding:19px 52px; font-size:var(--fs-lg); margin-top:4px;
   animation:breathe 2.8s ease-in-out infinite;
 }
 @keyframes breathe{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
 .btn-hero:active{ animation:none; }
 .btn-back{
-  background:#fff; color:var(--muted); font-size:13px; padding:11px 18px;
-  box-shadow:0 5px 0 var(--line); border:2px solid var(--line);
+  background:#fff; color:var(--muted); font-size:var(--fs-sm); padding:11px 18px;
+  box-shadow:0 var(--btn-lift-sm) 0 var(--line); border:2px solid var(--line);
 }
 .btn-back:active{ transform:translateY(3px); box-shadow:0 2px 0 var(--line); }
 .btn-line{
-  background:#fff; color:var(--moss-dd); font-size:13.5px; padding:11px 20px;
-  border:2px solid var(--sage); box-shadow:0 5px 0 var(--sage);
+  background:#fff; color:var(--moss-dd); font-size:var(--fs-sm); padding:11px 20px;
+  border:2px solid var(--sage); box-shadow:0 var(--btn-lift-sm) 0 var(--sage);
 }
 .btn-line:active{ transform:translateY(3px); box-shadow:0 2px 0 var(--sage); }
 .btn-done{
@@ -558,9 +588,9 @@ body{
 
 /* ─── 면책 ─── */
 .app-disc{
-  font-size:11px; color:var(--muted); line-height:1.65; text-align:center;
-  background:rgba(255,253,247,.7); border:2px solid var(--line); border-radius:22px;
-  padding:14px 18px; margin-top:4px;
+  font-size:var(--fs-xs); color:var(--muted); line-height:1.65; text-align:center;
+  background:rgba(255,253,247,.7); border:2px solid var(--line); border-radius:var(--r-lg);
+  padding:var(--sp-lg) var(--pad-card); margin-top:4px;
 }
 
 /* ─── 모바일 (좁은 화면 큰 틀 대응) ─── */
