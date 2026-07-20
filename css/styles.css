@@ -615,14 +615,13 @@ body{
   padding:var(--sp-lg) var(--pad-card); margin-top:var(--sp-2xs);
 }
 
-/* ─── 모바일 (좁은 화면 큰 틀 대응) ─── */
 /* ─── 데스크톱 와이드 레이아웃 (모바일 세로형은 그대로) ─── */
 @media (min-width:960px){
   .app{ width:min(1080px,92vw); }
 
   /* 홈: 히어로(좌) + 알림·카드(우) */
   #screen-home.is-active{
-    display:grid; grid-template-columns:1.25fr 1fr; gap:18px; align-items:start;
+    display:grid; grid-template-columns:1.25fr 1fr; gap:var(--sp-md) var(--sp-xl); align-items:start;
   }
   #screen-home > .home-hero{ grid-column:1; grid-row:1 / span 4; }
   #screen-home > .remind-entry-chip,
@@ -633,7 +632,7 @@ body{
 
   /* 기록: 추이 카드 전체 폭 + 나머지 2단 */
   #screen-records.is-active{
-    display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start;
+    display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-md) var(--sp-xl); align-items:start;
   }
   #screen-records > .screen-head{ grid-column:1 / -1; margin-bottom:0; }
   #screen-records > .rec-card{ margin-bottom:0; }
@@ -642,7 +641,7 @@ body{
   /* 손목 체크: 카메라(좌) + 안내·패널(우) */
   #screen-measure .mzone{
     display:grid; grid-template-columns:1.4fr 1fr;
-    column-gap:20px; row-gap:14px; align-items:start;
+    column-gap:var(--sp-xl); row-gap:var(--sp-md); align-items:start;
   }
   #screen-measure .mzone > .cam-wrap{ grid-column:1; grid-row:1 / span 6; }
   #screen-measure .mzone > :not(.cam-wrap){ grid-column:2; }
@@ -650,10 +649,10 @@ body{
   /* 오늘의 루틴: 목록 2단, 플레이어는 시범(좌) + 카메라·안내(우).
      본질이 "시범 보고 나를 보며 따라 하기"라 카메라를 오른쪽 열 상단으로 승격.
      시범 1.5fr : 오른쪽 1fr → 카메라는 시범 캔버스의 약 66% (요구 60~70%). */
-  #screen-guide .guide-list{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  #screen-guide .guide-list{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-lg); }
   #screen-guide .guide-player{
     display:grid; grid-template-columns:1.5fr 1fr;
-    column-gap:20px; row-gap:10px; align-items:start;
+    column-gap:var(--sp-xl); row-gap:var(--sp-md); align-items:start;
     justify-items:stretch;
   }
   #screen-guide .guide-player > .gp-top{ grid-column:1 / -1; }
@@ -670,17 +669,19 @@ body{
   .gp-cam{ font-size:var(--fs-sm); padding:var(--sp-2xs) var(--sp-sm); }
 }
 
+/* 초소형 모바일: 개별 규칙 대신 토큰 재정의 — 카드 여백·버튼·디스플레이 크기가 한 번에 축소 */
 @media (max-width:420px){
+  :root{
+    --fs-title:28px; --fs-count:32px;              /* 앱 제목·회수 카운터 */
+    --pad-card:var(--pad-card-sm);                 /* 카드 안 여백 18→14 */
+    --btn-pad:12px 24px; --btn-pad-hero:16px 32px; /* 버튼 패딩 */
+  }
   body{ padding:var(--pad-card-sm) var(--sp-sm) 36px; }
   .app{ width:100%; }
-  .app-title{ font-size:28px; }
   .home-hero{ padding:var(--sp-md) var(--pad-card-sm) var(--sp-2xl); }
   .home-hero-title{ font-size:var(--fs-lg); }
   .section-card{ padding:var(--sp-lg); }
-  .guide-player, .mzone, .rec-card{ padding:var(--pad-card-sm); }
-  .gp-count-num{ font-size:32px; }
-  .btn{ padding:13px 22px; }
-  .btn-hero{ padding:15px 30px; font-size:var(--fs-base); }
+  .btn-hero{ font-size:var(--fs-base); }
 }
 
 @media (prefers-reduced-motion:reduce){ *{ animation:none!important; } }
