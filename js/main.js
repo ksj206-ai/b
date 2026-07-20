@@ -454,6 +454,37 @@ function stopMeasure() {
 // ═══════════════════════════════════════════════════════════
 let guide = null; // { mods, els, ... }
 
+// 데스크톱(≥960px)에선 카메라를 오른쪽 열 상단으로 승격, 모바일은 시범 위 PiP 오버레이.
+// 순수 CSS로는 grid 셀 간 이동이 안 돼(부모가 달라야 함) 뷰포트에 맞춰 DOM만 옮긴다.
+// 요소 참조(video/lm/cam)는 그대로라 그리기 루프·스트림은 영향받지 않는다.
+const GP_DESKTOP_MQ = window.matchMedia('(min-width:960px)');
+function layoutPip() {
+  const g = guide; if (!g || !g.els) return;
+  const { pip, player, stage, text, video } = g.els;
+  if (GP_DESKTOP_MQ.matches) {
+    if (pip.parentElement !== player) player.insertBefore(pip, text); // 오른쪽 열 상단
+  } else if (pip.parentElement !== stage) {
+    stage.appendChild(pip); // 시범 캔버스 위 PiP
+  }
+  if (g.running) video.play?.().catch(() => {}); // 이동 후 일시정지 대비
+}
+
+/** 손 감지 칩 — 아이콘 + 라벨 분리(좁은 화면은 CSS가 라벨만 숨겨 아이콘만 노출) */
+function setCamChip(ico, txt, ok) {
+  const e = guide?.els; if (!e) return;
+  e.camIco.textContent = ico;
+  e.camTxt.textContent = txt;
+  e.cam.classList.toggle('ok', !!ok);
+}
+
+/** 회수 표시 — 큰 숫자 "N/reps회" (reps 0이면 숨김: intro/outro 등 비카운트 스텝) */
+function setCount(count, reps) {
+  const e = guide?.els; if (!e) return;
+  if (!reps) { e.count.hidden = true; return; }
+  e.count.hidden = false;
+  e.countNum.textContent = `${count}/${reps}`;
+}
+
 async function initGuide() {
   if (guide && guide.wired) { consumeAutoStart(); return; }
   const tracking = await import('./tracking.js');
@@ -466,8 +497,9 @@ async function initGuide() {
   const $ = (id) => document.getElementById(id);
   const els = {
     list: $('guideList'), player: $('guidePlayer'), canvas: $('guideCanvas'),
-    video: $('guideVideo'), cam: $('gpCam'), pip: $('gpPip'), lm: $('gpLm'),
-    name: $('gpName'), step: $('gpStep'),
+    stage: $('gpStage'), video: $('guideVideo'), cam: $('gpCam'),
+    camIco: $('gpCamIco'), camTxt: $('gpCamTxt'), pip: $('gpPip'), lm: $('gpLm'),
+    name: $('gpName'), step: $('gpStep'), count: $('gpCount'), countNum: $('gpCountNum'),
     text: $('gpText'), dots: $('gpDots'), hint: $('gpHint'), idle: $('gpIdle'),
     skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
     retry: $('gpRetry'), proceed: $('gpProceed'),
@@ -522,6 +554,10 @@ async function initGuide() {
     });
   }
   els.condSkip.addEventListener('click', () => finishConditionAsk(null));
+
+  // 카메라 배치: 최초 1회 + 뷰포트가 데스크톱↔모바일 경계를 넘을 때 재배치
+  layoutPip();
+  GP_DESKTOP_MQ.addEventListener('change', layoutPip);
 
   consumeAutoStart();
 }
@@ -580,7 +616,9 @@ async function startGuide(id, routineMode = false) {
   els.btns.hidden = false;
   els.idle.hidden = true;
   els.name.textContent = `${g.emoji} ${g.name}`;
-  els.cam.textContent = '카메라 여는 중…';
+  els.pip.hidden = false;
+  layoutPip();
+  setCamChip('📷', '카메라 여는 중…', false);
 
   const tracker = mods.createWristTracker('live');
   guide.tracker = tracker;
@@ -591,7 +629,9 @@ async function startGuide(id, routineMode = false) {
       els.text.textContent = step.text;
       els.hint.textContent = '';
       els.idle.hidden = true;
-      buildDots(step.type === 'follow' ? step.reps : 0);
+      const reps = step.type === 'follow' ? step.reps : 0;
+      buildDots(reps);
+      setCount(0, reps);
       guide.anim = step.type === 'follow' && step.anim
         ? mods.createAnimPlayer(step.anim, step.base || {})
         : null;
@@ -601,7 +641,7 @@ async function startGuide(id, routineMode = false) {
         ? { from: guide.lastParams, start: null }
         : null;
     },
-    onCount: (count, reps) => { fillDots(count, reps); if (count > 0) repFeedback(count); },
+    onCount: (count, reps) => { fillDots(count, reps); setCount(count, reps); if (count > 0) repFeedback(count); },
     // comp는 힌트를 덮지 않는다 — 감지만 집계(관대한 판정, 코칭 힌트는 추후)
     onStatus: ({ hint, idle }) => {
       els.hint.textContent = hint || '';
@@ -627,8 +667,7 @@ async function startGuide(id, routineMode = false) {
     guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
     guide.compN = 0; guide.frameN = 0; // 세션 comp 비율 집계 (추후 코칭 힌트용)
     guide.neutralWait = null; guide.baseWrist = null;
-    els.cam.textContent = '🖐 손을 화면에 보여주세요';
-    els.cam.classList.remove('ok');
+    setCamChip('🖐', '손을 화면에 보여주세요', false);
     guide.running = true;
     engine.start(performance.now());
     guide.tracking.startLoop(({ hand, pose, handLabel, now }) => {
@@ -682,7 +721,7 @@ async function startGuide(id, routineMode = false) {
       engine.update(now, snap);
     }, { pose: false });
   } catch (e) {
-    els.cam.textContent = '오류';
+    setCamChip('⚠', '오류', false);
     els.text.textContent = '카메라/모델을 열 수 없어요: ' + e.message;
     console.error('[guide] 시작 실패:', e);
   }
@@ -716,8 +755,7 @@ function updateHandStatus(seen) {
   const next = g.handSeen ? g.lostN < HAND_OFF_FRAMES : g.seenN >= HAND_ON_FRAMES;
   if (next === g.handSeen) return;
   g.handSeen = next;
-  g.els.cam.textContent = next ? '✓ 손이 잘 보여요' : '🖐 손을 화면에 보여주세요';
-  g.els.cam.classList.toggle('ok', next);
+  setCamChip(next ? '✓' : '🖐', next ? '손이 잘 보여요' : '손을 화면에 보여주세요', next);
 }
 
 /** 인식 관절점 오버레이 — 표시 영상이 거울(scaleX(-1)) + cover 크롭이라
@@ -749,17 +787,23 @@ function repFeedback(count) {
   const g = guide;
   const dot = g.els.dots.children[count - 1];
   if (dot) { dot.classList.remove('pop'); void dot.offsetWidth; dot.classList.add('pop'); }
+  const num = g.els.countNum;
+  if (num) { num.classList.remove('pop'); void num.offsetWidth; num.classList.add('pop'); }
   g.els.pip.classList.remove('flash'); void g.els.pip.offsetWidth; g.els.pip.classList.add('flash');
 }
 
 function drawStage(ctx, canvas, drawGuideHand, params, view, now) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // 은은한 배경 원
+  // 밀도: 시범 손을 살짝 키우고(1.08), 뷰별로 세로 중심을 맞춰 빈 여백을 줄인다.
+  // front는 소매가 아래로 길어 무게중심이 아래로 치우쳐, 원점을 살짝 위로 올려 균형.
+  const cx = canvas.width / 2;
+  const cy = view === 'front' ? canvas.height / 2 - 26 : canvas.height / 2;
+  const scale = 1.08;
   ctx.save();
   ctx.fillStyle = 'rgba(120,200,132,.08)';
-  ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height / 2, 128, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, cy, 120, 0, 7); ctx.fill();
   ctx.restore();
-  drawGuideHand(ctx, params, view, { cx: canvas.width / 2, cy: canvas.height / 2, scale: 1, now });
+  drawGuideHand(ctx, params, view, { cx, cy, scale, now });
 }
 
 function buildDots(reps) {
@@ -792,6 +836,7 @@ function onGuideComplete(g) {
   e.dots.innerHTML = '';
   e.hint.textContent = '';
   e.text.textContent = '';
+  e.pip.hidden = true; e.count.hidden = true;
   e.done.hidden = false;
   // 기록 저장 + 스트릭 갱신
   const s = load();
@@ -861,6 +906,7 @@ function askCondition(r) {
   e.dots.innerHTML = '';
   e.hint.textContent = '';
   e.text.textContent = '';
+  e.pip.hidden = true; e.count.hidden = true;
   e.done.hidden = true;
   e.condition.hidden = false;
 }
@@ -884,6 +930,7 @@ function showRoutineDone(r, condition = null) {
   e.dots.innerHTML = '';
   e.hint.textContent = '';
   e.text.textContent = '';
+  e.pip.hidden = true; e.count.hidden = true;
   e.condition.hidden = true;
   e.done.hidden = false;
   e.doneEmoji.textContent = full ? '⭐' : '🌱';
@@ -910,8 +957,7 @@ function stopGuideSession() {
   guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
   guide.neutralWait = null; guide.baseWrist = null;
   if (guide.els) {
-    guide.els.cam.textContent = '카메라';
-    guide.els.cam.classList.remove('ok');
+    setCamChip('📷', '카메라', false);
     guide.els.pip.classList.remove('flash');
     if (guide.lmCtx) guide.lmCtx.clearRect(0, 0, guide.els.lm.width, guide.els.lm.height);
   }

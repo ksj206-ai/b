@@ -274,18 +274,27 @@ body{
   background:linear-gradient(165deg,#f0fae8,#fff7ec); box-shadow:inset 0 0 0 2px var(--sage-soft);
 }
 .guide-canvas{ display:block; width:100%; height:auto; }
+/* 카메라(내 손) — 기본은 시범 위 PiP 오버레이(모바일), 데스크톱은 오른쪽 열로 승격.
+   위치 맥락만 두 곳에서 바꾸고, 미러·오버레이 매핑은 크기와 무관하게 그대로 유지된다. */
 .gp-pip{
-  position:absolute; top:12px; right:12px; width:96px; aspect-ratio:4/3;
-  border-radius:14px; overflow:hidden; background:#20302a; box-shadow:inset 0 0 0 2px #fff, var(--shadow-sm);
+  position:relative; border-radius:14px; overflow:hidden; background:#20302a;
+  box-shadow:inset 0 0 0 2px #fff, var(--shadow-sm);
+}
+.gp-stage > .gp-pip{ /* 모바일: 시범 캔버스 위 PiP (지금보다 한 단계 크게) */
+  position:absolute; top:12px; right:12px; width:34%; max-width:150px; aspect-ratio:4/3;
 }
 .gp-pip .cam-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
 .gp-lm{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+/* 손 감지 칩 — 카메라를 가리지 않게 모서리에 작게 (전폭 바 아님) */
 .gp-cam{
-  position:absolute; bottom:4px; left:4px; right:4px; font-family:"Jua",sans-serif;
-  font-size:9px; line-height:1.3; color:#fff; text-align:center;
-  padding:2px 3px; border-radius:7px; background:rgba(40,60,44,.62);
+  position:absolute; bottom:6px; left:6px; max-width:calc(100% - 12px);
+  display:inline-flex; align-items:center; gap:4px;
+  font-family:"Jua",sans-serif; font-size:10px; line-height:1.2; color:#fff;
+  padding:3px 8px; border-radius:8px; background:rgba(40,60,44,.62);
 }
 .gp-cam.ok{ background:rgba(74,157,87,.9); }
+.gp-cam-ico{ flex:none; }
+.gp-cam-txt{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 /* 회수 인정 피드백: 카메라 테두리 초록 반짝 + 진행 점 통통 */
 @keyframes gp-flash{
   0%{ box-shadow:inset 0 0 0 2px #fff, 0 0 0 5px rgba(95,184,114,.85), var(--shadow-sm); }
@@ -295,9 +304,17 @@ body{
 @keyframes gp-dot-pop{ 0%{ transform:scale(.5); } 55%{ transform:scale(1.5); } 100%{ transform:scale(1.12); } }
 .gp-dot.pop{ animation:gp-dot-pop .45s cubic-bezier(.3,1.6,.5,1); }
 .gp-text{ font-family:"Jua",sans-serif; font-size:16px; color:var(--ink); text-align:center; margin:6px 0 0; word-break:keep-all; min-height:22px; }
-.gp-safe{ font-size:11.5px; color:var(--terra); margin:0; }
-.gp-dots{ display:flex; gap:9px; margin:4px 0; min-height:16px; }
+/* 통증 안내 — 차분한 회색 작은 글씨 (경고색 아님), 하단 */
+.gp-safe{ font-size:10.5px; color:var(--muted); margin:6px 0 0; text-align:center; opacity:.9; }
+/* 회수: 큰 숫자가 주인공 ("N/5회"), 진행 점은 보조 */
+.gp-count{ display:flex; align-items:baseline; justify-content:center; gap:3px; margin:6px 0 0; }
+.gp-count-num{ display:inline-block; font-family:"Black Han Sans",sans-serif; font-size:36px; line-height:1; color:var(--moss-dd); }
+.gp-count-num.pop{ animation:capPop .5s cubic-bezier(.3,1.5,.5,1); }
+.gp-count-unit{ font-family:"Jua",sans-serif; font-size:15px; color:var(--muted); }
+.gp-dots{ display:flex; gap:6px; margin:4px 0 0; min-height:11px; justify-content:center; }
 .gp-dot{ width:15px; height:15px; border-radius:50%; background:rgba(120,200,132,.22); box-shadow:inset 0 1px 2px rgba(0,0,0,.1); transition:.25s cubic-bezier(.3,1.5,.5,1); }
+/* 회수 진행 점은 보조 지표 — 작게 (완료 화면 routine-prog 점은 원래 크기 유지) */
+.gp-dots .gp-dot{ width:9px; height:9px; }
 .gp-dot.on{ background:linear-gradient(180deg,#8fdcab,#5fb872); box-shadow:0 3px 8px rgba(95,184,114,.45); transform:scale(1.12); }
 .gp-hint{ font-size:12.5px; color:var(--moss-d); margin:0; min-height:16px; text-align:center; }
 .gp-hint.warn{ color:var(--terra); }
@@ -560,16 +577,27 @@ body{
   #screen-measure .mzone > .cam-wrap{ grid-column:1; grid-row:1 / span 6; }
   #screen-measure .mzone > :not(.cam-wrap){ grid-column:2; }
 
-  /* 오늘의 루틴: 목록 2단, 플레이어는 시범(좌) + 안내(우) */
+  /* 오늘의 루틴: 목록 2단, 플레이어는 시범(좌) + 카메라·안내(우).
+     본질이 "시범 보고 나를 보며 따라 하기"라 카메라를 오른쪽 열 상단으로 승격.
+     시범 1.5fr : 오른쪽 1fr → 카메라는 시범 캔버스의 약 66% (요구 60~70%). */
   #screen-guide .guide-list{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   #screen-guide .guide-player{
-    display:grid; grid-template-columns:1.4fr 1fr;
+    display:grid; grid-template-columns:1.5fr 1fr;
     column-gap:20px; row-gap:10px; align-items:start;
     justify-items:stretch;
   }
   #screen-guide .guide-player > .gp-top{ grid-column:1 / -1; }
   #screen-guide .guide-player > .gp-stage{ grid-column:1; grid-row:2 / span 9; }
   #screen-guide .guide-player > :not(.gp-top):not(.gp-stage){ grid-column:2; }
+  /* 승격된 카메라: 오른쪽 열 상단, 열 폭을 꽉 채운 블록 (JS가 여기로 옮겨 배치) */
+  #screen-guide .guide-player > .gp-pip{ width:100%; aspect-ratio:4/3; }
+  #screen-guide .guide-player > .gp-pip .gp-cam{ font-size:11.5px; padding:4px 10px; }
+}
+
+/* 좁은 화면: 손 감지 칩은 아이콘(✓/🖐)만 — 글자가 카메라를 덮지 않게 */
+@media (max-width:480px){
+  .gp-cam-txt{ display:none; }
+  .gp-cam{ font-size:13px; padding:4px 7px; }
 }
 
 @media (max-width:420px){
@@ -580,7 +608,7 @@ body{
   .home-hero-title{ font-size:18px; }
   .section-card{ padding:15px 16px; }
   .guide-player, .mzone, .rec-card{ padding:14px; }
-  .gp-pip{ width:78px; }
+  .gp-count-num{ font-size:32px; }
   .btn{ padding:13px 22px; }
   .btn-hero{ padding:15px 30px; font-size:15px; }
 }
