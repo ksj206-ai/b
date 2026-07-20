@@ -837,8 +837,8 @@ function drawLandmarks(hand) {
   if (!hand || !v.videoWidth) return;
   const sc = Math.max(W / v.videoWidth, H / v.videoHeight);
   const ox = (W - v.videoWidth * sc) / 2, oy = (H - v.videoHeight * sc) / 2;
-  ctx.fillStyle = 'rgba(143,220,171,.95)';
-  ctx.strokeStyle = 'rgba(32,48,42,.55)';
+  ctx.fillStyle = 'rgba(183,169,247,.95)';
+  ctx.strokeStyle = 'rgba(12,10,26,.55)';
   ctx.lineWidth = 1;
   for (const lm of hand) {
     const x = ox + (1 - lm.x) * v.videoWidth * sc;
@@ -865,7 +865,7 @@ function drawStage(ctx, canvas, drawGuideHand, params, view, now) {
   const cy = view === 'front' ? canvas.height / 2 - 26 : canvas.height / 2;
   const scale = 1.08;
   ctx.save();
-  ctx.fillStyle = 'rgba(120,200,132,.08)';
+  ctx.fillStyle = 'rgba(160,140,255,.07)';
   ctx.beginPath(); ctx.arc(cx, cy, 120, 0, 7); ctx.fill();
   ctx.restore();
   drawGuideHand(ctx, params, view, { cx, cy, scale, now });
@@ -1139,8 +1139,8 @@ function renderTrend(e, ms) {
   e.trendHint.textContent = ms.length < 2 ? '체크를 2번 이상 하면 변화 추이가 그려져요.' : `총 ${ms.length}회 체크 · 참고값`;
 
   drawTrend(e.canvas, [
-    { data: flexes, color: '#469a54', label: '굽힘' }, // --moss-dd
-    { data: exts, color: '#3f8fc9', label: '폄' },     // --water-d
+    { data: flexes, color: '#b7a9f7', label: '굽힘' }, // --moss-dd
+    { data: exts, color: '#5ab0e8', label: '폄' },     // --water-d
   ]);
 }
 
@@ -1171,9 +1171,9 @@ function drawTrend(canvas, series) {
   ctx.textBaseline = 'middle';
   for (let g = 0; g <= 2; g++) {
     const val = mn + (mx - mn) * g / 2, yy = Y(val);
-    ctx.strokeStyle = 'rgba(120,200,132,.18)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(180,175,230,.14)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(padL + w, yy); ctx.stroke();
-    ctx.fillStyle = '#8aa38e'; ctx.fillText(Math.round(val) + '°', 4, yy);
+    ctx.fillStyle = '#a5a2ce'; ctx.fillText(Math.round(val) + '°', 4, yy);
   }
 
   // 선
@@ -1199,7 +1199,7 @@ function drawTrend(canvas, series) {
     const d = ys[b] - ys[a];
     if (Math.abs(d) < 12) { const push = (12 - Math.abs(d)) / 2; ys[a] += d >= 0 ? -push : push; ys[b] += d >= 0 ? push : -push; }
   }
-  ctx.fillStyle = '#3a4c3e';
+  ctx.fillStyle = '#eae7fb';
   series.forEach((s, k) => ctx.fillText(s.label, X(n - 1) + 9, ys[k]));
 }
 
