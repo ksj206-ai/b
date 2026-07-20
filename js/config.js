@@ -6,7 +6,7 @@
 
 // ─── 앱 메타 ───
 export const APP = {
-  name: '손목 정원',
+  name: '오늘의 별자리',
   version: '0.2.0',
 };
 
