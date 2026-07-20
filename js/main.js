@@ -233,6 +233,20 @@ let measure = null;
 let measureIniting = false; // import await 중 재진입으로 리스너가 이중 배선되는 것 방지
 const NEUTRAL_MS = 1600; // 중립 자세 유지 시간
 
+/** 카메라/모델 시작 실패를 원인별 한국어 안내로 변환 (기술 원문은 console.error로만).
+ *  getUserMedia 오류는 DOMException.name으로 구분 — 그 외(모델 로딩 등)는 일반 안내. */
+function cameraErrorMessage(e) {
+  const name = e && e.name;
+  if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'PermissionDeniedError') {
+    return '카메라 사용이 차단되어 있어요. 주소창의 자물쇠 아이콘 → 카메라 → 허용으로 바꾼 뒤 다시 시도해 주세요.';
+  }
+  if (name === 'NotFoundError' || name === 'NotReadableError' ||
+      name === 'DevicesNotFoundError' || name === 'TrackStartError' || name === 'OverconstrainedError') {
+    return '카메라를 찾을 수 없어요. 다른 앱이 카메라를 쓰고 있지 않은지 확인해 주세요.';
+  }
+  return '준비에 실패했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.';
+}
+
 async function initMeasure() {
   if (measure && measure.wired) { setMeasurePhase('idle'); return; }
   if (measureIniting) return;
@@ -267,6 +281,7 @@ async function wireMeasure() {
   const savedHand = load().lastMeasureHand;
   measure = {
     wired: true, tracking, tracker, rom, els, running: false, phase: 'idle', neutralStart: null,
+    startGen: 0, // 시작 세대 — 로딩 중 화면 이탈 시 in-flight 시작을 무효화 (카메라 누수·버튼 무반응 방지)
     hand: savedHand === 'left' ? 'left' : 'right', // 측정할 손 — 사용자가 선택 (마지막 선택 기억)
   };
 
@@ -286,11 +301,14 @@ async function wireMeasure() {
 async function startMeasure() {
   const m = measure; if (!m || m.running) return;
   const { tracking, els } = m;
+  const gen = ++m.startGen; // 이 시작 시도의 세대 — 로딩 중 이탈하면 stopMeasure가 세대를 올림
   try {
     els.camBadge.textContent = '모델 로딩…'; els.mStart.disabled = true;
     await tracking.initModels();
+    if (m.startGen !== gen) return;                         // 로딩 중 화면 이탈 → 조용히 중단
     els.camBadge.textContent = '카메라 여는 중…';
     await tracking.startCamera(els.camVideo);
+    if (m.startGen !== gen) { tracking.stopCamera(); return; } // 이탈 사이 열렸으면 즉시 끄기
     els.camBadge.textContent = '인식 중';
     m.running = true;
     m.tracker.reset(); m.rom.reset();
@@ -299,8 +317,9 @@ async function startMeasure() {
       measureFrame(now, m.tracker.update(hand, pose, { usePose: true }));
     }, { pose: true });
   } catch (e) {
-    els.camBadge.textContent = '오류'; els.mStart.disabled = false;
-    els.mGuide.textContent = '카메라/모델을 열 수 없어요: ' + e.message;
+    if (m.startGen !== gen) return;                         // 이미 이탈했으면 안내 표시 안 함
+    els.camBadge.textContent = '카메라 꺼짐'; els.mStart.disabled = false;
+    els.mGuide.textContent = cameraErrorMessage(e);         // 원인별 한국어 안내 (원문은 콘솔로만)
     console.error('[measure] 시작 실패:', e);
   }
 }
@@ -444,7 +463,9 @@ function setMeasurePhase(phase) {
 
 function stopMeasure() {
   const m = measure; if (!m) return;
-  if (m.running) { m.tracking.stopTracking(); m.running = false; }
+  m.startGen++;                 // 진행 중이던 시작(모델 로딩·카메라 열기)을 무효화
+  m.tracking.stopTracking();    // 로딩 중 이탈이라도 카메라를 확실히 끈다 (백그라운드 점등 방지)
+  m.running = false;
   m.neutralStart = null;
   setMeasurePhase('idle');
 }
@@ -500,6 +521,7 @@ async function initGuide() {
     stage: $('gpStage'), video: $('guideVideo'), cam: $('gpCam'),
     camIco: $('gpCamIco'), camTxt: $('gpCamTxt'), pip: $('gpPip'), lm: $('gpLm'),
     name: $('gpName'), step: $('gpStep'), count: $('gpCount'), countNum: $('gpCountNum'),
+    priv: $('gpPriv'),
     text: $('gpText'), dots: $('gpDots'), hint: $('gpHint'), idle: $('gpIdle'),
     skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
     retry: $('gpRetry'), proceed: $('gpProceed'),
@@ -519,6 +541,7 @@ async function initGuide() {
     lmCtx: null, diagAt: 0,
     compN: 0, frameN: 0, lastCompRatio: null, // 세션 comp 비율 (추후 코칭 힌트용)
     neutralWait: null, baseWrist: null,       // ⓑ 중립 대기 / ⓐ 중립 시점 손목 기준점
+    startGen: 0, // 시작 세대 — 로딩 중 화면 이탈 시 in-flight 시작 무효화 (카메라 누수 방지)
   };
 
   // 목록 구성
@@ -597,6 +620,7 @@ async function startGuide(id, routineMode = false) {
   const g = guide.mods.getGuide(id);
   if (!g) return;
   const { els, ctx, mods } = guide;
+  const gen = ++guide.startGen; // 이 시작 시도의 세대 — 로딩 중 이탈 시 stopGuideSession이 올림
   clearTimeout(guide.autoNextTimer);
   guide.routineMode = routineMode;
   // 루틴 모드에선 그만두기 대신 [오늘은 여기까지] — 언제 끝내도 괜찮다는 신호
@@ -617,6 +641,7 @@ async function startGuide(id, routineMode = false) {
   els.idle.hidden = true;
   els.name.textContent = `${g.emoji} ${g.name}`;
   els.pip.hidden = false;
+  els.priv.hidden = chaining; // 카메라 여는 중엔 안심 안내 노출 (연속 재생은 이미 켜져 있어 생략)
   layoutPip();
   setCamChip('📷', '카메라 여는 중…', false);
 
@@ -662,11 +687,14 @@ async function startGuide(id, routineMode = false) {
   try {
     if (!chaining) {
       await guide.tracking.initModels();
+      if (guide.startGen !== gen) return;                          // 로딩 중 화면 이탈 → 중단
       await guide.tracking.startCamera(els.video);
+      if (guide.startGen !== gen) { guide.tracking.stopCamera(); return; } // 이탈 사이 열렸으면 끄기
     }
     guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
     guide.compN = 0; guide.frameN = 0; // 세션 comp 비율 집계 (추후 코칭 힌트용)
     guide.neutralWait = null; guide.baseWrist = null;
+    els.priv.hidden = true; // 스트리밍 시작 → 안심 안내 숨김
     setCamChip('🖐', '손을 화면에 보여주세요', false);
     guide.running = true;
     engine.start(performance.now());
@@ -721,8 +749,9 @@ async function startGuide(id, routineMode = false) {
       engine.update(now, snap);
     }, { pose: false });
   } catch (e) {
+    if (guide.startGen !== gen) return;                    // 이미 이탈했으면 안내 표시 안 함
     setCamChip('⚠', '오류', false);
-    els.text.textContent = '카메라/모델을 열 수 없어요: ' + e.message;
+    els.text.textContent = cameraErrorMessage(e);          // 원인별 한국어 안내 (원문은 콘솔로만)
     console.error('[guide] 시작 실패:', e);
   }
 }
@@ -949,15 +978,18 @@ function showRoutineDone(r, condition = null) {
 
 function stopGuideSession() {
   if (!guide) return;
+  guide.startGen++;              // 진행 중이던 시작(모델 로딩·카메라 열기)을 무효화
   flushCompRatio();
   clearTimeout(guide.neutralTimer);
   clearTimeout(guide.autoNextTimer);
-  if (guide.running) { guide.tracking.stopTracking(); guide.running = false; }
+  guide.tracking.stopTracking(); // 로딩 중 이탈이라도 카메라를 확실히 끈다 (백그라운드 점등 방지)
+  guide.running = false;
   guide.engine = null; guide.anim = null; guide.tracker = null;
   guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
   guide.neutralWait = null; guide.baseWrist = null;
   if (guide.els) {
     setCamChip('📷', '카메라', false);
+    guide.els.priv.hidden = true;
     guide.els.pip.classList.remove('flash');
     if (guide.lmCtx) guide.lmCtx.clearRect(0, 0, guide.els.lm.width, guide.els.lm.height);
   }

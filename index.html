@@ -134,6 +134,9 @@
             </div>
           </div>
 
+          <!-- 카메라 켜기 전/여는 중 안심 안내 (스트리밍 시작되면 JS가 숨김) -->
+          <p class="priv-note" id="gpPriv" hidden>🔒 분석은 이 기기 안에서만 이루어지며, 영상은 저장되거나 외부로 전송되지 않습니다.</p>
+
           <p id="gpText" class="gp-text">준비 중…</p>
 
           <!-- 회수: 큰 숫자 + 진행 점(보조) -->
@@ -213,6 +216,8 @@
               <button class="m-hand-btn" data-hand="left">🫲 왼손</button>
               <button class="m-hand-btn" data-hand="right">🫱 오른손</button>
             </div>
+            <!-- 카메라 켜기 전 안심 안내 (권한 거부 방지) -->
+            <p class="priv-note">🔒 분석은 이 기기 안에서만 이루어지며, 영상은 저장되거나 외부로 전송되지 않습니다.</p>
             <button class="btn" id="mStart">체크 시작하기</button>
           </div>
 

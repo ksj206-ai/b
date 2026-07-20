@@ -442,6 +442,13 @@ body{
 
 .m-disc{ font-size:10.5px; color:var(--muted); text-align:center; line-height:1.55; margin:2px 0 0; word-break:keep-all; }
 
+/* 카메라 켜기 전 안심 안내 (프라이버시) — 차분한 톤 */
+.priv-note{
+  font-size:11px; color:var(--ink-soft); line-height:1.55; text-align:center;
+  background:rgba(255,255,255,.6); border:1px solid var(--line); border-radius:14px;
+  padding:8px 14px; margin:0; word-break:keep-all; max-width:340px;
+}
+
 /* ─── 홈: 기록 링크 ─── */
 
 /* ─── 기록 화면 ─── */
