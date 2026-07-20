@@ -30,8 +30,10 @@ export const STAGE = {
 // ─── MediaPipe 설정 (원본 L365, L1227~1229) ───
 export const MEDIAPIPE = {
   // vision_bundle: HandLandmarker/PoseLandmarker/FilesetResolver 제공
-  visionBundle: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs',
-  wasmPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm',
+  // 버전 고정(@latest 금지): latest 자동 업데이트로 배포본이 갑자기 깨지는 것 방지.
+  // 갱신 시 두 URL의 버전을 함께 올릴 것. (npm dist-tag latest = 0.10.35, 2026-07)
+  visionBundle: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/vision_bundle.mjs',
+  wasmPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm',
   handModel:
     'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
   poseModel:
