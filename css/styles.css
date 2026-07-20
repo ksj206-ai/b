@@ -258,12 +258,12 @@ body{
 
 /* ─── 자리표시자 ─── */
 .placeholder{
-  background:var(--cream); border:3px dashed var(--sage); border-radius:var(--radius);
-  padding:52px 24px; text-align:center; box-shadow:var(--shadow-sm);
+  background:var(--cream); border:3px dashed var(--sage); border-radius:var(--r-card);
+  padding:52px var(--sp-2xl); text-align:center; box-shadow:var(--shadow-sm);
 }
 .placeholder-emoji{ font-size:56px; margin:0; animation:bob 3s ease-in-out infinite; }
-.placeholder-text{ font-family:"Jua",sans-serif; font-size:15px; color:var(--ink); margin:16px 0 6px; }
-.placeholder-sub{ font-size:12.5px; color:var(--muted); margin:0; line-height:1.6; }
+.placeholder-text{ font-family:"Jua",sans-serif; font-size:var(--fs-base); color:var(--ink); margin:var(--sp-lg) 0 var(--sp-xs); }
+.placeholder-sub{ font-size:var(--fs-sm); color:var(--muted); margin:0; line-height:1.6; }
 
 /* ─── 가이드: 목록 ─── */
 .guide-list{ display:flex; flex-direction:column; gap:var(--sp-md); }
@@ -645,20 +645,20 @@ body{
 /* 좁은 화면: 손 감지 칩은 아이콘(✓/🖐)만 — 글자가 카메라를 덮지 않게 */
 @media (max-width:480px){
   .gp-cam-txt{ display:none; }
-  .gp-cam{ font-size:13px; padding:4px 7px; }
+  .gp-cam{ font-size:var(--fs-sm); padding:4px 7px; }
 }
 
 @media (max-width:420px){
-  body{ padding:14px 8px 36px; }
+  body{ padding:var(--pad-card-sm) var(--sp-sm) 36px; }
   .app{ width:100%; }
   .app-title{ font-size:28px; }
-  .home-hero{ padding:12px 14px 22px; }
-  .home-hero-title{ font-size:18px; }
-  .section-card{ padding:15px 16px; }
-  .guide-player, .mzone, .rec-card{ padding:14px; }
+  .home-hero{ padding:var(--sp-md) var(--pad-card-sm) var(--sp-2xl); }
+  .home-hero-title{ font-size:var(--fs-lg); }
+  .section-card{ padding:var(--sp-lg); }
+  .guide-player, .mzone, .rec-card{ padding:var(--pad-card-sm); }
   .gp-count-num{ font-size:32px; }
   .btn{ padding:13px 22px; }
-  .btn-hero{ padding:15px 30px; font-size:15px; }
+  .btn-hero{ padding:15px 30px; font-size:var(--fs-base); }
 }
 
 @media (prefers-reduced-motion:reduce){ *{ animation:none!important; } }
