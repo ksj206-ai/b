@@ -28,11 +28,13 @@
   --moss-rgb:157,143,242; --moss-dd-rgb:109,92,224;         /* 알파 조합용 rgb 트리플렛 */
   --water-soft:rgba(90,176,232,.15); --water-ink:#8fd0f5;   /* 프리즈(파랑) */
   --white-a85:rgba(255,255,255,.09); --white-a60:rgba(255,255,255,.055); --white-a35:rgba(255,255,255,.22); /* 반투명 유리 패널 */
-  --bg-page:                                                /* 페이지 배경(밤하늘 성운 그라데이션) */
-    radial-gradient(70% 55% at 78% 12%, rgba(138,74,196,.42) 0%, transparent 60%),
-    radial-gradient(60% 50% at 15% 22%, rgba(58,86,200,.38) 0%, transparent 62%),
-    radial-gradient(85% 70% at 50% 108%, rgba(150,60,140,.22) 0%, transparent 60%),
-    radial-gradient(130% 100% at 50% -10%, #1a1640 0%, #130f30 45%, #0d0a22 100%);
+  --bg-page:                                                /* 페이지 배경(밤하늘 성운 — 뭉게구름처럼 겹친 남색·보라·마젠타) */
+    radial-gradient(760px 560px at 82% 16%, rgba(150,82,205,.30), transparent 70%),
+    radial-gradient(680px 520px at 12% 30%, rgba(64,92,205,.26), transparent 72%),
+    radial-gradient(620px 480px at 30% 88%, rgba(178,64,150,.20), transparent 70%),
+    radial-gradient(560px 460px at 92% 72%, rgba(96,60,195,.22), transparent 72%),
+    radial-gradient(520px 440px at 64% 50%, rgba(72,60,190,.15), transparent 74%),
+    radial-gradient(150% 120% at 50% -8%, #16112f 0%, #100c26 48%, #09071b 100%);
   /* ── 선 ── */
   --line:#3a3460;
 
@@ -81,6 +83,38 @@ body{
   display:flex; flex-direction:column; align-items:center;
   padding:var(--sp-xl) var(--sp-md) 44px;
 }
+
+/* ─── 밤하늘: 별밭 (배경 레이어 — 카드·글자 뒤, fixed라 flex 레이아웃에 영향 없음) ─── */
+body::before, body::after{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-repeat:repeat;
+}
+/* 정적 별: 크고 작은 별을 밝기 다르게 흩뿌림 (깜빡임 없음 — 대부분의 별) */
+body::before{
+  background-image:
+    radial-gradient(1px 1px at 34px 42px, rgba(255,255,255,.85), transparent),
+    radial-gradient(1px 1px at 138px 96px, rgba(255,255,255,.5), transparent),
+    radial-gradient(1.5px 1.5px at 210px 168px, rgba(228,232,255,.75), transparent),
+    radial-gradient(1px 1px at 320px 58px, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 90px 244px, rgba(255,255,255,.6), transparent),
+    radial-gradient(1.5px 1.5px at 286px 286px, rgba(255,244,228,.6), transparent),
+    radial-gradient(1px 1px at 176px 20px, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 250px 210px, rgba(255,255,255,.5), transparent),
+    radial-gradient(1px 1px at 40px 330px, rgba(220,228,255,.6), transparent);
+  background-size:390px 390px;
+}
+/* 반짝이는 별: 밝고 큰 소수 별만 천천히 은은하게 (opacity=GPU 합성, reduced-motion에서 자동 정지) */
+body::after{
+  background-image:
+    radial-gradient(2px 2px at 80px 120px, rgba(255,255,255,.95), transparent),
+    radial-gradient(2.5px 2.5px at 320px 250px, rgba(210,222,255,.9), transparent),
+    radial-gradient(2px 2px at 200px 430px, rgba(255,255,255,.85), transparent),
+    radial-gradient(2px 2px at 470px 80px, rgba(255,238,214,.85), transparent),
+    radial-gradient(2.5px 2.5px at 410px 360px, rgba(255,255,255,.9), transparent);
+  background-size:540px 500px;
+  animation:star-twinkle 5.5s ease-in-out infinite;
+}
+@keyframes star-twinkle{ 0%,100%{ opacity:.5; } 50%{ opacity:1; } }
 
 .app{ width:min(560px,95vw); display:flex; flex-direction:column; gap:var(--sp-xl); }
 
