@@ -9,7 +9,7 @@
 
   /* ── 색: 잉크/텍스트 (어두운 배경용 밝은 텍스트) ── */
   --ink:#eae7fb; --muted:#a5a2ce; --ink-soft:rgba(234,231,251,.62);
-  --cream:rgba(40,34,76,.82); --paper:rgba(56,48,102,.82);  /* 밤하늘 위 반투명 패널 */
+  --cream:rgba(36,42,82,.82); --paper:rgba(50,58,108,.82);  /* 밤하늘 위 반투명 패널 (살짝 푸른 인디고) */
   /* ── 색: 성운 보라(메인) ── */
   --moss:#9d8ff2; --moss-l:#c3b8ff; --moss-d:#6d5ce0; --moss-dd:#b7a9f7;
   --moss-shadow:#5847b8;                                    /* 주버튼 3D 밑동(딥 바이올렛) */
@@ -20,7 +20,7 @@
   --peach-soft:#fdeee2;                                     /* 따뜻한 오브 틴트 (이모지) */
   /* ── 색: 표면/스크림/글로우 ── */
   --card-border:rgba(255,255,255,.10);                      /* 카드 별빛 림 */
-  --grad-surface:linear-gradient(165deg,#2c2558,#211b46);   /* 히어로·스테이지·결과 표면 통일 */
+  --grad-surface:linear-gradient(165deg,#2a3160,#1e2550);   /* 히어로·스테이지·결과 표면 (살짝 푸른 인디고) */
   --grad-primary:linear-gradient(180deg,#b9adff,#9482f0);   /* 채운 주버튼(밝은 라벤더) */
   --grad-bar:linear-gradient(90deg,#c3b8ff,#8fd0ff);        /* 진행 바(라벤더→시안) */
   --cam-bg:#14112b; --scrim:rgba(16,12,34,.72); --scrim-2:rgba(16,12,34,.6); /* 카메라 다크/오버레이 */
@@ -37,7 +37,7 @@
     radial-gradient(620px 470px at 84% 100%, rgba(12,40,70,.18), transparent 66%),   /* 딥 네이비 (우하단) */
     radial-gradient(150% 125% at 50% -10%, #11213f 0%, #0b1730 46%, #050a18 100%);   /* 바탕: 네이비, 아래로 깊어짐 */
   /* ── 선 ── */
-  --line:#3a3460;
+  --line:#34385e;
 
   /* ── 모서리 반경 ── */
   --r-xs:4px; --r-chip:8px; --r-sm:14px; --r-md:18px; --r-lg:24px;
