@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════
 import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
 import { load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr } from './store.js';
-import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE } from './config.js';
+import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, FUNCTIONAL_ROM } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
@@ -272,7 +272,7 @@ async function wireMeasure() {
     capExt: $('capExt'), capExtV: $('capExtV'), mComp: $('mComp'),
     mActions: $('mActions'), mReneutral: $('mReneutral'), mFinish: $('mFinish'),
     mResult: $('mResult'), rFlex: $('rFlex'), rExt: $('rExt'),
-    rDelta: $('rDelta'), mAgain: $('mAgain'),
+    rDelta: $('rDelta'), rFunc: $('rFunc'), rNarr: $('rNarr'), mAgain: $('mAgain'),
     mHandSel: $('mHandSel'), mHandChip: $('mHandChip'),
   };
 
@@ -418,13 +418,48 @@ function finishMeasure() {
   renderStreak();
 
   e.rFlex.textContent = flex + '°'; e.rExt.textContent = ext + '°';
+
+  // 기능 기준(일상생활 참고) — 진척률만 표시. "정상인 대비 %"·"N도 남았어요" 같은
+  // 부족 표현·처방 금지. 둘 다 기준 이상이면 잘 움직인다고, 아니면 부족한 방향의
+  // (측정각 ÷ 기준 × 100) 진척률을(둘 다 미만이면 더 낮은 쪽 하나만) 보여준다.
+  const F = FUNCTIONAL_ROM;
+  if (flex >= F.flex && ext >= F.ext) {
+    e.rFunc.textContent = '일상생활에 필요한 만큼 손목이 잘 움직여요 ✅';
+  } else {
+    const ratios = [];
+    if (flex < F.flex) ratios.push(flex / F.flex);
+    if (ext < F.ext) ratios.push(ext / F.ext);
+    const pct = Math.round(Math.min(...ratios) * 100);
+    e.rFunc.textContent = `일상생활 기준의 ${pct}%까지 왔어요 🌱`;
+  }
+
   if (prev) {
     const f = (d) => `${d > 0 ? '+' : ''}${d}°`;
     e.rDelta.textContent = `지난 체크 대비 굽힘 ${f(flex - prev.flex)} · 폄 ${f(ext - prev.ext)} (참고값)`;
   } else {
     e.rDelta.textContent = '첫 체크예요. 다음부터 지난 기록과 비교해 드려요.';
   }
+
+  // 서사 한 줄 — 이번 주(최근 7일) 루틴 완료 일수. 0회면 생략(질책 금지).
+  const weekN = recentRoutineDays(s.routineLog || [], todayStr());
+  e.rNarr.hidden = weekN < 1;
+  if (weekN >= 1) {
+    e.rNarr.textContent = `이번 주 루틴 ${weekN}회 완료 — 꾸준함이 기록으로 이어지고 있어요 🌱`;
+  }
+
   setMeasurePhase('result');
+}
+
+/** 최근 days일(오늘 포함) 안의 루틴 완료 일수 — routineLog 엔트리 1개 = 완료한 하루 */
+function recentRoutineDays(log, date, days = 7) {
+  const end = Date.parse(`${date}T00:00:00`);
+  if (Number.isNaN(end)) return 0;
+  return log.filter((l) => {
+    const d = Date.parse(`${l.at}T00:00:00`);
+    if (Number.isNaN(d)) return false;
+    const diff = Math.round((end - d) / 86400000);
+    return diff >= 0 && diff < days;
+  }).length;
 }
 
 /** 화면 단계 전환: 패널 노출/문구/진행바 초기화 */
@@ -527,6 +562,7 @@ async function initGuide() {
     retry: $('gpRetry'), proceed: $('gpProceed'),
     doneEmoji: $('gpDoneEmoji'), doneText: $('gpDoneText'), rest: $('gpRest'),
     routineProg: $('gpRoutineProg'), next: $('gpNext'), measureGo: $('gpMeasureGo'),
+    doneSub: $('gpDoneSub'),
     condition: $('gpCondition'), condSkip: $('gpCondSkip'),
     safe: document.querySelector('.gp-safe'), btns: document.querySelector('.gp-btns'),
   };
@@ -866,6 +902,7 @@ function onGuideComplete(g) {
   e.hint.textContent = '';
   e.text.textContent = '';
   e.pip.hidden = true; e.count.hidden = true;
+  e.doneSub.hidden = true; // 격려 한 줄은 루틴 마무리(showRoutineDone)에서만
   e.done.hidden = false;
   // 기록 저장 + 스트릭 갱신
   const s = load();
@@ -951,7 +988,6 @@ function showRoutineDone(r, condition = null) {
   const e = guide.els;
   guide.routineMode = false;
   stopGuideSession();
-  const { done, total } = routineProgress(r);
   const full = isRoutineComplete(r);
 
   e.btns.hidden = true;
@@ -963,9 +999,16 @@ function showRoutineDone(r, condition = null) {
   e.condition.hidden = true;
   e.done.hidden = false;
   e.doneEmoji.textContent = full ? '⭐' : '🌱';
+  // 숫자(각도·개수) 없이 따뜻한 격려 — 루틴 완료의 끝맛(체크 결과의 담백한 리포트와 대비)
   e.doneText.textContent = full
-    ? `오늘도 손목 챙겼네요! 풀코스 완주 ⭐ (${done}/${total})`
-    : `오늘도 손목 챙겼네요! 🌱 (${done}/${total} 완료)`;
+    ? '오늘 풀코스 완주! 정원이 활짝 피었어요 ⭐'
+    : '오늘도 손목에 물 줬어요 🌿 쉬엄쉬엄 가도 좋아요';
+  // 격려 한 줄 — 스트릭이 쌓였으면 연속, 아니면 따뜻한 재회 인사 (부족 표현 없음)
+  const streak = currentStreak();
+  e.doneSub.textContent = streak >= 2
+    ? `🔥 ${streak}일 연속 — 잘 돌보고 있어요`
+    : '내일 또 물 주러 만나요 🌱';
+  e.doneSub.hidden = false;
   // 뻐근해요: 쉬어가도 된다는 한 줄만 (판정·조언 아님)
   e.rest.hidden = condition !== 'stiff';
   e.routineProg.innerHTML = r.ids.map((_, i) =>
