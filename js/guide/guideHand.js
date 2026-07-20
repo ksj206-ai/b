@@ -102,7 +102,7 @@ export function drawGuideHand(ctx, p = {}, view = 'side', opts = {}) {
 function drawSide(ctx, p, br, br2) {
   const wa = (p.wristAngle ?? 0) + br * 0.5;  // -45 굽힘(아래) ~ +45 폄(위)
   const lagW = Math.max(-8, Math.min(8, (p.__lag && p.__lag.wristAngle) || 0));
-  const wx = 4, wy = 14;                       // 손목 기준점(로컬)
+  const wx = 4, wy = 14;                       // 손목 기준점(로컬) = 회전 중심 = 꺾임점
 
   // 팔뚝: 왼쪽에서 손목까지 고정 막대 + 소매 커프
   capsule(ctx, wx - 150, wy, wx, wy, 44, SKIN, SKIN_LINE);
@@ -115,11 +115,15 @@ function drawSide(ctx, p, br, br2) {
 
   const c = clamp01(curlOf(p, 1) + br2 * 0.015);
   const trail = -lagW * 0.45 * D2R;
+  // "한 판으로 꺾이는" 판(plate) 계수: 손목이 극단으로 갈수록 손가락을 펴
+  //  손바닥과의 각도를 유지 → 극단에서 손끝이 축 처져 형태가 무너지는 것 방지.
+  const plate = clamp01(Math.abs(p.wristAngle ?? 0) / 34);
+  const cF = c * (1 - 0.72 * plate);           // 손가락 마디 굽힘에만 적용(엄지·손바닥 제외)
 
   // 뒤층: 약지·새끼 뭉치 — 위(-y)로 살짝 어긋나고 짧으며 조금 더 굽어 시차
   const back = partRenderer(ctx, SKIN_BACK, SKIN_LINE);
   const bKn = 58, bY = -8;                     // 너클 위치(짧은 손바닥)
-  const bA2 = trail + (c * 82 + 7) * D2R;
+  const bA2 = trail + (cF * 82 + 7) * D2R;
   const bmx = bKn + Math.cos(trail) * 25, bmy = bY + Math.sin(trail) * 25;
   back.cap(bKn, bY, bmx, bmy, 24);
   back.cap(bmx, bmy, bmx + Math.cos(bA2) * 22, bmy + Math.sin(bA2) * 22, 20);
@@ -130,7 +134,7 @@ function drawSide(ctx, p, br, br2) {
   const palmLen = 64;
   parts.cap(0, 2, palmLen, 2, 40);
 
-  const a2 = trail + c * 78 * D2R;             // 손바닥 쪽(+y)으로 굽음
+  const a2 = trail + cF * 78 * D2R;            // 손바닥 쪽(+y)으로 굽음
   const seg1 = 30, seg2 = 28;
   const mx = palmLen + Math.cos(trail) * seg1, my = 5 + Math.sin(trail) * seg1;
   const tx = mx + Math.cos(a2) * seg2, ty = my + Math.sin(a2) * seg2;
@@ -146,7 +150,112 @@ function drawSide(ctx, p, br, br2) {
   parts.render();
   if (c > 0.25) creaseLine(ctx, mx, my, trail + Math.PI / 2, 9, (c - 0.25) * 0.6);
 
+  // 손목 경첩 주름 — 회전 중심(로컬 원점)에 오목한 접힘선. 각도가 클수록 진해져
+  //  "회전이 바로 이 점에서 일어난다"를 드러낸다(팔뚝↔손이 한 덩어리로 안 보이게).
+  drawWristHinge(ctx, plate);
+
   ctx.restore();
+
+  // 동작 궤적 오버레이 — follow 재생 중(__lag 존재)에만. intro/outro(정적)엔 숨김.
+  // 굽힘·폄은 손목 중심 회전 → 호+화살표. a1(=40°)=굽힘 끝, 진행이 굽힘쪽이면 towardA1.
+  if (p.__lag) {
+    const l = p.__lag.wristAngle ?? 0;
+    arcArrow(ctx, wx, wy, 128, -33 * D2R, 40 * D2R, -wa * D2R, l >= 0, Math.min(1, Math.abs(l) / 5));
+  }
+}
+
+/** 손목 경첩: 접힘점에 잘록한 음영 + 오목 주름 한 줄 (fold=0 은은 → 1 뚜렷).
+ *  회전 중심(로컬 원점)에 위치해 "여기서 꺾인다"를 드러낸다. */
+function drawWristHinge(ctx, fold) {
+  ctx.save();
+  ctx.lineCap = 'round';
+  // ① 잘록함: 손목 단면에 폭넓고 아주 옅은 음영 한 겹 → 살짝 조인 허리
+  ctx.strokeStyle = `rgba(200,140,98,${0.12 + fold * 0.16})`;
+  ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.moveTo(0, -18); ctx.quadraticCurveTo(-5, 1, 0, 21); ctx.stroke();
+  // ② 접힘선: 팔쪽으로 오목한 주름 한 줄 (팔목 안쪽이 더 깊게)
+  ctx.strokeStyle = `rgba(191,120,80,${0.32 + fold * 0.42})`;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath(); ctx.moveTo(2, -14); ctx.quadraticCurveTo(-5, 3, 3, 19); ctx.stroke();
+  ctx.restore();
+}
+
+// ─── 동작 궤적 오버레이 공용 (테마 초록, 손보다 연하게) ───
+
+/** 진행 방향 화살표: (x,y)=머리 끝, ang=향하는 방향, len=축 길이, alpha=진하기 */
+function motionArrow(ctx, x, y, ang, len, alpha) {
+  ctx.save();
+  ctx.strokeStyle = `rgba(84,172,99,${alpha * 0.7})`;
+  ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - Math.cos(ang) * len, y - Math.sin(ang) * len);
+  ctx.lineTo(x - Math.cos(ang) * 4, y - Math.sin(ang) * 4);
+  ctx.stroke();
+  ctx.translate(x, y); ctx.rotate(ang);
+  ctx.fillStyle = `rgba(74,157,87,${alpha})`;
+  ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(-11, 8); ctx.lineTo(-11, -8); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/** 관절(손목) 중심 반투명 호(⌒) + 양끝 가동범위 눈금 + 현재 위치의 진행 화살표.
+ *  회전 동작(굽힘·폄 / 좌우 편위)에 공통. towardA1=진행이 a1(끝)쪽인지, speed 0~1. */
+function arcArrow(ctx, px, py, R, a0, a1, aNow, towardA1, speed) {
+  ctx.save();
+  ctx.translate(px, py);
+  ctx.strokeStyle = 'rgba(84,172,99,.26)';
+  ctx.lineWidth = 6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(0, 0, R, Math.min(a0, a1), Math.max(a0, a1)); ctx.stroke();
+  ctx.strokeStyle = 'rgba(84,172,99,.32)'; ctx.lineWidth = 3;
+  for (const a of [a0, a1]) {
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * (R - 8), Math.sin(a) * (R - 8));
+    ctx.lineTo(Math.cos(a) * (R + 8), Math.sin(a) * (R + 8));
+    ctx.stroke();
+  }
+  const dir = (towardA1 ? 1 : -1) * (a1 >= a0 ? 1 : -1);
+  const alpha = 0.3 + speed * 0.5;
+  ctx.translate(Math.cos(aNow) * R, Math.sin(aNow) * R);
+  ctx.rotate(Math.atan2(Math.cos(aNow) * dir, -Math.sin(aNow) * dir)); // 접선(진행) 방향
+  ctx.fillStyle = `rgba(74,157,87,${alpha})`;
+  ctx.beginPath(); ctx.moveTo(11, 0); ctx.lineTo(-8, 8); ctx.lineTo(-8, -8); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+/** front 동작 궤적 — 운동 종류를 __lag의 애니 트랙으로 판별해 알맞은 오버레이.
+ *  회전(편위)은 호+화살표, 선형(핀치·악력·벌리기)은 방향 화살표. follow에서만 호출됨. */
+function drawFrontMotionGuide(ctx, p, lag) {
+  // ① 좌우 편위: 손목(0,70) 중심 회전 → 호+화살표 (손끝 바로 바깥 R=150)
+  if (lag.devAngle != null) {
+    const phi = (d) => Math.atan2(-Math.cos(d * D2R), Math.sin(d * D2R));
+    const dev = p.devAngle ?? 0;
+    arcArrow(ctx, 0, 70, 150, phi(-28), phi(28), phi(dev),
+             lag.devAngle <= 0, Math.min(1, Math.abs(lag.devAngle) / 4));
+    return;
+  }
+  // ② 핀치: 접점(≈-44,-6)으로 엄지·검지가 모임 → 두 화살표 수렴(벌리면 발산)
+  if (lag.pinchGap != null) {
+    const closing = lag.pinchGap > 0;            // pinchGap 감소 = 붙는 중
+    const a = 0.3 + Math.min(1, Math.abs(lag.pinchGap) / 0.4) * 0.5;
+    const heads = [[-47, 5, Math.atan2(-11, 3)], [-38, -17, Math.atan2(11, -6)]];
+    for (const [x, y, to] of heads) motionArrow(ctx, x, y, closing ? to : to + Math.PI, 15, a);
+    return;
+  }
+  // ③ 악력·힘줄 활주: 손가락이 손바닥 쪽(아래+y)으로 말림 → 아래 화살표(펴면 위)
+  if (lag.curl != null) {
+    const closing = lag.curl < 0;                // curl 증가 = 주먹
+    const a = 0.3 + Math.min(1, Math.abs(lag.curl) / 0.4) * 0.5;
+    const ang = closing ? Math.PI / 2 : -Math.PI / 2;
+    const hy = closing ? -18 : -46;
+    for (const x of [-14, 8]) motionArrow(ctx, x, hy, ang, 26, a);
+    return;
+  }
+  // ④ 손가락 벌리기: 좌우로 펴짐/모임 → 양옆 바깥/안쪽 화살표(↔)
+  if (lag.spread != null) {
+    const opening = lag.spread < 0;              // spread 증가 = 벌림
+    const a = 0.3 + Math.min(1, Math.abs(lag.spread) / 0.3) * 0.5;
+    motionArrow(ctx, -47, -58, opening ? Math.PI : 0, 20, a);
+    motionArrow(ctx, 47, -50, opening ? 0 : Math.PI, 20, a);
+  }
 }
 
 // ─── front 뷰 보조 ───
@@ -336,4 +445,7 @@ function drawFront(ctx, p, br, br2) {
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(-27, 64, 54, 24, 10); else ctx.rect(-27, 64, 54, 24);
   ctx.fill(); ctx.stroke();
+
+  // 동작 궤적 오버레이 — follow 재생 중(__lag 존재)에만. intro/outro(정적)엔 숨김.
+  if (p.__lag) drawFrontMotionGuide(ctx, p, p.__lag);
 }
