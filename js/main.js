@@ -83,6 +83,19 @@ function renderHome() {
     speech.textContent = streak >= 2 ? `${streak}일 연속이에요! 🔥` : '오늘도 만나서 반가워요! 🌿';
   }
 
+  // 마스코트(우주 고양이) 표정 — 말풍선과 같은 상태 조건 재사용.
+  //   완주=happy / 스트릭 끊김·며칠 만 방문(이전 활동 있는데 스트릭 0)=sad / 그 외=idle
+  const catImg = $('mascotImg');
+  if (catImg) {
+    const mood = complete ? 'happy'
+      : (load().lastActiveDate && streak === 0) ? 'sad'
+      : 'idle';
+    if (catImg.dataset.mood !== mood) {
+      catImg.dataset.mood = mood;
+      catImg.src = `assets/cat-${mood}.png`;
+    }
+  }
+
   // 손목 체크 카드 주간 상태 칩 — 실시간 판정(체크 직후 홈 복귀 시 바로 갱신)
   const chip = $('measureChip');
   const need = needMeasureSuggest();

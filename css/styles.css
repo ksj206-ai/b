@@ -153,15 +153,17 @@ body::after{
 }
 .mascot-wrap{ position:relative; display:flex; justify-content:center; margin-top:var(--sp-2xs); }
 .mascot{
-  width:132px; height:132px;
-  filter:drop-shadow(0 8px 12px rgba(var(--shade-rgb),.22));
-  animation:bob 2.8s ease-in-out infinite;
-  transform-origin:60px 100px;
+  width:132px; height:132px; object-fit:contain; display:block;
+  filter:drop-shadow(0 6px 14px rgba(var(--glow),.30));   /* 우주에 뜬 느낌: 부드러운 보라 글로우 */
+  animation:float 3.6s ease-in-out infinite;               /* 살짝 둥둥 뜨는 상하 애니 */
+  transform-origin:50% 85%;
 }
 .mascot:hover{ animation:wiggle .6s ease-in-out; }
+/* 상하 부유(마스코트) — 회전 없이 부드럽게 */
+@keyframes float{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-9px); } }
+/* bob: 이모지 장식(placeholder·완료·빈 상태)에서 계속 사용 */
 @keyframes bob{ 0%,100%{ transform:translateY(0) rotate(-1.5deg); } 50%{ transform:translateY(-8px) rotate(1.5deg); } }
 @keyframes wiggle{ 0%,100%{ transform:rotate(0); } 25%{ transform:rotate(-9deg); } 75%{ transform:rotate(9deg); } }
-.mascot-shadow{ /* svg 내부, 참고용 */ }
 .speech{
   position:absolute; top:6px; left:50%; transform:translateX(-50%);
   font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--moss-dd);
