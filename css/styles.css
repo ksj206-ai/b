@@ -52,12 +52,14 @@
   --lh:1.6; --lh-title:1.4;                                 /* 행간(멀티라인 본문/제목) */
 
   /* ── 그림자 ── */
-  --shadow:0 14px 34px rgba(90,140,95,.16);
-  --shadow-sm:0 6px 16px rgba(90,140,95,.13);
+  --shade-rgb:90,140,95;                                    /* 그림자 초록 → rgba(var(--shade-rgb),a) */
+  --shadow:0 14px 34px rgba(var(--shade-rgb),.16);
+  --shadow-sm:0 6px 16px rgba(var(--shade-rgb),.13);
+  --shadow-inset:inset 0 1px 2px rgba(0,0,0,.1);            /* 안쪽 눌린 깊이(점) */
   --ring:inset 0 0 0 2px var(--line);                       /* 카드 안쪽 링 */
   --ring-sage:inset 0 0 0 2px var(--sage-soft);
   --shadow-badge:0 3px 7px rgba(84,172,99,.35);             /* 배지/칩 */
-  --shadow-emoji:var(--ring-white), 0 4px 10px rgba(90,140,95,.14); /* 이모지 원 */
+  --shadow-emoji:var(--ring-white), 0 4px 10px rgba(var(--shade-rgb),.14); /* 이모지 원 */
   --btn-lift:6px; --btn-lift-sm:5px;                        /* 3D 버튼 두께(주/보조) */
   --ring-white:inset 0 0 0 2px #fff;                        /* 카메라/이모지 흰 링 */
   --ring-accent:inset 0 0 0 2px var(--sage);                /* 강조 상태 링(선택·오늘) */
@@ -115,7 +117,7 @@ body{
 .mascot-wrap{ position:relative; display:flex; justify-content:center; margin-top:var(--sp-2xs); }
 .mascot{
   width:132px; height:132px;
-  filter:drop-shadow(0 8px 12px rgba(90,140,95,.22));
+  filter:drop-shadow(0 8px 12px rgba(var(--shade-rgb),.22));
   animation:bob 2.8s ease-in-out infinite;
   transform-origin:60px 100px;
 }
@@ -353,7 +355,7 @@ body{
 .gp-count-num.pop{ animation:capPop .5s cubic-bezier(.3,1.5,.5,1); }
 .gp-count-unit{ font-family:"Jua",sans-serif; font-size:var(--fs-base); color:var(--muted); }
 .gp-dots{ display:flex; gap:var(--sp-xs); margin:var(--sp-2xs) 0 0; min-height:11px; justify-content:center; }
-.gp-dot{ width:15px; height:15px; border-radius:50%; background:rgba(var(--moss-rgb),.22); box-shadow:inset 0 1px 2px rgba(0,0,0,.1); transition:.25s cubic-bezier(.3,1.5,.5,1); }
+.gp-dot{ width:15px; height:15px; border-radius:50%; background:rgba(var(--moss-rgb),.22); box-shadow:var(--shadow-inset); transition:.25s cubic-bezier(.3,1.5,.5,1); }
 /* 회수 진행 점은 보조 지표 — 작게 (완료 화면 routine-prog 점은 원래 크기 유지) */
 .gp-dots .gp-dot{ width:9px; height:9px; }
 .gp-dot.on{ background:linear-gradient(180deg,var(--moss-l),rgb(var(--glow))); box-shadow:0 3px 8px rgba(var(--glow),.45); transform:scale(1.12); }
