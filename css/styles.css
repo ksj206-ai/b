@@ -221,19 +221,21 @@ body::after{
 /* 오늘의 루틴 요약 한 줄 ("6개 운동 · 약 3분") — 별자리 아래, 시작 버튼 위 */
 .rp-text{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft); margin:0 0 var(--sp-md); }
 
-/* ─── 홈: 알림 요약 칩 (설정의 유일한 입구) ─── */
+/* ─── 홈: 알림 입구 (부차 기능 — 접힌 한 줄 카드, 탭하면 아래 패널이 펼쳐짐) ─── */
 .remind-entry-chip{
-  display:block; margin:var(--sp-md) auto; cursor:pointer;
-  background:var(--white-a85); border:2px solid var(--line);
-  color:var(--ink-soft); font-family:"Jua",sans-serif; font-size:var(--fs-sm);
-  padding:var(--sp-sm) var(--sp-lg); border-radius:var(--r-pill); box-shadow:var(--shadow-sm);
+  display:block; width:100%; margin-top:var(--sp-lg); cursor:pointer; text-align:center;
+  background:var(--cream); border:3px solid var(--card-border); border-radius:var(--r-lg);
+  color:var(--ink-soft); font-family:"Jua",sans-serif; font-size:var(--fs-base);
+  padding:var(--sp-md) var(--sp-lg); box-shadow:var(--shadow-sm), var(--ring);
+  transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
 }
-.remind-entry-chip:active{ transform:translateY(1px); }
+.remind-entry-chip:hover{ transform:translateY(-2px); box-shadow:var(--shadow), var(--ring-sage); }
+.remind-entry-chip:active{ transform:translateY(1px) scale(.99); }
 
 /* ─── 리마인더 온보딩/설정 ─── */
 .remind-panel{
   background:var(--cream); border:3px solid var(--card-border); border-radius:var(--r-card);
-  padding:var(--sp-xl) var(--pad-card); box-shadow:var(--shadow-sm), var(--ring);
+  padding:var(--sp-xl) var(--pad-card); margin-top:var(--sp-lg); box-shadow:var(--shadow-sm), var(--ring);
   display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
 }
 .remind-q{ font-family:"Jua",sans-serif; font-size:var(--fs-md); color:var(--ink); margin:0; text-align:center; }
@@ -278,7 +280,7 @@ body::after{
 .remind-btns .btn[disabled]{ opacity:.5; cursor:default; }
 
 /* ─── 홈: 3 섹션 (작은 개별 진입 — 주인공은 오늘의 루틴 카드) ─── */
-.sections{ display:flex; flex-direction:row; gap:var(--sp); margin-top:var(--sp-3xs); }
+.sections{ display:flex; flex-direction:row; gap:var(--sp); margin-top:var(--sp-lg); }
 .section-card{
   position:relative; flex:1; display:flex; flex-direction:column;
   align-items:center; gap:var(--sp-xs); text-align:center;
@@ -691,7 +693,9 @@ body::after{
   #screen-home > .remind-entry-chip,
   #screen-home > .remind-panel,
   #screen-home > .sections{ grid-column:2; }
-  #screen-home > .remind-entry-chip{ margin:0 auto; }
+  /* 데스크톱: 세로 간격은 그리드 row-gap이 담당 → 모바일용 상단 마진 제거 */
+  #screen-home > .remind-entry-chip,
+  #screen-home > .remind-panel{ margin-top:0; }
   #screen-home > .sections{ flex-direction:column; margin-top:0; }
 
   /* 기록: 추이 카드 전체 폭 + 나머지 2단 */

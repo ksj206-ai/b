@@ -163,9 +163,10 @@ function initReminderUI() {
     saveReminder({ enabled: false });
     closeRemindPanel();
   });
-  remindEls.entry.addEventListener('click', () => openRemindPanel('settings'));
+  // 접힌 칩을 탭할 때만 펼친다 — 미설정=온보딩 화면, 설정됨=설정 화면.
+  // (부팅 시 자동으로 펼치지 않는다: 알림은 부차 기능, 평소엔 접힌 카드로 둔다.)
+  remindEls.entry.addEventListener('click', () => openRemindPanel(getReminder() ? 'settings' : 'onboard'));
 
-  if (!getReminder()) openRemindPanel('onboard'); // 알림 첫 활성화 — 온보딩 한 화면
   renderRemindEntry(); // 부팅 시 renderHome은 remindEls 준비 전이라 여기서 첫 렌더
 }
 
@@ -215,7 +216,9 @@ function renderRemindEntry() {
   e.hidden = !remindEls.panel.hidden;
   e.textContent = (r && r.enabled && r.times.length)
     ? `⏰ ${r.times.join(' · ')} 알림 · 변경${isBlocked(r) ? ' (권한 꺼짐)' : ''}`
-    : '⏰ 알림 꺼짐 · 켜기';
+    : r                            // 설정했다 끈 상태 vs 아직 미설정을 구분
+    ? '⏰ 알림 꺼짐 · 켜기'
+    : '⏰ 알림 시간 정하기';
 }
 
 /** 홈/알림 → 루틴 원탭 진입 (중간 화면 없이 바로 재생) */
