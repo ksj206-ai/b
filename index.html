@@ -60,6 +60,13 @@
             <span class="section-link" data-nav="records">기록 보기 →</span>
           </button>
 
+          <button class="section-card" data-nav="sky">
+            <span class="section-emoji">🌌</span>
+            <span class="section-name">밤하늘 도감</span>
+            <span class="section-badge section-badge--sub" id="skyDexCount">0/16</span>
+            <span class="section-desc">완성한 별자리를 모아봐요</span>
+          </button>
+
           <!-- 게임: 이식 전까지 숨김 — hidden만 지우면 복구됨 -->
           <button class="section-card" data-nav="game" hidden>
             <span class="section-emoji">🎮</span>
@@ -324,7 +331,28 @@
         <p class="m-disc">본 수치는 웹캠 기반 자가 참고값입니다. 질병의 진단·판정 목적이 아닙니다.</p>
       </section>
 
+      <!-- 밤하늘 도감 — 완성한 별자리 수집 (렌더는 sky.js 재사용, main.js renderSkyDex) -->
+      <section id="screen-sky" class="screen" data-screen="sky">
+        <div class="screen-head">
+          <button class="btn btn-back" data-nav="home">← 홈</button>
+          <h2 class="screen-title">🌌 밤하늘 도감</h2>
+          <span class="sky-dex-progress" id="skyDexProgress">0/16</span>
+        </div>
+        <p class="sky-dex-sub">완성한 별자리가 밤하늘에 모여요. 매일 하나씩 채워봐요 🌙</p>
+        <div id="skyDexGrid" class="sky-dex-grid"></div>
+      </section>
+
     </main>
+
+    <!-- 도감 별자리 크게 보기 (완성한 칸 탭) — 뷰포트 오버레이 -->
+    <div id="skyDexModal" class="sky-dex-modal" hidden>
+      <div class="sky-dex-modal-card">
+        <div id="skyDexModalSky" class="sky-dex-modal-sky" role="img"></div>
+        <p id="skyDexModalName" class="sky-dex-modal-name"></p>
+        <p id="skyDexModalDate" class="sky-dex-modal-date"></p>
+        <button class="btn btn-back" id="skyDexModalClose">닫기</button>
+      </div>
+    </div>
 
     <!-- ─── 면책 (의료법) ─── -->
     <footer class="app-disc">

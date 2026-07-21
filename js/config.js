@@ -17,6 +17,7 @@ export const SCREENS = {
   MEASURE: 'measure',
   GAME: 'game',
   RECORDS: 'records',
+  SKY: 'sky',        // 밤하늘 도감 (완성한 별자리 수집)
 };
 export const DEFAULT_SCREEN = SCREENS.HOME;
 

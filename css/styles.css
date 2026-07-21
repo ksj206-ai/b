@@ -192,10 +192,12 @@ body::after{
 /* 별자리 무대: 마스코트 아래 넉넉한 영역. 배경은 투명 —
    히어로 카드의 밤하늘 표면 위에 별자리가 그대로 뜬 느낌. */
 .sky-stage{
-  width:100%; aspect-ratio:3/2; max-height:300px; min-height:180px;
+  position:relative; width:100%; aspect-ratio:3/2; max-height:300px; min-height:180px;
   margin:var(--sp) auto var(--sp-xs);
 }
-.sky-svg{ display:block; width:100%; height:100%; }
+/* SVG는 절대배치로 상자를 꽉 채운다 — 세로로 긴 별자리가 aspect-ratio 상자를
+   밀어 늘리지 않게(도감 격자 칸 높이가 튀는 문제 방지). 컨테이너는 position:relative. */
+.sky-svg{ position:absolute; inset:0; display:block; width:100%; height:100%; }
 
 /* 연결선 — 기본은 흐릿한 밑그림, 양 끝 별이 켜지면 골드로 밝게 */
 .sky-link{ stroke:rgba(197,187,255,.15); stroke-linecap:round; fill:none; }
@@ -244,6 +246,49 @@ body::after{
   display:block; font-family:"Black Han Sans",sans-serif; font-size:var(--fs-lg);
   color:#fff; margin-top:var(--sp-3xs); text-shadow:0 0 14px rgba(255,211,107,.6);
 }
+
+/* ─── 밤하늘 도감 ─── */
+.sky-dex-progress{
+  margin-left:auto; font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:#fff;
+  background:var(--sage); padding:var(--sp-2xs) var(--sp-md); border-radius:var(--r-pill);
+}
+.sky-dex-sub{
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft);
+  text-align:center; margin:0 0 var(--sp-lg); word-break:keep-all;
+}
+.sky-dex-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:var(--sp-md); }
+@media (min-width:600px){ .sky-dex-grid{ grid-template-columns:repeat(4,1fr); } }
+.sky-dex-cell{
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-2xs);
+  background:var(--grad-surface); border:3px solid var(--card-border); border-radius:var(--r-lg);
+  padding:var(--sp-md) var(--sp-sm) var(--sp-sm); box-shadow:var(--shadow-sm), var(--ring-sage);
+  font-family:inherit; color:inherit;
+}
+.sky-dex-cell.is-done{ cursor:pointer; transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s; }
+.sky-dex-cell.is-done:hover{ transform:translateY(-3px); box-shadow:var(--shadow), var(--ring-accent); }
+.sky-dex-cell.is-done:active{ transform:translateY(1px) scale(.99); }
+.sky-dex-cell.is-locked{ opacity:.5; }                 /* 잠김 — 흐릿하게 */
+.sky-dex-cell.is-today{ box-shadow:var(--shadow-sm), var(--ring-accent); } /* 오늘 진행 중 강조 */
+.sky-dex-sky{ position:relative; width:100%; aspect-ratio:1/1; }  /* renderSky 대상 */
+.sky-dex-name{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink); }
+.sky-dex-cell.is-locked .sky-dex-name{ color:var(--muted); }
+.sky-dex-meta{ font-family:"Jua",sans-serif; font-size:var(--fs-2xs); color:var(--muted); }
+.sky-dex-cell.is-done .sky-dex-meta{ color:var(--honey); }
+.sky-dex-cell.is-today .sky-dex-meta{ color:var(--moss-dd); }
+
+/* 도감: 완성한 별자리 크게 보기 (뷰포트 오버레이) */
+.sky-dex-modal{
+  position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+  background:var(--scrim); padding:var(--sp-xl); animation:fadeIn .2s ease;
+}
+.sky-dex-modal-card{
+  background:var(--grad-surface); border:3px solid var(--card-border); border-radius:var(--r-card);
+  padding:var(--sp-xl); box-shadow:var(--shadow), var(--ring-sage);
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-sm); width:min(360px,100%);
+}
+.sky-dex-modal-sky{ position:relative; width:100%; aspect-ratio:1/1; max-height:280px; }
+.sky-dex-modal-name{ font-family:"Black Han Sans",sans-serif; font-size:var(--fs-xl); color:var(--honey); margin:0; }
+.sky-dex-modal-date{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted); margin:0 0 var(--sp-xs); }
 
 /* ─── 홈: 알림 입구 (부차 기능 — 접힌 한 줄 카드, 탭하면 아래 패널이 펼쳐짐) ─── */
 .remind-entry-chip{

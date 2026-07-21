@@ -10,6 +10,7 @@ import {
   isTodayComplete, completeTodayConstellation,
 } from './store.js';
 import { renderSky } from './sky.js';
+import { CONSTELLATIONS } from './constellations.js';
 import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, FUNCTIONAL_ROM } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
@@ -87,6 +88,10 @@ function renderHome() {
       celebrateSky(con);                    // 조용한 완성 축하 (한 번만)
     }
   }
+  // 밤하늘 도감 수집 배지 (서로 다른 별자리 수 / 전체 16)
+  const collected = new Set((getSky(skyState).constellations || []).map((c) => c.id)).size;
+  const dexBadge = $('skyDexCount');
+  if (dexBadge) dexBadge.textContent = `${collected}/${CONSTELLATIONS.length}`;
 
   const title = $('todayRoutine'), btn = $('routineStart'), speech = $('mascotSpeech');
   const streak = currentStreak();
@@ -135,7 +140,8 @@ function renderHome() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 오늘의 별자리 완성 연출 (조용한 1회 축하 — 완성 순간 별자리 샤인 + 메시지)
+// 밤하늘 별자리 — 완성 연출(1회) + 도감 (완성한 별자리 격자 수집)
+// 렌더는 sky.js renderSky를 그대로 재사용한다(도감 칸·크게보기 모두).
 // ═══════════════════════════════════════════════════════════
 
 /** 오늘의 별자리 완성 축하 — 별자리 은은한 샤인 + 완성 메시지 페이드. 조용하게, 한 번만. */
@@ -156,6 +162,65 @@ function celebrateSky(con) {
     stage.classList.remove('celebrate');
     if (banner) { banner.classList.remove('show'); banner.hidden = true; }
   }, 3200);
+}
+
+/** 밤하늘 도감 렌더 — 16칸 격자. 완성=밝게(이름·날짜), 오늘=진행분, 나머지=흐릿(잠김). */
+let skyDexEls = null;
+function renderSkyDex() {
+  const $ = (id) => document.getElementById(id);
+  if (!skyDexEls) {
+    skyDexEls = {
+      grid: $('skyDexGrid'), progress: $('skyDexProgress'),
+      modal: $('skyDexModal'), modalSky: $('skyDexModalSky'),
+      modalName: $('skyDexModalName'), modalDate: $('skyDexModalDate'),
+      modalClose: $('skyDexModalClose'),
+    };
+    skyDexEls.modalClose.addEventListener('click', () => { skyDexEls.modal.hidden = true; });
+    // 배경(카드 바깥) 탭 → 닫기
+    skyDexEls.modal.addEventListener('click', (e) => {
+      if (e.target === skyDexEls.modal) skyDexEls.modal.hidden = true;
+    });
+  }
+  const sky = getSky();
+  const doneMap = new Map();                 // id → 최근 완성 날짜 (뒤 항목이 최신)
+  for (const c of sky.constellations || []) doneMap.set(c.id, c.date);
+  const todayId = sky.today ? sky.today.constellationId : null;
+  const todayLit = (sky.today && sky.today.litStars) || [];
+
+  skyDexEls.progress.textContent = `${doneMap.size}/${CONSTELLATIONS.length}`;
+
+  skyDexEls.grid.innerHTML = '';
+  for (const con of CONSTELLATIONS) {
+    const done = doneMap.has(con.id);
+    const isToday = con.id === todayId;
+    // 완성한 칸만 탭 가능(크게 보기) → button, 나머지는 div
+    const cell = document.createElement(done ? 'button' : 'div');
+    cell.className = 'sky-dex-cell ' + (done ? 'is-done' : isToday ? 'is-today' : 'is-locked');
+    const box = document.createElement('div');
+    box.className = 'sky-dex-sky';
+    const name = document.createElement('span');
+    name.className = 'sky-dex-name';
+    name.textContent = con.name;
+    const meta = document.createElement('span');
+    meta.className = 'sky-dex-meta';
+    meta.textContent = done ? `${fmtMd(doneMap.get(con.id))} 완성` : isToday ? '오늘 진행 중' : '미완성';
+    cell.append(box, name, meta);
+    skyDexEls.grid.appendChild(cell);
+    // 오늘 칸은 실제 진행분으로 그려 홈의 twinkle 기준(lastRender)을 오염시키지 않는다.
+    const lit = done ? con.stars.map((_, i) => i) : isToday ? todayLit : [];
+    renderSky(box, con.id, lit);
+    if (done) cell.addEventListener('click', () => openSkyDexModal(con, doneMap.get(con.id)));
+  }
+}
+
+/** 완성한 별자리를 크게 보기 (오버레이) */
+function openSkyDexModal(con, date) {
+  const e = skyDexEls;
+  e.modalName.textContent = con.name;
+  e.modalDate.textContent = date ? `${fmtMd(date)} 완성` : '';
+  e.modalSky.setAttribute('aria-label', `${con.name} 별자리`);
+  renderSky(e.modalSky, con.id, con.stars.map((_, i) => i));
+  e.modal.hidden = false;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -281,6 +346,7 @@ function boot() {
     if (name === SCREENS.MEASURE) initMeasure();
     if (name === SCREENS.GUIDE) initGuide();
     if (name === SCREENS.RECORDS) renderRecords();
+    if (name === SCREENS.SKY) renderSkyDex();
   });
 
   initReminderUI();
