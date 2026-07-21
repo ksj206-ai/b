@@ -256,39 +256,71 @@ body::after{
   font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft);
   text-align:center; margin:0 0 var(--sp-lg); word-break:keep-all;
 }
-/* 밤하늘: 별자리를 흩뿌린 하나의 큰 하늘 패널 (배치 좌표는 데이터, 크기·위치 %라
-   화면 폭과 무관하게 균일 축소 → 어떤 폭에서도 안 겹침). cqw로 이름도 함께 축소. */
-.sky-map{
-  container-type:inline-size;
-  position:relative; width:100%; max-width:620px; margin:0 auto;
-  aspect-ratio:1/1.2; overflow:hidden;
-  background:var(--grad-surface);
-  border:3px solid var(--card-border); border-radius:var(--r-card);
-  box-shadow:var(--shadow-sm), var(--ring-sage);
+/* ── 도감 화면: 활성화되면 뷰포트를 꽉 채우는 우주(full-bleed) ──
+   position:fixed로 .app(560px)·본문 여백을 벗어나 성운이 화면 끝에서 끝까지.
+   모달(z-index:50)보다는 아래. */
+#screen-sky.is-active{
+  position:fixed; inset:0; z-index:45;
+  background:var(--bg-page);           /* 성운 밤하늘 — 뷰포트 전체 */
+  overflow:hidden;
 }
-.sky-map::before{  /* 은은한 별밭 (밤하늘 바탕) */
-  content:''; position:absolute; inset:0; pointer-events:none; opacity:.75;
+/* 상단 바: 밤하늘 위에 떠 있음. 스크림으로 가독성만 살짝 확보하고 탭은 통과(뒤 별자리 클릭). */
+.sky-dex-top{
+  position:absolute; top:0; left:0; right:0; z-index:5;
+  padding:var(--sp-lg) var(--sp-lg) var(--sp-2xl);
+  padding-top:max(var(--sp-lg), env(safe-area-inset-top));
+  background:linear-gradient(180deg, rgba(5,10,24,.82) 0%, rgba(5,10,24,.5) 52%, rgba(5,10,24,0) 100%);
+  pointer-events:none;
+}
+.sky-dex-top .screen-head{ margin:0 0 var(--sp-2xs); }
+.sky-dex-top .sky-dex-sub{ margin:0; }
+.sky-dex-top .btn-back{ pointer-events:auto; }   /* 버튼만 클릭 활성 */
+
+/* 밤하늘: full-bleed — 화면 끝에서 끝까지. 별자리는 con.pos(뷰포트 %)대로 전체에 흩뿌려짐.
+   크기는 vmin 기준 → 데스크톱·모바일 어떤 화면비에서도 균일한 크기로 안 겹침. */
+.sky-map{
+  position:absolute; inset:0; z-index:1;
+  width:100%; height:100%; margin:0; max-width:none;
+  aspect-ratio:auto; overflow:hidden; background:transparent;
+  border:none; border-radius:0; box-shadow:none;
+}
+.sky-map::before{  /* 정적 별밭 (넓은 화면에도 촘촘하게 타일) */
+  content:''; position:absolute; inset:0; pointer-events:none; opacity:.9;
   background-image:
-    radial-gradient(1.5px 1.5px at 15% 20%, rgba(255,255,255,.75), transparent),
-    radial-gradient(1px 1px at 62% 12%, rgba(196,214,255,.6), transparent),
-    radial-gradient(1px 1px at 85% 30%, rgba(255,255,255,.5), transparent),
-    radial-gradient(1.5px 1.5px at 30% 55%, rgba(216,226,255,.55), transparent),
-    radial-gradient(1px 1px at 70% 62%, rgba(255,255,255,.5), transparent),
-    radial-gradient(1px 1px at 45% 82%, rgba(196,214,255,.55), transparent),
-    radial-gradient(1px 1px at 88% 78%, rgba(255,255,255,.45), transparent),
-    radial-gradient(1px 1px at 10% 88%, rgba(216,226,255,.5), transparent);
+    radial-gradient(1px 1px at 34px 42px, rgba(255,255,255,.85), transparent),
+    radial-gradient(1px 1px at 138px 96px, rgba(196,214,255,.5), transparent),
+    radial-gradient(1.5px 1.5px at 210px 168px, rgba(224,230,255,.75), transparent),
+    radial-gradient(1px 1px at 320px 58px, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 90px 244px, rgba(178,205,255,.58), transparent),
+    radial-gradient(1.5px 1.5px at 286px 286px, rgba(255,246,232,.5), transparent),
+    radial-gradient(1px 1px at 176px 20px, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 250px 210px, rgba(196,214,255,.5), transparent),
+    radial-gradient(1px 1px at 40px 330px, rgba(216,226,255,.6), transparent);
+  background-repeat:repeat; background-size:390px 390px;
+}
+.sky-map::after{  /* 반짝이는 밝은 별 (은은하게, 별자리 뒤) */
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background-image:
+    radial-gradient(2px 2px at 80px 120px, rgba(255,255,255,.95), transparent),
+    radial-gradient(2.5px 2.5px at 320px 250px, rgba(188,210,255,.9), transparent),
+    radial-gradient(2px 2px at 200px 430px, rgba(255,255,255,.85), transparent),
+    radial-gradient(2px 2px at 470px 80px, rgba(206,222,255,.82), transparent),
+    radial-gradient(2.5px 2.5px at 410px 360px, rgba(255,255,255,.9), transparent);
+  background-repeat:repeat; background-size:540px 500px;
+  animation:star-twinkle 5.5s ease-in-out infinite;
 }
 .sky-map-item{
-  position:absolute; transform:translate(-50%,-50%);
-  width:17%; display:flex; flex-direction:column; align-items:center; gap:2px;
+  position:absolute; transform:translate(-50%,-50%); z-index:1;  /* 별밭(::before/::after) 위 */
+  width:clamp(46px, 12vmin, 108px);
+  display:flex; flex-direction:column; align-items:center; gap:2px;
   background:none; border:none; padding:0; cursor:pointer; font-family:inherit; color:inherit;
   transition:transform .14s cubic-bezier(.34,1.5,.5,1);
 }
 .sky-map-sky{ position:relative; width:100%; aspect-ratio:1/1; }  /* renderSky 대상 */
 .sky-map-name{
-  font-family:"Jua",sans-serif; font-size:clamp(8px, 2.6cqw, 13px);
+  font-family:"Jua",sans-serif; font-size:clamp(8.5px, 2.5vmin, 13px);
   color:var(--ink); text-align:center; line-height:1.15; white-space:nowrap;
-  text-shadow:0 1px 3px rgba(var(--shade-rgb),.55);
+  text-shadow:0 1px 3px rgba(var(--shade-rgb),.55), 0 0 6px rgba(5,10,24,.6);  /* 성운 위 가독성 */
 }
 .sky-map-item.is-done:hover{ transform:translate(-50%,-50%) scale(1.1); z-index:3; }
 .sky-map-item.is-done:active{ transform:translate(-50%,-50%) scale(1.02); }

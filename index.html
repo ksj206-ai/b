@@ -333,12 +333,16 @@
 
       <!-- 밤하늘 도감 — 완성한 별자리 수집 (렌더는 sky.js 재사용, main.js renderSkyDex) -->
       <section id="screen-sky" class="screen" data-screen="sky">
-        <div class="screen-head">
-          <button class="btn btn-back" data-nav="home">← 홈</button>
-          <h2 class="screen-title">🌌 밤하늘 도감</h2>
-          <span class="sky-dex-progress" id="skyDexProgress">0/16</span>
+        <!-- 상단 바 — 밤하늘 위에 떠 있음(스크림으로 가독성만 살짝). 뒤로가기·N/16만 유지 -->
+        <div class="sky-dex-top">
+          <div class="screen-head">
+            <button class="btn btn-back" data-nav="home">← 홈</button>
+            <h2 class="screen-title">🌌 밤하늘 도감</h2>
+            <span class="sky-dex-progress" id="skyDexProgress">0/16</span>
+          </div>
+          <p class="sky-dex-sub">완성한 별자리가 밤하늘에 모여요. 매일 하나씩 채워봐요 🌙</p>
         </div>
-        <p class="sky-dex-sub">완성한 별자리가 밤하늘에 모여요. 매일 하나씩 채워봐요 🌙</p>
+        <!-- 밤하늘: 화면 전체(full-bleed). 별자리는 con.pos대로 뷰포트 전체에 흩뿌려짐 -->
         <div id="skyMap" class="sky-map" aria-label="완성한 별자리 밤하늘"></div>
       </section>
 
