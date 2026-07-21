@@ -99,8 +99,8 @@ function renderHome() {
   btn.classList.toggle('btn-done', complete);
   if (complete) {
     title.textContent = r.gentle
-      ? '오늘 순한 코스 완주! 잘 쉬어가고 있어요 🌿'
-      : '오늘 풀코스 완주! 정원이 활짝 피었어요 ⭐';
+      ? '오늘 순한 코스 완주! 잘 쉬어가고 있어요 🐾'
+      : '오늘 풀코스 완주! 오늘의 별자리를 완성했어요 ⭐';
     btn.textContent = '오늘 완료! 내일 만나요';
     speech.textContent = '오늘 몫 끝! 내일 만나요 🌙';
   } else if (done > 0) {
@@ -109,12 +109,12 @@ function renderHome() {
     speech.textContent = '아까 하던 거 이어서 할까요?';
   } else if (r.gentle) {
     title.textContent = `오늘은 순한 코스로 가볍게, ${leftMin}분이면 돼요`;
-    btn.textContent = '시작하기 🌱';
-    speech.textContent = '어제 뻐근했죠? 오늘은 살살 해요 🌿';
+    btn.textContent = '시작하기 🚀';
+    speech.textContent = '어제 뻐근했죠? 오늘은 살살 해요 🐾';
   } else {
     title.textContent = `오늘의 손목 풀코스, ${leftMin}분이면 돼요`;
-    btn.textContent = '시작하기 🌱';
-    speech.textContent = streak >= 2 ? `${streak}일 연속이에요! 🔥` : '오늘도 만나서 반가워요! 🌿';
+    btn.textContent = '시작하기 🚀';
+    speech.textContent = streak >= 2 ? `${streak}일 연속이에요! 🔥` : '오늘도 만나서 반가워요! 🐾';
   }
 
   // 마스코트(우주 고양이) 표정 — 말풍선과 같은 상태 조건 재사용.
@@ -570,7 +570,7 @@ function finishMeasure() {
     if (flex < F.flex) ratios.push(flex / F.flex);
     if (ext < F.ext) ratios.push(ext / F.ext);
     const pct = Math.round(Math.min(...ratios) * 100);
-    e.rFunc.textContent = `일상생활 기준의 ${pct}%까지 왔어요 🌱`;
+    e.rFunc.textContent = `일상생활 기준의 ${pct}%까지 왔어요 🌟`;
   }
 
   if (prev) {
@@ -584,7 +584,7 @@ function finishMeasure() {
   const weekN = recentRoutineDays(s.routineLog || [], todayStr());
   e.rNarr.hidden = weekN < 1;
   if (weekN >= 1) {
-    e.rNarr.textContent = `이번 주 루틴 ${weekN}회 완료 — 꾸준함이 기록으로 이어지고 있어요 🌱`;
+    e.rNarr.textContent = `이번 주 루틴 ${weekN}회 완료 — 꾸준함이 기록으로 이어지고 있어요 ✨`;
   }
 
   setMeasurePhase('result');
@@ -777,7 +777,7 @@ function showGuideList() {
   guide.els.list.hidden = false;
 }
 
-/** 목록 카드에 "오늘의 루틴" / "완료 🌸" 배지 반영 */
+/** 목록 카드에 "오늘의 루틴" / "완료 ✨" 배지 반영 */
 function refreshGuideBadges() {
   const r = getTodayRoutine();
   for (const card of guide.els.list.children) {
@@ -786,7 +786,7 @@ function refreshGuideBadges() {
     const slot = r.ids.indexOf(card.dataset.guideId);
     if (slot < 0) { badge.hidden = true; continue; }
     const done = isSlotDone(r, slot);
-    badge.textContent = done ? '완료 🌸' : '오늘의 루틴';
+    badge.textContent = done ? '완료 ✨' : '오늘의 루틴';
     badge.classList.toggle('gc-badge--done', done);
     badge.hidden = false;
   }
@@ -1081,10 +1081,10 @@ function onGuideComplete(g) {
       }, ROUTINE.nextAutoMs);
     }
   } else if (guide.routineMode) {
-    askCondition(r);           // 풀코스 완주 — 컨디션 한 화면 → 새싹이 완료 멘트
+    askCondition(r);           // 풀코스 완주 — 컨디션 한 화면 → 마스코트 완료 멘트
   } else {
-    e.doneEmoji.textContent = '🌼';
-    e.doneText.textContent = '오늘의 루틴 완주! 정원이 활짝 피었어요';
+    e.doneEmoji.textContent = '⭐';
+    e.doneText.textContent = '오늘의 루틴 완주! 밤하늘에 별을 더했어요';
     e.next.hidden = true;
     // 측정 "제안" — 괜찮을 때만, 판정 아님
     e.measureGo.hidden = !r.suggestMeasure;
@@ -1123,7 +1123,7 @@ function finishConditionAsk(condition) {
   showRoutineDone(guide.pendingRoutine || getTodayRoutine(), condition);
 }
 
-/** 루틴 마무리 화면 — 새싹이 멘트 + N/6 (풀코스면 ⭐) */
+/** 루틴 마무리 화면 — 마스코트 멘트 + N/6 (풀코스면 ⭐) */
 function showRoutineDone(r, condition = null) {
   const e = guide.els;
   guide.routineMode = false;
@@ -1138,16 +1138,16 @@ function showRoutineDone(r, condition = null) {
   e.pip.hidden = true; e.count.hidden = true;
   e.condition.hidden = true;
   e.done.hidden = false;
-  e.doneEmoji.textContent = full ? '⭐' : '🌱';
+  e.doneEmoji.textContent = full ? '⭐' : '🐾';
   // 숫자(각도·개수) 없이 따뜻한 격려 — 루틴 완료의 끝맛(체크 결과의 담백한 리포트와 대비)
   e.doneText.textContent = full
-    ? '오늘 풀코스 완주! 정원이 활짝 피었어요 ⭐'
-    : '오늘도 손목에 물 줬어요 🌿 쉬엄쉬엄 가도 좋아요';
+    ? '오늘 풀코스 완주! 밤하늘에 별을 더했어요 ⭐'
+    : '오늘도 별을 켰어요 ⭐ 쉬엄쉬엄 가도 좋아요';
   // 격려 한 줄 — 스트릭이 쌓였으면 연속, 아니면 따뜻한 재회 인사 (부족 표현 없음)
   const streak = currentStreak();
   e.doneSub.textContent = streak >= 2
     ? `🔥 ${streak}일 연속 — 잘 돌보고 있어요`
-    : '내일 또 물 주러 만나요 🌱';
+    : '내일 또 별 켜러 만나요 🌙';
   e.doneSub.hidden = false;
   // 뻐근해요: 쉬어가도 된다는 한 줄만 (판정·조언 아님)
   e.rest.hidden = condition !== 'stiff';

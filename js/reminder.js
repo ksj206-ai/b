@@ -17,7 +17,7 @@ import { load, save, todayStr } from './store.js';
 import { getTodayRoutine, isRoutineComplete } from './routine.js';
 
 export const REMINDER_MAX = 3;                    // 하루 상한 — 절대 초과 금지
-export const REMINDER_MSG = '손목 쉬어갈 시간이에요 🌱';
+export const REMINDER_MSG = '손목 쉬어갈 시간이에요 ⭐';
 export const REMINDER_PRESETS = [
   { emoji: '☀️', label: '오전 업무 중', time: '10:30' },
   { emoji: '🍽️', label: '점심 직후', time: '13:00' },
