@@ -7,6 +7,7 @@ import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
 import {
   load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky,
+  isTodayComplete, completeTodayConstellation,
 } from './store.js';
 import { renderSky } from './sky.js';
 import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, FUNCTIONAL_ROM } from './config.js';
@@ -68,13 +69,22 @@ function renderHome() {
   assignTodayConstellation(skyState);
   const doneSlots = r.ids.map((_, i) => i).filter((i) => isSlotDone(r, i));
   syncStarsToProgress(skyState, doneSlots);
-  const today = getSky(skyState).today;
+  const sky = getSky(skyState);
+  const today = sky.today;
   if (today) {
+    // 이미 도감에 기록됐는가 = 이미 완성 연출을 봤는가 (재진입 시 연출 반복 방지)
+    const already = (sky.constellations || [])
+      .some((c) => c.id === today.constellationId && c.date === today.date);
     const con = renderSky(stage, today.constellationId, today.litStars);
     if (con) {
       $('skyName').textContent = con.name;
       stage.setAttribute('aria-label',
         `오늘의 별자리 · ${con.name} — 별 ${today.litStars.length}/${con.stars.length}`);
+    }
+    // 6개 완료로 방금 전부 켜졌고 아직 기록 전이면 → 도감 누적 + 완성 연출(1회)
+    if (con && isTodayComplete(skyState) && !already) {
+      completeTodayConstellation(skyState); // 도감에 누적 (멱등)
+      celebrateSky(con);                    // 조용한 완성 축하 (한 번만)
     }
   }
 
@@ -122,6 +132,30 @@ function renderHome() {
   chip.classList.toggle('is-need', need);
 
   renderRemindEntry();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 오늘의 별자리 완성 연출 (조용한 1회 축하 — 완성 순간 별자리 샤인 + 메시지)
+// ═══════════════════════════════════════════════════════════
+
+/** 오늘의 별자리 완성 축하 — 별자리 은은한 샤인 + 완성 메시지 페이드. 조용하게, 한 번만. */
+let skyCelebrateTimer = null;
+function celebrateSky(con) {
+  const stage = document.getElementById('skyStage');
+  const banner = document.getElementById('skyCelebrate');
+  if (!stage || !con) return;
+  stage.classList.remove('celebrate'); void stage.offsetWidth; stage.classList.add('celebrate');
+  if (banner) {
+    const b = banner.querySelector('b');
+    if (b) b.textContent = con.name;
+    banner.hidden = false;
+    banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
+  }
+  clearTimeout(skyCelebrateTimer);
+  skyCelebrateTimer = setTimeout(() => {
+    stage.classList.remove('celebrate');
+    if (banner) { banner.classList.remove('show'); banner.hidden = true; }
+  }, 3200);
 }
 
 // ═══════════════════════════════════════════════════════════

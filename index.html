@@ -31,7 +31,11 @@
           <!-- 오늘의 별자리 — 마스코트 아래 전용 영역. 운동을 완료할수록 별이
                그리는 순서대로 켜진다(렌더·점등은 sky.js / main.js renderHome). -->
           <p class="home-hero-label sky-label">오늘의 별자리 · <b id="skyName">밤하늘</b></p>
-          <div id="skyStage" class="sky-stage" role="img" aria-label="오늘의 별자리"></div>
+          <div class="sky-stage-wrap">
+            <div id="skyStage" class="sky-stage" role="img" aria-label="오늘의 별자리"></div>
+            <!-- 완성 순간 1회 축하 (main.js celebrateSky). 평소엔 hidden. -->
+            <p id="skyCelebrate" class="sky-celebrate" hidden>오늘의 별자리 완성! ✨<b></b></p>
+          </div>
 
           <p class="home-hero-title" id="todayRoutine">1분, 손목 굽힘·폄부터 시작해요</p>
           <p id="rpText" class="rp-text"></p>

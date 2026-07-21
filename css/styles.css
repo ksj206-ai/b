@@ -221,6 +221,30 @@ body::after{
 /* 오늘의 루틴 요약 한 줄 ("6개 운동 · 약 3분") — 별자리 아래, 시작 버튼 위 */
 .rp-text{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft); margin:0 0 var(--sp-md); }
 
+/* ─── 홈: 오늘의 별자리 완성 축하 (조용한 1회 연출) ─── */
+.sky-stage-wrap{ position:relative; }
+/* 완성 순간: 별자리 전체가 잠깐 은은히 밝아짐 (한 번, 과하지 않게) */
+@keyframes sky-shine{
+  0%{ filter:none; }
+  30%{ filter:drop-shadow(0 0 10px rgba(255,211,107,.75)) brightness(1.22); }
+  100%{ filter:none; }
+}
+.sky-stage.celebrate{ animation:sky-shine 1.8s ease-in-out; }
+/* 완성 메시지 — 별자리 위로 부드럽게 떠올랐다 사라짐 */
+.sky-celebrate{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(.92);
+  margin:0; text-align:center; pointer-events:none; opacity:0; z-index:2;
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--honey);
+  background:var(--scrim); border-radius:var(--r-md); padding:var(--sp-sm) var(--sp-lg);
+  box-shadow:var(--shadow-sm); white-space:nowrap;
+  transition:opacity .5s ease, transform .5s cubic-bezier(.3,1.4,.5,1);
+}
+.sky-celebrate.show{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+.sky-celebrate b{
+  display:block; font-family:"Black Han Sans",sans-serif; font-size:var(--fs-lg);
+  color:#fff; margin-top:var(--sp-3xs); text-shadow:0 0 14px rgba(255,211,107,.6);
+}
+
 /* ─── 홈: 알림 입구 (부차 기능 — 접힌 한 줄 카드, 탭하면 아래 패널이 펼쳐짐) ─── */
 .remind-entry-chip{
   display:block; width:100%; margin-top:var(--sp-lg); cursor:pointer; text-align:center;
