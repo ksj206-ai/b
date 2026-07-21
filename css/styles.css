@@ -231,6 +231,14 @@ body::after{
 }
 .remind-entry-chip:hover{ transform:translateY(-2px); box-shadow:var(--shadow), var(--ring-sage); }
 .remind-entry-chip:active{ transform:translateY(1px) scale(.99); }
+/* 펼침/접힘 표시 쉐브론 — 펼치면 위로 뒤집혀(▴) 다시 탭하면 접힌다는 신호 */
+.remind-entry-chip::after{
+  content:'▾'; display:inline-block; margin-left:var(--sp-sm);
+  color:var(--muted); transition:transform .2s;
+}
+.remind-entry-chip[aria-expanded="true"]::after{ transform:rotate(180deg); }
+/* 펼친 상태: 헤더(칩)와 패널을 붙여 하나의 카드처럼 (모바일; 데스크톱은 그리드 gap이 담당) */
+.remind-entry-chip[aria-expanded="true"] + .remind-panel{ margin-top:var(--sp-sm); }
 
 /* ─── 리마인더 온보딩/설정 ─── */
 .remind-panel{

@@ -67,7 +67,7 @@
 
         <!-- 알림 — 오른쪽 열 맨 아래, 평소엔 접힌 한 줄 카드. 탭하면 아래 패널이 펼쳐진다.
              미설정=시간 정하기 / 설정됨=요약 칩(변경) — 문구는 main.js renderRemindEntry가 채운다. -->
-        <button class="remind-entry-chip" id="remindEntry" hidden>⏰ 알림 시간 정하기</button>
+        <button class="remind-entry-chip" id="remindEntry" aria-controls="remindPanel" aria-expanded="false" hidden>⏰ 알림 시간 정하기</button>
 
         <!-- 리마인더 온보딩/설정 — 탭이 켜져 있을 때만 동작 (reminder.js 상단 주석 참고) -->
         <div id="remindPanel" class="remind-panel" hidden>

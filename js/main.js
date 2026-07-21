@@ -163,9 +163,12 @@ function initReminderUI() {
     saveReminder({ enabled: false });
     closeRemindPanel();
   });
-  // 접힌 칩을 탭할 때만 펼친다 — 미설정=온보딩 화면, 설정됨=설정 화면.
+  // 칩=토글 헤더. 접힘→탭하면 펼침(미설정=온보딩/설정됨=설정), 펼침→탭하면 그냥 접힘(저장 없음).
   // (부팅 시 자동으로 펼치지 않는다: 알림은 부차 기능, 평소엔 접힌 카드로 둔다.)
-  remindEls.entry.addEventListener('click', () => openRemindPanel(getReminder() ? 'settings' : 'onboard'));
+  remindEls.entry.addEventListener('click', () => {
+    if (remindEls.panel.hidden) openRemindPanel(getReminder() ? 'settings' : 'onboard');
+    else closeRemindPanel();
+  });
 
   renderRemindEntry(); // 부팅 시 renderHome은 remindEls 준비 전이라 여기서 첫 렌더
 }
@@ -187,7 +190,7 @@ function openRemindPanel(mode) {
   remindEls.note.hidden = !isBlocked(r);
   remindEls.panel.hidden = false;
   renderRemindPanel();
-  renderRemindEntry(); // 패널이 열리면 입구 칩은 숨김
+  renderRemindEntry(); // 칩은 그대로 헤더로 두고 쉐브론만 펼침 상태로
 }
 
 function closeRemindPanel() {
@@ -207,13 +210,15 @@ function renderRemindPanel() {
   remindEls.save.disabled = remindSel.length === 0;
 }
 
-/** 알림 요약 칩: 켜짐 → "⏰ 시간 알림 · 변경", 꺼짐 → 켜기 입구.
- *  패널이 열려 있는 동안(온보딩 포함)은 숨겨 입구를 하나로 유지 */
+/** 알림 토글 헤더: 켜짐 → "⏰ 시간 알림 · 변경", 꺼짐 → "⏰ 알림 꺼짐 · 켜기",
+ *  미설정 → "⏰ 알림 시간 정하기". 항상 보이며 탭으로 아래 패널을 펼치고/접는다
+ *  (aria-expanded로 쉐브론 방향을 표시). */
 function renderRemindEntry() {
   const e = remindEls?.entry;
   if (!e) return;
   const r = getReminder();
-  e.hidden = !remindEls.panel.hidden;
+  e.hidden = false; // 토글 헤더 — 펼침/접힘과 무관하게 항상 노출
+  e.setAttribute('aria-expanded', String(!remindEls.panel.hidden));
   e.textContent = (r && r.enabled && r.times.length)
     ? `⏰ ${r.times.join(' · ')} 알림 · 변경${isBlocked(r) ? ' (권한 꺼짐)' : ''}`
     : r                            // 설정했다 끈 상태 vs 아직 미설정을 구분
