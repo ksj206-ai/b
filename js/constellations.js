@@ -1,12 +1,14 @@
 // ═══════════════════════════════════════════════════════════
 // constellations.js — 별자리 데이터 (우주 테마의 "그릴 재료")
-// 각 별자리: { id, name(한글), season, stars:[{x,y}], lines:[[i,j]] }
+// 각 별자리: { id, name(한글), desc(한 줄 설명), pos(도감 배치 0~1), season, stars:[{x,y}], lines:[[i,j]] }
 //   · x, y : 0~1 상대 좌표. y는 아래로 증가(화면 좌표계). 실제 별자리 모양을
 //            알아볼 수 있게 단순화. 렌더 시 캔버스/뷰 크기에 곱해서 사용.
 //   · stars 배열의 순서 = "그리는 순서"(별 점등 순서의 기준).
 //   · lines : stars 인덱스 쌍으로 별을 잇는 선.
-// 별자리 추가는 이 배열에 객체 하나만 더하면 된다(다른 코드 변경 불필요).
-// 화면 렌더는 다음 단계 — 이 파일은 데이터만 제공한다.
+//   · desc  : 밤하늘 도감 확대 카드의 한 줄 설명.
+//   · pos   : 밤하늘 도감에서 별자리를 흩뿌려 배치할 중심 좌표(0~1). 서로 안 겹치게.
+// 별자리 추가는 이 배열에 객체 하나만 더하면 된다(desc·pos 포함, 다른 코드 변경 불필요).
+// 화면 렌더는 sky.js가 담당 — 이 파일은 데이터만 제공한다.
 // ═══════════════════════════════════════════════════════════
 
 export const SEASONS = ['spring', 'summer', 'fall', 'winter'];
@@ -15,6 +17,8 @@ export const CONSTELLATIONS = [
   // ─── 봄 ───
   {
     id: 'ursa_major',
+    desc: '북두칠성을 품은 큰 곰',
+    pos: { x: 0.20, y: 0.12 },
     name: '큰곰자리',        // 북두칠성 — 국자(손잡이 + 물통)
     season: 'spring',
     stars: [
@@ -30,6 +34,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'leo',
+    desc: '봄 하늘의 늠름한 사자',
+    pos: { x: 0.50, y: 0.12 },
     name: '사자자리',        // 낫(머리) + 삼각형(몸통·꼬리)
     season: 'spring',
     stars: [
@@ -44,6 +50,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'bootes',
+    desc: '봄밤을 걷는 목동',
+    pos: { x: 0.80, y: 0.12 },
     name: '목동자리',        // 연(kite) 모양, 아래 꼭짓점이 아크투루스
     season: 'spring',
     stars: [
@@ -57,6 +65,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'virgo',
+    desc: '이삭을 든 수확의 여신',
+    pos: { x: 0.13, y: 0.31 },
     name: '처녀자리',        // 스피카(아래) + 가지치는 형상
     season: 'spring',
     stars: [
@@ -73,6 +83,8 @@ export const CONSTELLATIONS = [
   // ─── 여름 ───
   {
     id: 'cygnus',
+    desc: '은하수를 가르는 백조',
+    pos: { x: 0.38, y: 0.31 },
     name: '백조자리',        // 북십자(Northern Cross)
     season: 'summer',
     stars: [
@@ -87,6 +99,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'lyra',
+    desc: '오르페우스의 하프',
+    pos: { x: 0.62, y: 0.31 },
     name: '거문고자리',      // 베가 + 평행사변형
     season: 'summer',
     stars: [
@@ -100,6 +114,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'aquila',
+    desc: '제우스의 독수리',
+    pos: { x: 0.87, y: 0.31 },
     name: '독수리자리',      // 알타이르 중심, 날개 편 새
     season: 'summer',
     stars: [
@@ -113,6 +129,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'scorpius',
+    desc: '오리온을 쏜 붉은 전갈',
+    pos: { x: 0.25, y: 0.50 },
     name: '전갈자리',        // 갈고리(J) — 머리에서 꼬리·독침까지 굽은 곡선
     season: 'summer',
     stars: [
@@ -131,6 +149,8 @@ export const CONSTELLATIONS = [
   // ─── 가을 ───
   {
     id: 'pegasus',
+    desc: '날개를 편 하늘의 말',
+    pos: { x: 0.52, y: 0.50 },
     name: '페가수스자리',    // 가을의 대사각형(Great Square)
     season: 'fall',
     stars: [
@@ -143,6 +163,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'andromeda',
+    desc: '별이 된 공주',
+    pos: { x: 0.79, y: 0.50 },
     name: '안드로메다자리',  // 별들이 사슬처럼 이어진 곡선
     season: 'fall',
     stars: [
@@ -155,6 +177,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'cassiopeia',
+    desc: 'W자를 그리는 왕비',
+    pos: { x: 0.15, y: 0.69 },
     name: '카시오페이아',    // 뚜렷한 W(또는 M)
     season: 'fall',
     stars: [
@@ -168,6 +192,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'aquarius',
+    desc: '물병을 기울인 소년',
+    pos: { x: 0.45, y: 0.69 },
     name: '물병자리',        // 물주전자 + 흘러내리는 물줄기
     season: 'fall',
     stars: [
@@ -184,6 +210,8 @@ export const CONSTELLATIONS = [
   // ─── 겨울 ───
   {
     id: 'orion',
+    desc: '삼태성을 두른 겨울 사냥꾼',
+    pos: { x: 0.75, y: 0.69 },
     name: '오리온자리',      // 어깨 2 + 삼태성(벨트) 3 + 발 2
     season: 'winter',
     stars: [
@@ -199,6 +227,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'canis_major',
+    desc: '오리온을 따르는 사냥개',
+    pos: { x: 0.30, y: 0.88 },
     name: '큰개자리',        // 시리우스(머리) + 몸통·꼬리
     season: 'winter',
     stars: [
@@ -212,6 +242,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'gemini',
+    desc: '나란히 선 쌍둥이 형제',
+    pos: { x: 0.59, y: 0.88 },
     name: '쌍둥이자리',      // 두 개의 평행한 형상(두 쌍둥이)
     season: 'winter',
     stars: [
@@ -226,6 +258,8 @@ export const CONSTELLATIONS = [
   },
   {
     id: 'taurus',
+    desc: '뿔을 세운 겨울 황소',
+    pos: { x: 0.86, y: 0.88 },
     name: '황소자리',        // 얼굴의 V(히아데스) + 두 뿔
     season: 'winter',
     stars: [
