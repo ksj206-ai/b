@@ -158,16 +158,23 @@ body::after{
 /* ─── 홈: 히어로 + 마스코트 ─── */
 .home-hero{
   position:relative;
+  --mascot-size:clamp(172px, 46vw, 208px);   /* 마스코트 크기 (기존 132 → 약 1.6배) */
+  --mascot-overhang:calc(var(--mascot-size) * 0.46);  /* 카드 위로 튀어나오는 높이 = 마스코트의 ≈46%(어느 화면이든 일정 비율로 절반쯤 밖) */
+  margin-top:var(--mascot-overhang);          /* 튀어나온 마스코트 머리 공간을 위에 확보 */
   background:var(--glass-bg);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
   border:var(--glass-border); border-radius:var(--r-hero);
   padding:var(--pad-card-sm) var(--sp-2xl) var(--sp-2xl); text-align:center;
   box-shadow:var(--glass-shadow), var(--glass-rim);
 }
-.mascot-wrap{ position:relative; display:flex; justify-content:center; margin-top:var(--sp-2xs); }
+/* 마스코트를 카드 위로 끌어올려 아래 절반은 카드에 걸치고 위는 카드 밖으로 (앞에 서 있는 구도) */
+.mascot-wrap{
+  position:relative; z-index:3; display:flex; justify-content:center;
+  margin-top:calc(-1 * (var(--mascot-overhang) + 14px));   /* 14px ≈ 히어로 상단 패딩 상쇄 */
+}
 .mascot{
-  width:132px; height:132px; object-fit:contain; display:block;
-  filter:drop-shadow(0 6px 14px rgba(var(--glow),.30));   /* 우주에 뜬 느낌: 부드러운 보라 글로우 */
+  width:var(--mascot-size); height:auto; object-fit:contain; display:block;
+  filter:drop-shadow(0 12px 24px rgba(var(--glow),.40));   /* 우주에 뜬 느낌: 부드러운 보라 글로우(커진 만큼 살짝 키움) */
   animation:float 3.6s ease-in-out infinite;               /* 살짝 둥둥 뜨는 상하 애니 */
   transform-origin:50% 85%;
 }
