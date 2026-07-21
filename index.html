@@ -28,12 +28,13 @@
                  main.js renderHome()가 오늘 상태에 따라 src를 바꾼다. -->
             <img class="mascot" id="mascotImg" src="assets/cat-idle.png" data-mood="idle" alt="" aria-hidden="true">
           </div>
-          <p class="home-hero-label">오늘의 루틴</p>
-          <div class="routine-progress" aria-label="오늘의 루틴 진행">
-            <span id="rpDots" class="rp-dots" aria-hidden="true"></span>
-            <span id="rpText" class="rp-text"></span>
-          </div>
+          <!-- 오늘의 별자리 — 마스코트 아래 전용 영역. 운동을 완료할수록 별이
+               그리는 순서대로 켜진다(렌더·점등은 sky.js / main.js renderHome). -->
+          <p class="home-hero-label sky-label">오늘의 별자리 · <b id="skyName">밤하늘</b></p>
+          <div id="skyStage" class="sky-stage" role="img" aria-label="오늘의 별자리"></div>
+
           <p class="home-hero-title" id="todayRoutine">1분, 손목 굽힘·폄부터 시작해요</p>
+          <p id="rpText" class="rp-text"></p>
           <button class="btn btn-primary btn-hero" id="routineStart">시작하기 🌱</button>
         </div>
 

@@ -183,20 +183,43 @@ body::after{
 }
 .home-hero-title{
   font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-xl);
-  color:var(--ink); margin:var(--sp-md) 0 var(--sp-lg); line-height:var(--lh-title); word-break:keep-all;
+  color:var(--ink); margin:var(--sp-md) 0 var(--sp-xs); line-height:var(--lh-title); word-break:keep-all;
 }
 
-/* ─── 홈: 오늘의 루틴 진행 (점 + 요약 한 줄) ─── */
-.routine-progress{
-  display:flex; flex-direction:column; align-items:center; gap:var(--sp-sm); margin-top:var(--sp-lg);
+/* ─── 홈: 오늘의 별자리 (히어로 전용 영역) ─── */
+/* 별자리 이름 라벨 — 이름만 골드로 강조 (앱의 주인공) */
+.sky-label b{ font-weight:400; color:var(--honey); }
+/* 별자리 무대: 마스코트 아래 넉넉한 영역. 배경은 투명 —
+   히어로 카드의 밤하늘 표면 위에 별자리가 그대로 뜬 느낌. */
+.sky-stage{
+  width:100%; aspect-ratio:3/2; max-height:300px; min-height:180px;
+  margin:var(--sp) auto var(--sp-xs);
 }
-.rp-dots{ display:flex; gap:var(--sp-sm); }
-.rp-dot{
-  width:11px; height:11px; border-radius:50%; box-sizing:border-box;
-  background:var(--card-border); border:2px solid var(--sage);
+.sky-svg{ display:block; width:100%; height:100%; }
+
+/* 연결선 — 기본은 흐릿한 밑그림, 양 끝 별이 켜지면 골드로 밝게 */
+.sky-link{ stroke:rgba(197,187,255,.15); stroke-linecap:round; fill:none; }
+.sky-link.is-on{
+  stroke:rgba(255,214,140,.55);
+  filter:drop-shadow(0 0 1.5px rgba(255,211,107,.6));
 }
-.rp-dot.is-done{ background:var(--moss); border-color:var(--moss-dd); }
-.rp-text{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft); }
+
+/* 별 — 안 켜진 별은 흐릿한 밑그림, 켜진 별은 골드 코어 + 은은한 헤일로 */
+.sky-star{ transform-box:fill-box; transform-origin:center; }
+.sky-dim{ fill:rgba(199,187,255,.32); }
+.sky-halo{ fill:url(#skyHaloGrad); }
+.sky-core{ fill:#fff6df; filter:drop-shadow(0 0 3px rgba(255,211,107,.9)); }
+
+/* 점등 순간의 부드러운 반짝임 (과하지 않게 — 별 하나씩 살짝 늦춰 켜짐) */
+@keyframes sky-twinkle{
+  0%{ opacity:.2; transform:scale(.35); }
+  55%{ opacity:1; transform:scale(1.3); }
+  100%{ opacity:1; transform:scale(1); }
+}
+.sky-star.twinkle{ animation:sky-twinkle .72s cubic-bezier(.3,1.5,.5,1) both; }
+
+/* 오늘의 루틴 요약 한 줄 ("6개 운동 · 약 3분") — 별자리 아래, 시작 버튼 위 */
+.rp-text{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft); margin:0 0 var(--sp-md); }
 
 /* ─── 홈: 알림 요약 칩 (설정의 유일한 입구) ─── */
 .remind-entry-chip{

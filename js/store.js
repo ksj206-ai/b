@@ -243,6 +243,20 @@ export function lightStars(state = load(), count = 1) {
   return state;
 }
 
+/** 완료한 운동 슬롯(doneSlots: 완료된 슬롯 인덱스 배열)에 맞춰 오늘 별자리 점등을 재조정.
+ *  목표 점등 수 = 완료 슬롯들의 plan(운동별 배정 개수) 합. 부족분만 lightStars로
+ *  채운다(그리는 순서). 멱등 — 이미 목표만큼 켜져 있으면 변화 없음이라, 홈 재진입 시
+ *  완료한 운동 수에 맞게 별이 올바르게 복원된다. 반환: 갱신된 state. */
+export function syncStarsToProgress(state = load(), doneSlots = []) {
+  const sky = getSky(state);
+  if (!sky.today) return state;
+  const plan = sky.today.plan || [];
+  const target = doneSlots.reduce((sum, i) => sum + (plan[i] || 0), 0);
+  const cur = sky.today.litStars.length;
+  if (target > cur) lightStars(state, target - cur);
+  return state;
+}
+
 /** 오늘의 별자리 완성 판정 (모든 별이 켜졌는가) */
 export function isTodayComplete(state = load()) {
   const sky = getSky(state);

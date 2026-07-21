@@ -4,7 +4,11 @@
 // 지연 로드해 라이브 인식 프리뷰를 구동(파이프라인 확인용).
 // ═══════════════════════════════════════════════════════════
 import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
-import { load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr } from './store.js';
+import {
+  load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
+  assignTodayConstellation, syncStarsToProgress, getSky,
+} from './store.js';
+import { renderSky } from './sky.js';
 import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, FUNCTIONAL_ROM } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
@@ -39,8 +43,8 @@ let pendingGuideId = null; // 홈 딥스타트 → 가이드 화면 진입 시 1
 function renderHome() {
   renderStreak();
   const $ = (id) => document.getElementById(id);
-  const dots = $('rpDots');
-  if (!dots) return;
+  const stage = $('skyStage');
+  if (!stage) return;
 
   const r = getTodayRoutine();
   const { done, total } = routineProgress(r);
@@ -53,11 +57,26 @@ function renderHome() {
     .reduce((s, id) => s + estimateGuideSec(getGuide(id) || { steps: [] }), 0);
   const leftMin = Math.max(1, Math.ceil(leftSec / 60));
 
-  dots.innerHTML = r.ids.map((id, i) =>
-    `<i class="rp-dot${isSlotDone(r, i) ? ' is-done' : ''}"></i>`).join('');
   $('rpText').textContent = complete ? `오늘 ${done}/${total} 완주 ⭐`
     : done > 0 ? `오늘 ${done}/${total} · 남은 시간 약 ${leftMin}분`
     : `${total}개 운동 · 약 ${leftMin}분`;
+
+  // 오늘의 별자리: 진입 시 배정(멱등) → 완료한 운동 슬롯만큼 점등 복원 → SVG 렌더.
+  // 슬롯별 배정 개수(plan)의 합만큼 그리는 순서대로 켜지므로, 홈을 나갔다 와도
+  // 완료한 운동 수에 맞게 별이 유지되고 6개 완주 시 모든 별이 켜진다.
+  const skyState = load();
+  assignTodayConstellation(skyState);
+  const doneSlots = r.ids.map((_, i) => i).filter((i) => isSlotDone(r, i));
+  syncStarsToProgress(skyState, doneSlots);
+  const today = getSky(skyState).today;
+  if (today) {
+    const con = renderSky(stage, today.constellationId, today.litStars);
+    if (con) {
+      $('skyName').textContent = con.name;
+      stage.setAttribute('aria-label',
+        `오늘의 별자리 · ${con.name} — 별 ${today.litStars.length}/${con.stars.length}`);
+    }
+  }
 
   const title = $('todayRoutine'), btn = $('routineStart'), speech = $('mascotSpeech');
   const streak = currentStreak();
