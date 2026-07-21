@@ -140,8 +140,8 @@ function renderHome() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 밤하늘 별자리 — 완성 연출(1회) + 도감 (완성한 별자리 격자 수집)
-// 렌더는 sky.js renderSky를 그대로 재사용한다(도감 칸·크게보기 모두).
+// 밤하늘 별자리 — 완성 연출(1회) + 도감 (완성한 별자리를 밤하늘에 흩뿌려 수집)
+// 렌더는 sky.js renderSky를 그대로 재사용한다(도감 별·크게보기 모두).
 // ═══════════════════════════════════════════════════════════
 
 /** 오늘의 별자리 완성 축하 — 별자리 은은한 샤인 + 완성 메시지 페이드. 조용하게, 한 번만. */
@@ -164,21 +164,23 @@ function celebrateSky(con) {
   }, 3200);
 }
 
-/** 밤하늘 도감 렌더 — 16칸 격자. 완성=밝게(이름·날짜), 오늘=진행분, 나머지=흐릿(잠김). */
+/** 밤하늘 도감 렌더 — 하나의 밤하늘에 16개 별자리를 흩뿌려 배치(좌표는 con.pos).
+ *  완성=밝게+이름 / 미완성=아주 흐릿(이름 숨김·잠김). 크게보기·잠김안내는 openSkyDexModal. */
 let skyDexEls = null;
 function renderSkyDex() {
   const $ = (id) => document.getElementById(id);
   if (!skyDexEls) {
     skyDexEls = {
-      grid: $('skyDexGrid'), progress: $('skyDexProgress'),
-      modal: $('skyDexModal'), modalSky: $('skyDexModalSky'),
-      modalName: $('skyDexModalName'), modalDate: $('skyDexModalDate'),
+      map: $('skyMap'), progress: $('skyDexProgress'), modal: $('skyDexModal'),
+      done: $('skyDexModalDone'), lock: $('skyDexModalLock'),
+      modalSky: $('skyDexModalSky'), modalName: $('skyDexModalName'), modalDesc: $('skyDexModalDesc'),
+      modalDate: $('skyDexModalDate'), modalRoutine: $('skyDexModalRoutine'),
+      modalCond: $('skyDexModalCond'), modalCondRow: $('skyDexModalCondRow'),
       modalClose: $('skyDexModalClose'),
     };
     skyDexEls.modalClose.addEventListener('click', () => { skyDexEls.modal.hidden = true; });
-    // 배경(카드 바깥) 탭 → 닫기
     skyDexEls.modal.addEventListener('click', (e) => {
-      if (e.target === skyDexEls.modal) skyDexEls.modal.hidden = true;
+      if (e.target === skyDexEls.modal) skyDexEls.modal.hidden = true;   // 배경 탭 → 닫기
     });
   }
   const sky = getSky();
@@ -189,37 +191,63 @@ function renderSkyDex() {
 
   skyDexEls.progress.textContent = `${doneMap.size}/${CONSTELLATIONS.length}`;
 
-  skyDexEls.grid.innerHTML = '';
+  skyDexEls.map.innerHTML = '';
   for (const con of CONSTELLATIONS) {
     const done = doneMap.has(con.id);
-    const isToday = con.id === todayId;
-    // 완성한 칸만 탭 가능(크게 보기) → button, 나머지는 div
-    const cell = document.createElement(done ? 'button' : 'div');
-    cell.className = 'sky-dex-cell ' + (done ? 'is-done' : isToday ? 'is-today' : 'is-locked');
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'sky-map-item ' + (done ? 'is-done' : 'is-locked');
+    const pos = con.pos || { x: 0.5, y: 0.5 };
+    item.style.left = `${pos.x * 100}%`;
+    item.style.top = `${pos.y * 100}%`;
+    item.setAttribute('aria-label', done ? con.name : '아직 완성하지 않은 별자리');
     const box = document.createElement('div');
-    box.className = 'sky-dex-sky';
-    const name = document.createElement('span');
-    name.className = 'sky-dex-name';
-    name.textContent = con.name;
-    const meta = document.createElement('span');
-    meta.className = 'sky-dex-meta';
-    meta.textContent = done ? `${fmtMd(doneMap.get(con.id))} 완성` : isToday ? '오늘 진행 중' : '미완성';
-    cell.append(box, name, meta);
-    skyDexEls.grid.appendChild(cell);
-    // 오늘 칸은 실제 진행분으로 그려 홈의 twinkle 기준(lastRender)을 오염시키지 않는다.
-    const lit = done ? con.stars.map((_, i) => i) : isToday ? todayLit : [];
-    renderSky(box, con.id, lit);
-    if (done) cell.addEventListener('click', () => openSkyDexModal(con, doneMap.get(con.id)));
+    box.className = 'sky-map-sky';
+    item.appendChild(box);
+    if (done) {                                // 완성 → 이름 라벨 + 일기 카드
+      const name = document.createElement('span');
+      name.className = 'sky-map-name';
+      name.textContent = con.name;
+      item.appendChild(name);
+      item.addEventListener('click', () => openSkyDexModal(con, doneMap.get(con.id)));
+    } else {                                   // 미완성 → 라벨 숨김 + 잠김 안내
+      item.addEventListener('click', () => openSkyDexModal(con, null));
+    }
+    skyDexEls.map.appendChild(item);
+    renderSky(box, con.id, done ? con.stars.map((_, i) => i) : []);
   }
+  // 홈의 별 점등 반짝임 기준(sky.js lastRender)이 도감 렌더로 어긋나지 않게,
+  // 마지막에 오늘의 별자리를 실제 진행분으로 한 번 그려 기준을 맞춘다(보이지 않는 요소).
+  if (todayId) renderSky(document.createElement('div'), todayId, todayLit);
 }
 
-/** 완성한 별자리를 크게 보기 (오버레이) */
+/** 별자리 확대 — 완성이면 일기 카드(이름·설명·완성일·운동·컨디션), 미완성이면 잠김 안내(date=null) */
 function openSkyDexModal(con, date) {
   const e = skyDexEls;
+  if (!date) {                                // 미완성 → 잠김 한 줄 안내
+    e.done.hidden = true;
+    e.lock.hidden = false;
+    e.modal.hidden = false;
+    return;
+  }
+  e.lock.hidden = true;
+  e.done.hidden = false;
   e.modalName.textContent = con.name;
-  e.modalDate.textContent = date ? `${fmtMd(date)} 완성` : '';
+  e.modalDesc.textContent = con.desc || '';
+  e.modalDate.textContent = fmtMd(date);
   e.modalSky.setAttribute('aria-label', `${con.name} 별자리`);
   renderSky(e.modalSky, con.id, con.stars.map((_, i) => i));
+  // 그날 운동 기록(routineLog 조회) + 그날 컨디션(conditionOf 조회) — 읽기만
+  const s = load();
+  const log = (s.routineLog || []).find((l) => l.at === date);
+  e.modalRoutine.textContent = log ? `루틴 ${log.done}/${log.total} 완료` : '풀코스 완료';
+  const cond = conditionOf(s, date);
+  if (cond && COND_LABEL[cond.condition]) {
+    e.modalCond.textContent = `${COND_EMOJI[cond.condition]} ${COND_LABEL[cond.condition]}`;
+    e.modalCondRow.hidden = false;
+  } else {
+    e.modalCondRow.hidden = true;
+  }
   e.modal.hidden = false;
 }
 
@@ -1218,6 +1246,7 @@ async function renderRecords() {
 
 /** 최근 7일 컨디션 이모지 행 — 날짜별 표시 (프리즈 날 🧊, 기록 없으면 ·) */
 const COND_EMOJI = { good: '😊', soso: '😐', stiff: '😣' };
+const COND_LABEL = { good: '좋아요', soso: '보통이에요', stiff: '뻐근했어요' }; // 도감 일기 카드용
 function renderWeek(e, conditions, freezeAt) {
   const byDate = Object.fromEntries(conditions.map((c) => [c.at, c.condition]));
   const dayName = ['일', '월', '화', '수', '목', '금', '토'];

@@ -339,17 +339,27 @@
           <span class="sky-dex-progress" id="skyDexProgress">0/16</span>
         </div>
         <p class="sky-dex-sub">완성한 별자리가 밤하늘에 모여요. 매일 하나씩 채워봐요 🌙</p>
-        <div id="skyDexGrid" class="sky-dex-grid"></div>
+        <div id="skyMap" class="sky-map" aria-label="완성한 별자리 밤하늘"></div>
       </section>
 
     </main>
 
-    <!-- 도감 별자리 크게 보기 (완성한 칸 탭) — 뷰포트 오버레이 -->
+    <!-- 도감 별자리 크게 보기 — 완성=일기 카드 / 미완성=잠김 안내 (뷰포트 오버레이) -->
     <div id="skyDexModal" class="sky-dex-modal" hidden>
       <div class="sky-dex-modal-card">
-        <div id="skyDexModalSky" class="sky-dex-modal-sky" role="img"></div>
-        <p id="skyDexModalName" class="sky-dex-modal-name"></p>
-        <p id="skyDexModalDate" class="sky-dex-modal-date"></p>
+        <!-- 완성한 별자리: 확대 + 일기 -->
+        <div id="skyDexModalDone">
+          <div id="skyDexModalSky" class="sky-dex-modal-sky" role="img"></div>
+          <p id="skyDexModalName" class="sky-dex-modal-name"></p>
+          <p id="skyDexModalDesc" class="sky-dex-modal-desc"></p>
+          <div class="sky-dex-diary">
+            <div class="sky-dex-diary-row"><span>완성한 날</span><b id="skyDexModalDate">—</b></div>
+            <div class="sky-dex-diary-row"><span>그날 운동</span><b id="skyDexModalRoutine">—</b></div>
+            <div class="sky-dex-diary-row" id="skyDexModalCondRow" hidden><span>그날 컨디션</span><b id="skyDexModalCond">—</b></div>
+          </div>
+        </div>
+        <!-- 미완성: 잠김 안내 -->
+        <p id="skyDexModalLock" class="sky-dex-modal-lock" hidden>🔒 아직 만나지 못한 별자리예요</p>
         <button class="btn btn-back" id="skyDexModalClose">닫기</button>
       </div>
     </div>
