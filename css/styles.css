@@ -71,6 +71,18 @@
   --shadow-badge-terra:0 3px 8px rgba(240,168,120,.3);      /* 배지(살구/골드 변형) */
   --btn-pad:14px 28px; --btn-pad-sm:12px 20px; --btn-pad-hero:20px 52px; /* 버튼 패딩(주/보조/히어로) */
   --pop:0 6px 0; /* 구 호환 */
+
+  /* ── 글래스모피즘 (반투명 유리 카드) — 투명도·블러·테두리·그림자를 여기서 한 곳에서 조절 ── */
+  --glass-a:.58;                 /* 기본 카드 투명도(뒤 별·성운이 은은히 비침) */
+  --glass-a-strong:.72;          /* 데이터·작은 글씨 카드(가독성 위해 덜 투명) */
+  --glass-tint-top:46,52,98;     /* 유리 틴트: 위쪽(살짝 밝음 → 위 밝은 유리 느낌). 어두운 성운 톤이라 밝은 배경 지점서도 WCAG 유지 */
+  --glass-tint-bot:22,26,56;     /* 유리 틴트: 아래쪽 */
+  --glass-bg:linear-gradient(180deg, rgba(var(--glass-tint-top),var(--glass-a)), rgba(var(--glass-tint-bot),var(--glass-a)));
+  --glass-bg-strong:linear-gradient(180deg, rgba(var(--glass-tint-top),var(--glass-a-strong)), rgba(var(--glass-tint-bot),var(--glass-a-strong)));
+  --glass-blur:blur(13px) saturate(1.25);                   /* 젖빛 유리 블러(+채도 살짝) */
+  --glass-border:1px solid rgba(255,255,255,.14);           /* 은은한 유리 테두리 */
+  --glass-rim:inset 0 1px 0 rgba(255,255,255,.24);          /* 위쪽 밝은 림 라이트 */
+  --glass-shadow:0 12px 30px rgba(var(--shade-rgb),.38);    /* 떠 있는 부드러운 그림자 */
 }
 
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -146,10 +158,11 @@ body::after{
 /* ─── 홈: 히어로 + 마스코트 ─── */
 .home-hero{
   position:relative;
-  background:var(--grad-surface);
-  border:3px solid var(--card-border); border-radius:var(--r-hero);
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-hero);
   padding:var(--pad-card-sm) var(--sp-2xl) var(--sp-2xl); text-align:center;
-  box-shadow:var(--shadow), var(--ring-sage);
+  box-shadow:var(--glass-shadow), var(--glass-rim);
 }
 .mascot-wrap{ position:relative; display:flex; justify-content:center; margin-top:var(--sp-2xs); }
 .mascot{
@@ -333,8 +346,10 @@ body::after{
   background:var(--scrim); padding:var(--sp-xl); animation:fadeIn .2s ease;
 }
 .sky-dex-modal-card{
-  background:var(--grad-surface); border:3px solid var(--card-border); border-radius:var(--r-card);
-  padding:var(--sp-xl); box-shadow:var(--shadow), var(--ring-sage);
+  background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
+  padding:var(--sp-xl); box-shadow:var(--glass-shadow), var(--glass-rim);
   display:flex; flex-direction:column; align-items:center; gap:var(--sp-sm);
   width:min(360px,100%); max-height:88vh; overflow-y:auto;
 }
@@ -355,12 +370,14 @@ body::after{
 /* ─── 홈: 알림 입구 (부차 기능 — 접힌 한 줄 카드, 탭하면 아래 패널이 펼쳐짐) ─── */
 .remind-entry-chip{
   display:block; width:100%; margin-top:var(--sp-lg); cursor:pointer; text-align:center;
-  background:var(--cream); border:3px solid var(--card-border); border-radius:var(--r-lg);
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-lg);
   color:var(--ink-soft); font-family:"Jua",sans-serif; font-size:var(--fs-base);
-  padding:var(--sp-md) var(--sp-lg); box-shadow:var(--shadow-sm), var(--ring);
+  padding:var(--sp-md) var(--sp-lg); box-shadow:var(--glass-shadow), var(--glass-rim);
   transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
 }
-.remind-entry-chip:hover{ transform:translateY(-2px); box-shadow:var(--shadow), var(--ring-sage); }
+.remind-entry-chip:hover{ transform:translateY(-2px); box-shadow:var(--glass-shadow), var(--glass-rim); }
 .remind-entry-chip:active{ transform:translateY(1px) scale(.99); }
 /* 펼침/접힘 표시 쉐브론 — 펼치면 위로 뒤집혀(▴) 다시 탭하면 접힌다는 신호 */
 .remind-entry-chip::after{
@@ -373,8 +390,10 @@ body::after{
 
 /* ─── 리마인더 온보딩/설정 ─── */
 .remind-panel{
-  background:var(--cream); border:3px solid var(--card-border); border-radius:var(--r-card);
-  padding:var(--sp-xl) var(--pad-card); margin-top:var(--sp-lg); box-shadow:var(--shadow-sm), var(--ring);
+  background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
+  padding:var(--sp-xl) var(--pad-card); margin-top:var(--sp-lg); box-shadow:var(--glass-shadow), var(--glass-rim);
   display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
 }
 .remind-q{ font-family:"Jua",sans-serif; font-size:var(--fs-md); color:var(--ink); margin:0; text-align:center; }
@@ -423,17 +442,19 @@ body::after{
 .section-card{
   position:relative; flex:1; display:flex; flex-direction:column;
   align-items:center; gap:var(--sp-xs); text-align:center;
-  background:var(--cream); border:3px solid var(--card-border); border-radius:var(--r-lg);
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-lg);
   padding:var(--pad-card-sm) var(--sp-sm) var(--sp-md); cursor:pointer;
-  box-shadow:var(--shadow-sm), var(--ring);
+  box-shadow:var(--glass-shadow), var(--glass-rim);
   transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
   font-family:inherit; color:inherit;
 }
-.section-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow), var(--ring-sage); }
+.section-card:hover{ transform:translateY(-3px); box-shadow:var(--glass-shadow), var(--glass-rim); }
 .section-card:active{ transform:translateY(1px) scale(.99); }
 .section-card.is-main{
-  background:var(--grad-surface);
-  box-shadow:var(--shadow-sm), var(--ring-accent);
+  background:var(--glass-bg-strong);
+  box-shadow:var(--glass-shadow), var(--ring-accent), var(--glass-rim);
 }
 .section-emoji{
   width:46px; height:46px; border-radius:50%;
@@ -474,8 +495,10 @@ body::after{
 
 /* ─── 자리표시자 ─── */
 .placeholder{
-  background:var(--cream); border:3px dashed var(--sage); border-radius:var(--r-card);
-  padding:52px var(--sp-2xl); text-align:center; box-shadow:var(--shadow-sm);
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:3px dashed var(--sage); border-radius:var(--r-card);
+  padding:52px var(--sp-2xl); text-align:center; box-shadow:var(--glass-shadow), var(--glass-rim);
 }
 .placeholder-emoji{ font-size:var(--fs-emoji-xl); margin:0; animation:bob 3s ease-in-out infinite; }
 .placeholder-text{ font-family:"Jua",sans-serif; font-size:var(--fs-base); color:var(--ink); margin:var(--sp-lg) 0 var(--sp-xs); }
@@ -485,12 +508,14 @@ body::after{
 .guide-list{ display:flex; flex-direction:column; gap:var(--sp-lg); }
 .guide-card{
   display:flex; align-items:center; gap:var(--sp-lg); text-align:left;
-  background:var(--cream); border:3px solid var(--card-border); border-radius:var(--r-card);
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
   padding:var(--sp-lg) var(--sp-xl); cursor:pointer; font-family:inherit; color:inherit;
-  box-shadow:var(--shadow-sm), var(--ring);
+  box-shadow:var(--glass-shadow), var(--glass-rim);
   transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
 }
-.guide-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow), var(--ring-sage); }
+.guide-card:hover{ transform:translateY(-3px); box-shadow:var(--glass-shadow), var(--glass-rim); }
 .guide-card:active{ transform:translateY(1px) scale(.99); }
 .gc-emoji{
   width:52px; height:52px; border-radius:50%; flex-shrink:0;
@@ -508,8 +533,10 @@ body::after{
 
 /* ─── 가이드: 플레이어 ─── */
 .guide-player{
-  background:var(--cream); border:3px solid var(--card-border); border-radius:var(--r-card);
-  padding:var(--pad-card); box-shadow:var(--shadow-sm), var(--ring);
+  background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
+  padding:var(--pad-card); box-shadow:var(--glass-shadow), var(--glass-rim);
   display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
 }
 .gp-top{ width:100%; display:flex; justify-content:space-between; align-items:center; }
@@ -599,8 +626,10 @@ body::after{
 
 /* ─── 측정 ─── */
 .mzone{
-  background:var(--cream); border:3px solid var(--card-border); border-radius:var(--r-card);
-  padding:var(--pad-card); box-shadow:var(--shadow-sm), var(--ring);
+  background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
+  padding:var(--pad-card); box-shadow:var(--glass-shadow), var(--glass-rim);
   display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
 }
 .cam-wrap{
@@ -710,9 +739,11 @@ body::after{
 
 /* ─── 기록 화면 ─── */
 .rec-card{
-  background:var(--cream); border:3px solid var(--card-border); border-radius:var(--r-card);
+  background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
   padding:var(--pad-card); margin-bottom:var(--sp-lg);
-  box-shadow:var(--shadow-sm), var(--ring);
+  box-shadow:var(--glass-shadow), var(--glass-rim);
 }
 .rec-card-head{ display:flex; align-items:baseline; justify-content:space-between; gap:var(--sp-sm); margin-bottom:var(--sp-md); }
 .rec-card-title{ font-family:"Black Han Sans",sans-serif; font-size:var(--fs-lg); color:var(--moss-dd); }
@@ -892,3 +923,9 @@ body::after{
 }
 
 @media (prefers-reduced-motion:reduce){ *{ animation:none!important; } }
+
+/* backdrop-filter 미지원 브라우저: 블러가 없으면 반투명 배경에 별이 선명히 비쳐 글자가 안 읽힘
+   → 유리 카드를 거의 불투명하게(가독성 우선). --glass-a만 올리면 모든 유리 카드에 자동 반영. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))){
+  :root{ --glass-a:.92; --glass-a-strong:.95; }
+}
