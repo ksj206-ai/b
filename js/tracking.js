@@ -21,19 +21,53 @@ let cacheHand = null;
 let cachePose = null;
 let cacheLabel = null;
 
-/** 모델 로드 (idempotent) — vision_bundle을 동적 import해 config URL 단일화 유지 */
+/**
+ * delegate를 MEDIAPIPE.delegates 순서대로 시도하며 landmarker를 생성한다(생성 시점 폴백).
+ * 앞선 delegate(GPU) 생성이 throw/reject하면 다음(CPU)으로 재시도 — GPU 미지원 기기·
+ * 브라우저에서도 앱이 열리게 한다. Hand/Pose에 각각 독립 호출되므로 한쪽이 CPU로 내려가도
+ * 다른 쪽은 GPU를 유지한다(혼합 허용). 모든 delegate가 실패하면 마지막 에러를 그대로 throw
+ * → 상위(startMeasure/startGuide)의 기존 에러 안내(cameraErrorMessage) 흐름을 유지한다.
+ *
+ * ⚠ 범위: 'createFromOptions가 reject하는' 생성 시점 실패까지만 커버한다. 생성은 성공하고
+ *   첫 추론(detectForVideo)에서 터지거나 조용히 넘어가는 케이스는 못 막는다(런타임 폴백은
+ *   후속 과제). 성공한 delegate와, 폴백 시 실패 사유를 콘솔 로그로 남긴다(기기별 데이터 축적).
+ * @param {string} label 로그용 모델 이름
+ * @param {(delegate:string)=>Promise<any>} create delegate를 받아 landmarker를 생성하는 팩토리
+ */
+export async function createWithFallback(label, create) {
+  const delegates = MEDIAPIPE.delegates;
+  let lastErr;
+  for (let i = 0; i < delegates.length; i++) {
+    const d = delegates[i];
+    try {
+      const lm = await create(d);
+      if (i === 0) console.log(`[tracking] ${label}: ${d} delegate 로드`);
+      else console.warn(`[tracking] ${label}: ${delegates.slice(0, i).join('·')} 실패 → ${d} 폴백 로드`);
+      return lm;
+    } catch (e) {
+      lastErr = e;
+      console.warn(`[tracking] ${label}: ${d} delegate 생성 실패 —`, e?.message ?? e);
+    }
+  }
+  throw lastErr; // 모든 delegate 실패 → 상위의 기존 에러 안내로 떨어진다
+}
+
+/** 모델 로드 (idempotent) — vision_bundle을 동적 import해 config URL 단일화 유지.
+ *  delegate는 GPU→CPU 폴백(createWithFallback)으로 두 모델에 각각 독립 적용. */
 export async function initModels() {
   if (handLM && poseLM) return;
   const { HandLandmarker, PoseLandmarker, FilesetResolver } = await import(MEDIAPIPE.visionBundle);
   vision = await FilesetResolver.forVisionTasks(MEDIAPIPE.wasmPath);
-  handLM = await HandLandmarker.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: MEDIAPIPE.handModel, delegate: MEDIAPIPE.delegate },
-    runningMode: MEDIAPIPE.runningMode, numHands: MEDIAPIPE.numHands,
-  });
-  poseLM = await PoseLandmarker.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: MEDIAPIPE.poseModel, delegate: MEDIAPIPE.delegate },
-    runningMode: MEDIAPIPE.runningMode, numPoses: MEDIAPIPE.numPoses,
-  });
+  handLM = await createWithFallback('HandLandmarker', (delegate) =>
+    HandLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: MEDIAPIPE.handModel, delegate },
+      runningMode: MEDIAPIPE.runningMode, numHands: MEDIAPIPE.numHands,
+    }));
+  poseLM = await createWithFallback('PoseLandmarker', (delegate) =>
+    PoseLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: MEDIAPIPE.poseModel, delegate },
+      runningMode: MEDIAPIPE.runningMode, numPoses: MEDIAPIPE.numPoses,
+    }));
 }
 
 /** 카메라 열기 + video에 스트림 연결. loadeddata까지 대기 (원본 L1233) */

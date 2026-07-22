@@ -39,7 +39,10 @@ export const MEDIAPIPE = {
     'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
   poseModel:
     'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task',
-  delegate: 'GPU',
+  // 인식 가속 delegate 시도 순서 — 앞에서부터 시도하고 '생성'이 실패하면 다음으로 폴백.
+  // GPU를 먼저(성능 유지), 실패 시 CPU로 — GPU 미지원 기기·브라우저에서도 앱이 열리게 한다.
+  // 두 모델(Hand/Pose)에 각각 독립 적용(tracking.createWithFallback).
+  delegates: ['GPU', 'CPU'],
   runningMode: 'VIDEO',
   numHands: 1,
   numPoses: 1,
