@@ -15,7 +15,7 @@ import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, FUNCTIONAL_ROM } from './config
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
-  needMeasureSuggest, conditionOf, recordCondition,
+  needMeasureSuggest, conditionOf, recordCondition, gentleReason,
 } from './routine.js';
 import { getGuide } from './guide/guideData.js';
 import {
@@ -110,7 +110,11 @@ function renderHome() {
   } else if (r.gentle) {
     title.textContent = `오늘은 순한 코스로 가볍게, ${leftMin}분이면 돼요`;
     btn.textContent = '시작하기 🚀';
-    speech.textContent = '어제 뻐근했죠? 오늘은 살살 해요 🐾';
+    // 순한 이유별 문구: stiff(사용자 자기보고)면 공감, 그 외(red 추론 등)는 중립.
+    // red로 뜬 날 "어제 뻐근했죠?"는 사실과 안 맞고 앱이 추론한 "안 좋음"을 노출하므로 회피.
+    speech.textContent = gentleReason() === 'stiff'
+      ? '어제 뻐근했죠? 오늘은 살살 해요 🐾'
+      : '오늘은 살살 가볼까요 🐾';
   } else {
     title.textContent = `오늘의 손목 풀코스, ${leftMin}분이면 돼요`;
     btn.textContent = '시작하기 🚀';

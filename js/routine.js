@@ -63,6 +63,20 @@ function isGentleDay(state, date) {
   return stiffYesterday || isRedSignal(state, date);
 }
 
+/** 순한 코스가 발동한 "이유" — 문구 분기 전용. isGentleDay와 같은 신호를 읽되
+ *  bool 대신 사유를 돌려준다(판정 로직 자체는 건드리지 않음).
+ *   · 'stiff': 사용자가 직접 고른 컨디션(자기보고) → 공감 문구 OK
+ *   · 'red'  : 앱이 측정 추이로 조용히 추론한 신호(store.isRedSignal) → 중립 문구
+ *   · null   : 순한 코스 아님
+ *  둘 다면 'stiff' 우선(자기보고가 red 추론보다 구체적이라). */
+export function gentleReason(state = load(), date = todayStr()) {
+  const last = (state.conditions || [])[state.conditions.length - 1];
+  const stiffYesterday = !!last && last.condition === 'stiff' && dayDiff(last.at, date) === 1;
+  if (stiffYesterday) return 'stiff';
+  if (isRedSignal(state, date)) return 'red';
+  return null;
+}
+
 /** 오늘의 코스 운동 id 목록 (존재하는 가이드만 — id 변경·삭제 대비) */
 function courseIds(state, date) {
   const base = isGentleDay(state, date) ? ROUTINE.gentleCourse : ROUTINE.course;
