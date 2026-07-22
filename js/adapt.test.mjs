@@ -185,5 +185,34 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
   eq(computeDose(mkR(red), 'deviation').reps, 5, 'R5 비대상 운동은 그대로(base 5)');
 }
 
-console.log(`\n맞춤 5·6·F1(진행/후퇴·긍정 신호·red 클램프) 테스트: ${pass} pass, ${fail} fail`);
+// ── C1(정확도): 측정 신선도 가드 — 오래된 측정만 있으면 긍정 신호 안 뜸(red 신선도는 범위 밖) ──
+{
+  const st = (measurements) => ({
+    adapt: { focus: 'flex', focusSoft: false, doseLevel: {}, toleratedStreak: 2, lastImproveShownAt: null, lastAdaptedAt: null, lastDoseAction: null },
+    measurements,
+  });
+  const rising = (p, l) => [{ at: p, flex: 30, ext: 30, rom: 60 }, { at: l, flex: 40, ext: 32, rom: 72 }]; // flex +10 개선
+  const MSG = '손목이 부드러워지고 있어요 ✨';
+  eq(improveSignal(st(rising('2026-07-21', '2026-07-22')), '2026-07-22'), MSG, 'C1 신선한 측정 → 표시');
+  eq(improveSignal(st(rising('2026-06-01', '2026-06-02')), '2026-07-22'), null, 'C1 오래된 측정(14일 초과) → 억제');
+}
+
+// ── C2(정확도): 컨디션 간격 가드 — 사흘 이상 공백이면 하강·상승 없이 유지 + streak 0 ──
+{
+  const st = (conditions) => ({
+    adapt: { focus: 'flex', focusSoft: false, doseLevel: { flex_ext: 1 }, toleratedStreak: 2, lastImproveShownAt: null, lastAdaptedAt: null, lastDoseAction: null },
+    conditions,
+  });
+  const g = (at, c, comp) => ({ at, condition: c, ...(comp != null ? { comp } : {}) });
+  const r = decideDose(st([g('2026-11-01', 'good'), g('2026-11-05', 'good', 5)]), '2026-11-05'); // 간격 4일(>2)
+  eq(r.action, 'hold-gap', 'C2 큰 간격 → hold-gap');
+  eq(r.doseAfter, 1, 'C2 doseLevel 불변');
+  eq(r.toleratedStreak, 0, 'C2 streak 0 리셋');
+  const r2 = decideDose(st([g('2026-11-01', 'good'), g('2026-11-03', 'good', 5)]), '2026-11-03'); // 간격 2일(≤2)
+  eq(r2.action, 'up', 'C2 이틀 간격은 가드 미발동(기존 판정 유지 → up)');
+  const r3 = decideDose(st([g('2026-11-01', 'good'), g('2026-11-05', 'stiff')]), '2026-11-05'); // stiff 우선
+  eq(r3.action, 'reset-stiff', 'C2 큰 간격이어도 stiff 우선');
+}
+
+console.log(`\n맞춤 적응형 루틴 테스트: ${pass} pass, ${fail} fail`);
 if (typeof process !== 'undefined' && fail > 0) process.exitCode = 1;

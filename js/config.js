@@ -140,6 +140,8 @@ export const ROUTINE = {
     repStep: 1,          // dose 1단계가 올리는 reps (reps를 cap까지 먼저 소진)
     holdStepSec: 3,      // reps가 cap 도달 후, dose 1단계가 올리는 hold(초) — §4.3 "2~5초" 범위
     holdCapSec: 15,      // hold 상한(초, §4.3) — 조정 후 이 값 초과 금지
+    maxConditionGapDays: 2, // 최근·직전 컨디션 간격이 이 값 '초과'(=사흘 이상 공백)면 비교가 부정확 →
+                            // 하강·상승 없이 유지(hold-gap)하고 streak 0으로. 이틀까지는 기존 판정 유지.
   },
   // 측정 기반 맞춤(설계 §4.5 긍정 신호) — 개선됐을 때만 가끔 격려 1회.
   // 유일하게 사용자에게 보이는 맞춤 신호. 악화·정체엔 아무것도 표시 안 함(부정 프레이밍 금지).
@@ -150,6 +152,9 @@ export const ROUTINE = {
     minToleratedStreak: 2, // "최근 잘 견딤" 기준 — toleratedStreak(§4.3)이 이 값 이상이어야 표시.
                           // (견딤은 streak'만' — condition≠stiff OR로 대체 금지: 하강한 날 통과 구멍)
     minGapDays: 3,        // 마지막 표시 후 최소 이 일수 지나야 재표시(도배 방지)
+    maxMeasureAgeDays: 14, // 가장 최근 측정이 이 일수 '초과'로 오래됐으면 긍정 신호 표시 안 함 —
+                          // 오래된 측정으로 "좋아지고 있어요"라 하지 않는다. (red 신선도는 후속 과제·범위 밖:
+                          // isImproving·isRedSignal이 같은 측정 배열을 봐서, 여기만 가드하면 비대칭이 남음)
   },
 };
 

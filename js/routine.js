@@ -306,6 +306,12 @@ export function decideDose(state = load(), date = todayStr()) {
     action = 'no-condition';                    // 컨디션 기록 없음 → 판정 불가(유지)
   } else if (isStiff) {                          // ── 후퇴(우선): stiff → 원위치
     doseLevel[target] = 0; streak = 0; action = 'reset-stiff';
+  } else if (prev && dayDiff(prev.at, latest.at) > dz.maxConditionGapDays) {
+    // ── 간격 가드: 최근·직전 컨디션이 너무 벌어지면(사흘 이상 공백) "직전 대비" 비교가
+    //    부정확 → 하강·상승 없이 유지. 공백을 '연속 견딤'으로 이어가지 않게 streak 0으로
+    //    리셋(안전 방향, 5단계 하락-리셋 철학과 일치). doseLevel은 불변.
+    //    (stiff는 위에서 이미 처리 — 자기보고라 간격과 무관하게 안전 방향으로 내린다.)
+    streak = 0; action = 'hold-gap';
   } else if (worsened) {                         // ── 후퇴(우선): 직전 대비 하락 → 1단계 하강
     doseLevel[target] = Math.max(0, before - 1); streak = 0; action = 'down';
   } else {                                       // ── 무난 세션 → streak 누적 후 상승 판정
@@ -397,12 +403,17 @@ export function improveSignal(state = load(), date = todayStr()) {
   const improving = isImproving(state, date);
   const gapDays = adapt.lastImproveShownAt ? dayDiff(adapt.lastImproveShownAt, date) : Infinity;
   const gapOK = Number.isNaN(gapDays) || gapDays >= cfg.minGapDays;
-  const show = improving && toleratedOK && !retreatedToday && gapOK;
+  // 신선도 가드: 가장 최근 측정이 너무 오래됐으면(초과) 격려 안 함 — 오래된 측정으로 "좋아지고
+  //   있어요"라 말하지 않는다. 날짜 파싱 불가/측정 없음이면 '오래됨'을 단정 못 하므로 억제 안 함.
+  const ms = state.measurements || [];
+  const ageDays = ms.length ? dayDiff(ms[ms.length - 1].at, date) : Infinity;
+  const tooOld = Number.isFinite(ageDays) && ageDays > cfg.maxMeasureAgeDays;
+  const show = improving && toleratedOK && !retreatedToday && gapOK && !tooOld;
 
   if (DEBUG_ADAPT) {
     console.log('[adapt] improve', {
       improving, streak, toleratedOK, retreatedToday,
-      lastShown: adapt.lastImproveShownAt, gapDays, gapOK, show,
+      lastShown: adapt.lastImproveShownAt, gapDays, gapOK, ageDays, tooOld, show,
     });
   }
   if (!show) return null;
