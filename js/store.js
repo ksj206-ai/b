@@ -56,6 +56,9 @@ function defaults() {
     // 우주(별자리) 상태 — null이면 아직 배정 전. routine/reminder와 같은 이유로
     // null 기본값(얕은 머지 함정 회피). 구조 생성·갱신은 아래 sky 헬퍼가 담당.
     sky: null,
+    // 측정 기반 맞춤 루틴 상태 — null이면 아직 맞춤 전. sky와 같은 이유로
+    // null 기본값(얕은 머지 함정 회피). 구조는 아래 defaultAdapt/getAdapt가 담당.
+    adapt: null,
   };
 }
 
@@ -283,4 +286,32 @@ export function completeTodayConstellation(state = load(), date = todayStr()) {
   state.sky = sky;
   save(state);
   return state;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 측정 기반 맞춤 루틴(adapt) 상태
+// 측정 기록(flex/ext)으로 약한 방향을 판정해 그 방향 운동 반복을 소폭 늘리는
+// 적응형 루틴을 위한 상태만 여기서 보관한다(판정·루틴 로직·화면은 다음 단계).
+// 원칙: 조용히 맞춤(사용자에게 "약함/부족" 노출 금지), 안전 최우선(보수적).
+// adapt 구조:
+//   { focus: 'flex'|'ext'|null,   // 현재 우선 강화 방향
+//     doseLevel: { [guideId]: n },// 운동별 강도 단계(0=기본), 없으면 0
+//     toleratedStreak: n,         // 연속 잘 견딘 세션 수
+//     lastImproveShownAt: date }  // 긍정 신호 마지막 표시일(도배 방지)
+// (기본값은 null — sky와 같은 얕은 머지 함정 회피. 생성은 아래 헬퍼가 담당.)
+// ═══════════════════════════════════════════════════════════
+
+/** adapt 기본 구조 (null 기본값에서 필요 시 생성) */
+function defaultAdapt() {
+  return {
+    focus: null,            // 'flex' | 'ext' | null — 현재 우선 강화 방향
+    doseLevel: {},          // { [guideId]: n } — 운동별 강도 단계(0=기본)
+    toleratedStreak: 0,     // 연속 잘 견딘 세션 수
+    lastImproveShownAt: null, // 긍정 신호 마지막 표시일(도배 방지)
+  };
+}
+
+/** 현재 adapt 반환 (없으면 기본 구조 — 저장은 하지 않음) */
+export function getAdapt(state = load()) {
+  return state.adapt || defaultAdapt();
 }
