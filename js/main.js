@@ -15,7 +15,7 @@ import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, FUNCTIONAL_ROM } from './config
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
-  needMeasureSuggest, conditionOf, recordCondition, gentleReason,
+  needMeasureSuggest, conditionOf, recordCondition, gentleReason, getRoutineGuide,
 } from './routine.js';
 import { getGuide } from './guide/guideData.js';
 import {
@@ -826,7 +826,9 @@ function refreshGuideBadges() {
 }
 
 async function startGuide(id, routineMode = false) {
-  const g = guide.mods.getGuide(id);
+  // 루틴 모드에선 방향 특이적 reps 조정(맞춤 §4.2)을 얹은 사본으로 재생.
+  // 둘러보기(browse)는 기본 reps 그대로 — 판정·애니는 어느 쪽이든 불변.
+  const g = routineMode ? getRoutineGuide(id) : guide.mods.getGuide(id);
   if (!g) return;
   const { els, ctx, mods } = guide;
   const gen = ++guide.startGen; // 이 시작 시도의 세대 — 로딩 중 이탈 시 stopGuideSession이 올림

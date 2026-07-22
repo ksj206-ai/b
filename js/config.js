@@ -118,6 +118,16 @@ export const ROUTINE = {
   gentleCourse: ['flex_ext', 'tendon_glide', 'finger_spread'],
   measureEveryDays: 7,   // 측정 "제안" 주기 (일) — 제안 문구까지만, 판정 아님
   nextAutoMs: 2200,      // 연속 재생: 완료 비트 후 다음 운동 자동 시작(ms)
+  // 측정 기반 맞춤(설계 §4.2 방향 특이적 조정 · §4.3 상한) — focus(약한 방향)
+  // 운동의 reps만 소폭↑한다. 운동 제거·교체 없이 "반복만 조금 더"라 안전 방향이며,
+  // 조정 후에도 cap을 절대 넘지 않는다. focus→운동 매핑은 여기서만 바꾸면 확장됨
+  // (지금은 flex·ext 둘 다 복합운동 flex_ext로 수렴 — 방향별 운동 세분화는 나중 과제).
+  adaptReps: {
+    focusGuide: { flex: 'flex_ext', ext: 'flex_ext' }, // focus 방향 → 조정할 운동 id
+    bonus: 2,       // 일반 focus 시 reps 증가폭
+    bonusSoft: 1,   // focusSoft(둘 다 40°↑ 참고 코칭 등, §4.1)면 더 작게
+    cap: 10,        // 자동 상승 reps 상한(§4.3) — 조정 후 이 값 초과 금지
+  },
 };
 
 // ─── localStorage 키 ───

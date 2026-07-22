@@ -16,8 +16,8 @@
 // 확장 지점: ids 원소는 현재 가이드 id 문자열. 향후 게임 슬롯이
 //   필요하면 { type:'game', id } 원소 도입으로 확장.
 // ═══════════════════════════════════════════════════════════
-import { load, save, todayStr, isRedSignal } from './store.js';
-import { ROUTINE } from './config.js';
+import { load, save, todayStr, isRedSignal, getAdapt } from './store.js';
+import { ROUTINE, DEBUG_ADAPT } from './config.js';
 import { getGuide } from './guide/guideData.js';
 
 /** 두 YYYY-MM-DD 사이 일수 차 (b - a). 파싱 실패 시 NaN */
@@ -161,4 +161,55 @@ export function estimateGuideSec(g) {
 /** 루틴 전체 예상 소요(초) */
 export function estimateRoutineSec(r) {
   return r.ids.reduce((sum, id) => sum + estimateGuideSec(getGuide(id) || { steps: [] }), 0);
+}
+
+// ═══════════════════════════════════════════════════════════
+// 측정 기반 맞춤 — 방향 특이적 reps 조정 (설계 §4.2·§4.3)
+// adapt.focus(약한 방향)에 해당하는 운동의 reps만 소폭↑해 재생한다.
+// 운동을 빼거나 바꾸지 않고 "반복만 조금 더"라 안전 방향. 조정 후에도 상한
+// (ROUTINE.adaptReps.cap)을 절대 넘지 않으며, focus=null이면 손대지 않는다.
+// 순수 계산 + 재생용 가이드 사본 생성만 — 저장·판정·인식은 건드리지 않는다.
+// (reps는 판정이 아니라 "몇 번 재생할지" 파라미터다 — stepEngine 판정 로직 불변.)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 방향 특이적 조정 reps — focus(약한 방향)의 대상 운동이면 기본 reps를 소폭↑.
+ * 저장·부수효과 없는 순수 계산. 대상이 아니거나 focus=null이면 기본 reps 그대로.
+ *   · focusSoft(둘 다 40°↑ 참고 코칭 등, §4.1)면 증가폭을 더 작게
+ *   · 조정 후에도 cap(§4.3 자동 상승 상한) 초과 금지. 기본 reps가 이미 cap 이상이면
+ *     올리지도 내리지도 않는다(절대 base 아래로 내려가지 않음)
+ * @returns {number} 재생할 reps
+ */
+export function computeReps(guideId, baseReps, state = load()) {
+  const { focus, focusSoft } = getAdapt(state);
+  const cfg = ROUTINE.adaptReps;
+  const target = focus ? cfg.focusGuide[focus] : null; // focus 방향이 조정할 운동
+  if (target !== guideId) return baseReps;             // 대상 아님/focus=null → 그대로(안전 폴백)
+  if (baseReps >= cfg.cap) return baseReps;            // 이미 상한 이상 → 그대로(내리지 않음)
+  const bonus = focusSoft ? cfg.bonusSoft : cfg.bonus;
+  return Math.min(baseReps + bonus, cfg.cap);          // 소폭↑ 후 상한 clamp
+}
+
+/**
+ * 재생용 가이드 — 방향 특이적 reps 조정(computeReps)을 얹은 사본을 돌려준다.
+ * 원본 GUIDES는 불변으로 둔다(공유 배열 오염 방지): follow 스텝의 reps만 교체한
+ * 얕은 사본을 만들고, anim·detect·base 등 판정·인식 파라미터는 그대로 복사한다.
+ * 조정이 없으면(대상 아님·focus=null·상한) 원본을 그대로 반환 — 불필요한 사본 안 만듦.
+ * (루틴 모드 재생 진입점에서만 호출; 둘러보기는 기본 reps 그대로.)
+ */
+export function getRoutineGuide(guideId, state = load()) {
+  const g = getGuide(guideId);
+  if (!g) return null;
+  let changed = false;
+  const steps = g.steps.map((s) => {
+    if (s.type !== 'follow' || s.reps == null) return s;
+    const reps = computeReps(guideId, s.reps, state);
+    if (reps === s.reps) return s;
+    if (DEBUG_ADAPT) {
+      console.log('[adapt] reps', { guideId, focus: getAdapt(state).focus, base: s.reps, adjusted: reps });
+    }
+    changed = true;
+    return { ...s, reps };
+  });
+  return changed ? { ...g, steps } : g;
 }
