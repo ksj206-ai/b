@@ -375,3 +375,26 @@ export function refreshFocus(state = load(), date = todayStr()) {
   if (DEBUG_ADAPT) console.log('[adapt] focus', res);
   return res;
 }
+
+// 측정이 직전 대비 이 각도(°) 이상 떨어지면 red 신호(순한 코스로 쉬어가기).
+// 측정 노이즈(ROM.stableBand=7° 흔들림 허용)보다 크게 잡아 오탐을 막는다.
+const RED_DROP_DEG = 8;
+
+/**
+ * red 신호(설계 §2 신호등 🔴 / §4.4) — 가장 최근 측정이 직전 측정 대비 크게
+ * 나빠졌는가. flex 또는 ext가 RED_DROP_DEG 이상 하락하면 true.
+ *   · 측정 1회 이하 → 비교 불가 → false
+ * "순한 코스로 쉬어가기(안전 방향)" 판단에만 쓴다 — 사용자에게 "나빠짐"을
+ * 노출하지 않는다(조용히). 순한 코스는 안전 방향이라 red면 그날만 부드럽게 갈 뿐.
+ */
+export function isRedSignal(state = load(), date = todayStr()) {
+  const ms = state.measurements || [];
+  if (ms.length < 2) return false;
+  const last = ms[ms.length - 1];
+  const prev = ms[ms.length - 2];
+  const flexDrop = (Number(prev.flex) || 0) - (Number(last.flex) || 0);
+  const extDrop = (Number(prev.ext) || 0) - (Number(last.ext) || 0);
+  const red = flexDrop >= RED_DROP_DEG || extDrop >= RED_DROP_DEG;
+  if (DEBUG_ADAPT && red) console.log('[adapt] red signal', { flexDrop, extDrop, at: last.at });
+  return red;
+}

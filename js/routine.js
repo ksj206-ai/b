@@ -8,14 +8,15 @@
 //   완료 시점에 이미 반영). 풀코스 완주(6/6)는 ⭐ 추가 축하일 뿐이다.
 //   진행은 routineLog에 "N/6"으로 하루 1엔트리 기록.
 //
-// ⚠ 규제 원칙(웰니스 판단기준): measurements(측정값)는 루틴 구성
-//   분기의 입력으로 사용하지 않는다. 측정→운동 연결은 "제안" 문구
-//   까지만 — 판정+처방 구조 금지.
+// ⚠ 규제 원칙(웰니스 판단기준): 측정값은 "더 순하게(안전)" 방향으로만
+//   루틴에 반영한다 — 측정이 크게 나빠지면(red 신호) 순한 코스로 쉬어가기(§4.4).
+//   반대로 측정으로 "더 세게" 처방하거나 부족/이상을 진단·라벨링하지 않으며,
+//   사용자에게 "약함/나빠짐"을 노출하지 않는다(조용히).
 //
 // 확장 지점: ids 원소는 현재 가이드 id 문자열. 향후 게임 슬롯이
 //   필요하면 { type:'game', id } 원소 도입으로 확장.
 // ═══════════════════════════════════════════════════════════
-import { load, save, todayStr } from './store.js';
+import { load, save, todayStr, isRedSignal } from './store.js';
 import { ROUTINE } from './config.js';
 import { getGuide } from './guide/guideData.js';
 
@@ -52,10 +53,14 @@ export function recordCondition(condition, state = load(), date = todayStr()) {
   return state;
 }
 
-/** 어제 "뻐근해요"였으면 오늘은 순한 코스 — 제안일 뿐, 판정 아님 */
+/** 오늘 순한 코스로 갈지 — 제안일 뿐, 판정 아님. 두 안전 신호 중 하나면 발동:
+ *   1) 어제 컨디션이 'stiff' (기존)
+ *   2) 최근 측정이 직전 대비 크게 나빠짐 (red 신호, store.isRedSignal — 신규 §4.4)
+ *  둘 다 "더 순하게" 방향이라 안전. 사용자에겐 순한 코스만 보일 뿐(조용히). */
 function isGentleDay(state, date) {
   const last = (state.conditions || [])[state.conditions.length - 1];
-  return !!last && last.condition === 'stiff' && dayDiff(last.at, date) === 1;
+  const stiffYesterday = !!last && last.condition === 'stiff' && dayDiff(last.at, date) === 1;
+  return stiffYesterday || isRedSignal(state, date);
 }
 
 /** 오늘의 코스 운동 id 목록 (존재하는 가이드만 — id 변경·삭제 대비) */
