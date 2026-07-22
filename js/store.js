@@ -2,7 +2,7 @@
 // store.js — localStorage 저장/조회 (영상 미저장, 좌표·수치만)
 // 하나의 루트 키(wristGarden) 아래 JSON 트리로 보관.
 // ═══════════════════════════════════════════════════════════
-import { STORAGE_KEYS, FUNCTIONAL_ROM, DEBUG_ADAPT } from './config.js';
+import { STORAGE_KEYS, FUNCTIONAL_ROM, DEBUG_ADAPT, ROUTINE } from './config.js';
 import { CONSTELLATIONS, getConstellation, constellationsBySeason } from './constellations.js';
 
 const ROOT = STORAGE_KEYS.ROOT;
@@ -298,7 +298,9 @@ export function completeTodayConstellation(state = load(), date = todayStr()) {
 //     doseLevel: { [guideId]: n },// 운동별 강도 단계(0=기본), 없으면 0
 //     toleratedStreak: n,         // 연속 잘 견딘 세션 수
 //     lastImproveShownAt: date,   // 긍정 신호 마지막 표시일(도배 방지)
-//     lastAdaptedAt: date }       // 진행/후퇴 마지막 적용일(하루 1회 멱등 가드)
+//     lastAdaptedAt: date,        // 진행/후퇴 마지막 적용일(하루 1회 멱등 가드)
+//     lastDoseAction: str }       // 마지막 진행/후퇴 액션(up|down|reset-stiff|hold-… ) — 긍정 신호가
+//                                 //   "오늘 하강한 날 스킵" 판정에 읽는다
 // (기본값은 null — sky와 같은 얕은 머지 함정 회피. 생성은 아래 헬퍼가 담당.)
 // ═══════════════════════════════════════════════════════════
 
@@ -311,6 +313,7 @@ function defaultAdapt() {
     toleratedStreak: 0,     // 연속 잘 견딘 세션 수
     lastImproveShownAt: null, // 긍정 신호 마지막 표시일(도배 방지)
     lastAdaptedAt: null,    // 진행/후퇴(updateDose) 마지막 적용일 — 하루 1회 멱등 가드
+    lastDoseAction: null,   // 진행/후퇴 마지막 액션 — 긍정 신호의 "오늘 하강한 날 스킵" 판정용
   };
 }
 
@@ -407,4 +410,28 @@ export function isRedSignal(state = load(), date = todayStr()) {
   const red = flexDrop >= RED_DROP_DEG || extDrop >= RED_DROP_DEG;
   if (DEBUG_ADAPT && red) console.log('[adapt] red signal', { flexDrop, extDrop, at: last.at });
   return red;
+}
+
+/**
+ * 개선 신호(설계 §4.5) — isRedSignal의 대칭. 가장 최근 측정이 직전 대비 flex·ext·rom 중
+ * 하나라도 riseDeg 이상 상승했는가. 단, PT 대칭 가드: flex·ext 중 한 방향이라도 riseDeg
+ * 이상 '하락'하면 개선으로 치지 않는다(한쪽만 오르고 다른 쪽 나빠진 날 제외 — 하강 판정과 대칭).
+ *   · 측정 1회 이하 → 비교 불가 → false
+ * "개선됐을 때만 가끔 긍정 신호"의 재료일 뿐 — 표시 여부·도배 방지는 routine.improveSignal이
+ * 결정한다(사용자에겐 개선일 때만 긍정 문구를 보이고, 하락·정체는 아무것도 노출 안 함).
+ */
+export function isImproving(state = load(), date = todayStr()) {
+  const ms = state.measurements || [];
+  if (ms.length < 2) return false;
+  const last = ms[ms.length - 1];
+  const prev = ms[ms.length - 2];
+  const rise = ROUTINE.adaptImprove.riseDeg;
+  const flexUp = (Number(last.flex) || 0) - (Number(prev.flex) || 0);
+  const extUp = (Number(last.ext) || 0) - (Number(prev.ext) || 0);
+  const romUp = (Number(last.rom) || 0) - (Number(prev.rom) || 0);
+  const rose = flexUp >= rise || extUp >= rise || romUp >= rise;
+  const dropped = flexUp <= -rise || extUp <= -rise; // 한 방향이라도 노이즈 넘게 하락 → 개선 아님
+  const improving = rose && !dropped;
+  if (DEBUG_ADAPT && improving) console.log('[adapt] improving', { flexUp, extUp, romUp, at: last.at });
+  return improving;
 }

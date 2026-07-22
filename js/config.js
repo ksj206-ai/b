@@ -138,6 +138,16 @@ export const ROUTINE = {
     holdStepSec: 3,      // reps가 cap 도달 후, dose 1단계가 올리는 hold(초) — §4.3 "2~5초" 범위
     holdCapSec: 15,      // hold 상한(초, §4.3) — 조정 후 이 값 초과 금지
   },
+  // 측정 기반 맞춤(설계 §4.5 긍정 신호) — 개선됐을 때만 가끔 격려 1회.
+  // 유일하게 사용자에게 보이는 맞춤 신호. 악화·정체엔 아무것도 표시 안 함(부정 프레이밍 금지).
+  adaptImprove: {
+    riseDeg: 8,            // 직전 대비 flex·ext·rom 중 하나가 이 각도(°) 이상 상승하면 "개선"
+                          // (측정 노이즈 ROM.stableBand=7°보다 크게 — isRedSignal과 대칭). 같은 값을
+                          // 하락 가드로도 쓴다: flex·ext 중 한 방향이라도 이만큼 하락하면 개선 아님.
+    minToleratedStreak: 2, // "최근 잘 견딤" 기준 — toleratedStreak(§4.3)이 이 값 이상이어야 표시.
+                          // (견딤은 streak'만' — condition≠stiff OR로 대체 금지: 하강한 날 통과 구멍)
+    minGapDays: 3,        // 마지막 표시 후 최소 이 일수 지나야 재표시(도배 방지)
+  },
 };
 
 // ─── localStorage 키 ───

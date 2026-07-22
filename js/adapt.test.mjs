@@ -11,7 +11,7 @@ if (typeof localStorage === 'undefined') {
   };
 }
 
-import { decideDose, updateDose, computeDose, getRoutineGuide } from './routine.js';
+import { decideDose, updateDose, computeDose, getRoutineGuide, improveSignal } from './routine.js';
 
 let pass = 0, fail = 0;
 const eq = (got, want, msg) => {
@@ -116,5 +116,38 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
   eq(followReps(getRoutineGuide('flex_ext', mk({ focus: null }))), 5, 'T8e focus 없으면 기본 5(안전 폴백)');
 }
 
-console.log(`\n맞춤 5단계(진행/후퇴) 테스트: ${pass} pass, ${fail} fail`);
+// ── T9: 긍정 신호(§4.5) — 개선 시에만, 견딤은 streak만, 하강한 날/도배 스킵 ──
+// riseDeg=8, minToleratedStreak=2, minGapDays=3. focus='flex'.
+{
+  const mkI = (adaptPatch = {}, measurements = []) => ({
+    adapt: { focus: 'flex', focusSoft: false, doseLevel: {}, toleratedStreak: 0, lastImproveShownAt: null, lastAdaptedAt: null, lastDoseAction: null, ...adaptPatch },
+    measurements,
+  });
+  const meas = (flex, ext, rom) => ({ at: 'x', flex, ext, rom });
+  const rising = [meas(30, 30, 60), meas(40, 32, 72)]; // flex +10(개선), ext +2, 하락 없음
+  const D = '2026-07-22';
+
+  // I1: 개선 + streak≥2 + 간격 충분 + 오늘 하강 없음 → 표시 + lastImproveShownAt 갱신
+  {
+    const s = mkI({ toleratedStreak: 2 }, rising);
+    eq(improveSignal(s, D), '손목이 부드러워지고 있어요 ✨', 'I1 긍정 표시');
+    eq(s.adapt.lastImproveShownAt, D, 'I1 표시일 갱신');
+  }
+  // I2: 개선이어도 streak < N → 스킵(견딤은 streak만)
+  eq(improveSignal(mkI({ toleratedStreak: 1 }, rising), D), null, 'I2 streak 부족 스킵');
+  // I3: 오늘 updateDose가 하강(down)한 날 → 스킵(벨트+멜빵)
+  eq(improveSignal(mkI({ toleratedStreak: 2, lastAdaptedAt: D, lastDoseAction: 'down' }, rising), D), null, 'I3 오늘 하강 스킵');
+  // I4: 간격 미달(어제 이미 표시) → 스킵(도배 방지)
+  eq(improveSignal(mkI({ toleratedStreak: 2, lastImproveShownAt: '2026-07-21' }, rising), D), null, 'I4 간격 미달 스킵');
+  // I5: 개선 아님(상승폭 노이즈 이하) → 스킵
+  eq(improveSignal(mkI({ toleratedStreak: 2 }, [meas(30, 30, 60), meas(33, 31, 64)]), D), null, 'I5 정체 스킵');
+  // I6: 한 방향이라도 노이즈 넘게 하락(ext -10) → 개선 아님(하락 가드) → 스킵
+  eq(improveSignal(mkI({ toleratedStreak: 2 }, [meas(30, 30, 60), meas(42, 20, 62)]), D), null, 'I6 하락 가드 스킵');
+  // I7: 측정 2회 미만 → 재료 부족 → 스킵
+  eq(improveSignal(mkI({ toleratedStreak: 2 }, [meas(40, 40, 80)]), D), null, 'I7 측정부족 스킵');
+  // I8: 오늘 이미 표시 → 같은 문구 유지(조건 재평가 없이 멱등)
+  eq(improveSignal(mkI({ lastImproveShownAt: D }, []), D), '손목이 부드러워지고 있어요 ✨', 'I8 오늘 표시 유지');
+}
+
+console.log(`\n맞춤 5·6단계(진행/후퇴·긍정 신호) 테스트: ${pass} pass, ${fail} fail`);
 if (typeof process !== 'undefined' && fail > 0) process.exitCode = 1;

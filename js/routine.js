@@ -16,7 +16,7 @@
 // 확장 지점: ids 원소는 현재 가이드 id 문자열. 향후 게임 슬롯이
 //   필요하면 { type:'game', id } 원소 도입으로 확장.
 // ═══════════════════════════════════════════════════════════
-import { load, save, todayStr, isRedSignal, getAdapt, saveAdapt } from './store.js';
+import { load, save, todayStr, isRedSignal, isImproving, getAdapt, saveAdapt } from './store.js';
 import { ROUTINE, DEBUG_ADAPT } from './config.js';
 import { getGuide } from './guide/guideData.js';
 
@@ -323,7 +323,10 @@ export function updateDose(state = load(), date = todayStr()) {
     return { action: 'already', target: adapt.focus ? ROUTINE.adaptReps.focusGuide[adapt.focus] : null, skipped: true };
   }
   const res = decideDose(state, date);
-  saveAdapt(state, { doseLevel: res.doseLevel, toleratedStreak: res.toleratedStreak, lastAdaptedAt: date });
+  saveAdapt(state, {
+    doseLevel: res.doseLevel, toleratedStreak: res.toleratedStreak,
+    lastAdaptedAt: date, lastDoseAction: res.action, // 6단계 긍정 신호가 "오늘 하강한 날" 판정에 읽음
+  });
   if (DEBUG_ADAPT) {
     console.log('[adapt] dose update', {
       action: res.action, target: res.target, dose: `${res.doseBefore}→${res.doseAfter}`,
@@ -332,4 +335,58 @@ export function updateDose(state = load(), date = todayStr()) {
     });
   }
   return res;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 측정 기반 맞춤 — 개선 시 긍정 신호 (설계 §4.5 · §0 대원칙)
+// 지금까지 "조용히"였다면 이건 유일하게 사용자에게 보이는 맞춤 신호 —
+// 대신 개선일 때만 가끔 1회, 악화·정체엔 절대 아무것도 안 띄운다(부정 프레이밍 금지).
+// ═══════════════════════════════════════════════════════════
+
+// 긍정 문구 — 개선 표현만. "약함/부족/나빠짐/수치"는 절대 노출하지 않는다.
+const IMPROVE_MESSAGE = '손목이 부드러워지고 있어요 ✨';
+
+/**
+ * 긍정 신호로 보여줄 문구(설계 §4.5) — 표시할 문구 또는 null.
+ * ★호출 순서: updateDose(§4.3·§4.4)가 컨디션 기록 직후(루틴 끝) 먼저 돌아 adapt
+ *   (toleratedStreak·lastDoseAction·lastAdaptedAt)를 저장해 두면, 홈 재렌더에서 이 함수가
+ *   fresh load로 '갱신된' 값을 읽는다 — 순서가 영속(persist)으로 보장돼 별도 updateDose 호출이
+ *   필요 없다. (홈 말풍선에서만 판정하므로 루틴 도중 강제 표시도 없음.)
+ * "모두" 충족해야 1회 표시:
+ *   · isImproving === true (측정 개선 + 하락 가드 통과)
+ *   · toleratedStreak ≥ minToleratedStreak (견딤은 streak'만' — 하강한 날은 streak=0이라 자동 차단)
+ *   · 오늘 updateDose가 down/reset-stiff가 아님 (벨트+멜빵 — 하강한 날 스킵)
+ *   · lastImproveShownAt 로부터 minGapDays 이상 경과 (도배 방지)
+ * 표시하기로 하면 lastImproveShownAt=오늘 저장. 오늘 이미 표시했으면 같은 문구를 그대로
+ * 유지한다(재저장·깜빡임 없음). 악화·정체·간격 미달·재료 부족이면 null(아무것도 안 함).
+ */
+export function improveSignal(state = load(), date = todayStr()) {
+  const adapt = getAdapt(state);
+  const cfg = ROUTINE.adaptImprove;
+
+  // 오늘 이미 표시함 → 같은 문구 유지(깜빡임 방지, 재저장 안 함)
+  if (adapt.lastImproveShownAt === date) {
+    if (DEBUG_ADAPT) console.log('[adapt] improve: shown-today');
+    return IMPROVE_MESSAGE;
+  }
+
+  const streak = adapt.toleratedStreak || 0;
+  const toleratedOK = streak >= cfg.minToleratedStreak;
+  // 오늘 updateDose가 하강/리셋한 날이면 스킵(벨트+멜빵). lastDoseAction으로 판정.
+  const retreatedToday = adapt.lastAdaptedAt === date
+    && (adapt.lastDoseAction === 'down' || adapt.lastDoseAction === 'reset-stiff');
+  const improving = isImproving(state, date);
+  const gapDays = adapt.lastImproveShownAt ? dayDiff(adapt.lastImproveShownAt, date) : Infinity;
+  const gapOK = Number.isNaN(gapDays) || gapDays >= cfg.minGapDays;
+  const show = improving && toleratedOK && !retreatedToday && gapOK;
+
+  if (DEBUG_ADAPT) {
+    console.log('[adapt] improve', {
+      improving, streak, toleratedOK, retreatedToday,
+      lastShown: adapt.lastImproveShownAt, gapDays, gapOK, show,
+    });
+  }
+  if (!show) return null;
+  saveAdapt(state, { lastImproveShownAt: date });
+  return IMPROVE_MESSAGE;
 }

@@ -16,6 +16,7 @@ import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
   needMeasureSuggest, conditionOf, recordCondition, gentleReason, getRoutineGuide, updateDose,
+  improveSignal,
 } from './routine.js';
 import { getGuide } from './guide/guideData.js';
 import {
@@ -120,6 +121,12 @@ function renderHome() {
     btn.textContent = '시작하기 🚀';
     speech.textContent = streak >= 2 ? `${streak}일 연속이에요! 🔥` : '오늘도 만나서 반가워요! 🐾';
   }
+
+  // 긍정 신호(§4.5) — 측정 개선 + 최근 잘 견딤일 때만 가끔 1회, 말풍선만 교체한다.
+  // updateDose(§4.3·§4.4)가 컨디션 기록 직후 먼저 갱신해 둔 adapt(streak·오늘 하강 여부)를 읽으므로
+  // 순서가 보장됨. 악화·정체·red엔 improveSignal이 null → 위 문구가 그대로 유지된다(무표시).
+  const improveMsg = improveSignal();
+  if (improveMsg) speech.textContent = improveMsg;
 
   // 마스코트(우주 고양이) 표정 — 말풍선과 같은 상태 조건 재사용.
   //   완주=happy / 스트릭 끊김·며칠 만 방문(이전 활동 있는데 스트릭 0)=sad / 그 외=idle
