@@ -15,7 +15,7 @@ import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, FUNCTIONAL_ROM } from './config
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
-  needMeasureSuggest, conditionOf, recordCondition, gentleReason, getRoutineGuide,
+  needMeasureSuggest, conditionOf, recordCondition, gentleReason, getRoutineGuide, updateDose,
 } from './routine.js';
 import { getGuide } from './guide/guideData.js';
 import {
@@ -778,10 +778,14 @@ async function initGuide() {
   els.next.addEventListener('click', () => {
     if (guide.routineNextId) startGuide(guide.routineNextId, guide.routineMode);
   });
-  // 컨디션 기록: 탭 즉시 저장 → 완료 화면 (추가 질문 없음)
+  // 컨디션 기록: 탭 즉시 저장 → 완료 화면 (추가 질문 없음).
+  // 기록 직후 진행/후퇴 판정(§4.3·§4.4)을 1회 반영 — 세션 comp를 함께 넘겨
+  // "보상동작 적음" 판정에 쓴다(하루 1회 멱등, 화면 변화 없음).
   for (const b of els.condition.querySelectorAll('.gp-cond-btn')) {
     b.addEventListener('click', () => {
-      recordCondition(b.dataset.cond);
+      const s = load();
+      recordCondition(b.dataset.cond, s, todayStr(), guide.lastCompRatio);
+      updateDose(s);
       finishConditionAsk(b.dataset.cond);
     });
   }

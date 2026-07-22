@@ -16,7 +16,7 @@
 // 확장 지점: ids 원소는 현재 가이드 id 문자열. 향후 게임 슬롯이
 //   필요하면 { type:'game', id } 원소 도입으로 확장.
 // ═══════════════════════════════════════════════════════════
-import { load, save, todayStr, isRedSignal, getAdapt } from './store.js';
+import { load, save, todayStr, isRedSignal, getAdapt, saveAdapt } from './store.js';
 import { ROUTINE, DEBUG_ADAPT } from './config.js';
 import { getGuide } from './guide/guideData.js';
 
@@ -43,12 +43,14 @@ export function conditionOf(state = load(), date = todayStr()) {
   return (state.conditions || []).find((c) => c.at === date) || null;
 }
 
-/** 오늘 컨디션 저장 — 하루 1엔트리 (다시 저장하면 덮어씀) */
-export function recordCondition(condition, state = load(), date = todayStr()) {
+/** 오늘 컨디션 저장 — 하루 1엔트리 (다시 저장하면 덮어씀).
+ *  comp(세션 보상동작 비율 %)가 주어지면 함께 보관한다 — 진행/후퇴 판정(§4.3
+ *  "보상동작 적음")의 대리 신호. 없으면(null) 필드를 남기지 않는다(옛 기록 호환). */
+export function recordCondition(condition, state = load(), date = todayStr(), comp = null) {
   state.conditions = state.conditions || [];
   const prev = state.conditions.find((c) => c.at === date);
-  if (prev) prev.condition = condition;
-  else state.conditions.push({ at: date, condition });
+  if (prev) { prev.condition = condition; if (comp != null) prev.comp = comp; }
+  else state.conditions.push({ at: date, condition, ...(comp != null ? { comp } : {}) });
   save(state);
   return state;
 }
@@ -164,52 +166,170 @@ export function estimateRoutineSec(r) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 측정 기반 맞춤 — 방향 특이적 reps 조정 (설계 §4.2·§4.3)
-// adapt.focus(약한 방향)에 해당하는 운동의 reps만 소폭↑해 재생한다.
-// 운동을 빼거나 바꾸지 않고 "반복만 조금 더"라 안전 방향. 조정 후에도 상한
-// (ROUTINE.adaptReps.cap)을 절대 넘지 않으며, focus=null이면 손대지 않는다.
-// 순수 계산 + 재생용 가이드 사본 생성만 — 저장·판정·인식은 건드리지 않는다.
-// (reps는 판정이 아니라 "몇 번 재생할지" 파라미터다 — stepEngine 판정 로직 불변.)
+// 측정 기반 맞춤 — 강도(dose) 조정 (설계 §4.2 방향 특이적 · §4.3 진행 · §4.4 후퇴)
+// adapt.focus(약한 방향)의 대상 운동에 대해, focus 보정(§4.2) + doseLevel 진행(§4.3)을
+// 합쳐 reps(필요 시 hold)만 조용히 조정해 재생한다. 운동 제거·교체 없이 "반복만
+// 조금 더", 상한(reps=adaptReps.cap / hold=adaptDose.holdCapSec)을 절대 넘지 않는다.
+// 안전 규칙: 후퇴(하강·원위치)가 상승보다 항상 우선, 조정은 focus 방향 guideId만,
+// 하루 1회(멱등). reps/hold는 판정이 아니라 "몇 번/얼마나 재생" 파라미터 —
+// measurement/tracking/stepEngine 판정 로직은 건드리지 않는다.
 // ═══════════════════════════════════════════════════════════
 
+// condition 순위(직전 대비 하락 판정용): good > soso > stiff. 낮을수록 나쁨.
+const CONDITION_RANK = { good: 2, soso: 1, stiff: 0 };
+
 /**
- * 방향 특이적 조정 reps — focus(약한 방향)의 대상 운동이면 기본 reps를 소폭↑.
- * 저장·부수효과 없는 순수 계산. 대상이 아니거나 focus=null이면 기본 reps 그대로.
- *   · focusSoft(둘 다 40°↑ 참고 코칭 등, §4.1)면 증가폭을 더 작게
- *   · 조정 후에도 cap(§4.3 자동 상승 상한) 초과 금지. 기본 reps가 이미 cap 이상이면
- *     올리지도 내리지도 않는다(절대 base 아래로 내려가지 않음)
- * @returns {number} 재생할 reps
+ * dose 단계·focus 보정을 base reps/hold에 분배 — 순수 계산(저장·부수효과 없음).
+ * 규칙(§4.3): reps를 cap까지 먼저 소진, 그다음 hold를 올린다(한 단계 = 한 변수만).
+ * 상한(repCap / holdCap)을 절대 초과하지 않으며, hold 없는(reps 기반) 운동은 hold=null 유지.
+ * @returns {{ reps:number, holdSec:(number|null) }}
  */
-export function computeReps(guideId, baseReps, state = load()) {
+function distributeDose({ baseReps, baseHoldSec = null, focusBonus = 0, levels = 0 }) {
+  const dz = ROUTINE.adaptDose;
+  const repCap = ROUTINE.adaptReps.cap;
+  let reps = Math.min(baseReps + focusBonus, repCap);   // focus 보정(§4.2) 먼저, cap clamp
+  let remaining = Math.max(0, levels | 0);
+  // ① reps를 cap까지 소진
+  const repRoom = Math.max(0, repCap - reps);
+  const repLevels = Math.min(remaining, Math.floor(repRoom / dz.repStep));
+  reps = Math.min(reps + repLevels * dz.repStep, repCap);
+  remaining -= repLevels;
+  // ② 남은 단계는 hold로 (hold 기반 운동만 — 현재 focus 대상 flex_ext는 reps 기반이라 미발동)
+  let holdSec = baseHoldSec;
+  if (baseHoldSec != null) holdSec = Math.min(baseHoldSec + remaining * dz.holdStepSec, dz.holdCapSec);
+  return { reps, holdSec };
+}
+
+/** 지정 doseLevel에서의 reps/hold — canProgress(상한 도달) 판정과 computeDose가 공유하는 순수 계산 */
+function doseAtLevel(state, guideId, level) {
+  const g = getGuide(guideId);
+  const step = g && g.steps.find((s) => s.type === 'follow' && s.reps != null);
+  if (!step) return { reps: null, holdSec: null };
   const { focus, focusSoft } = getAdapt(state);
   const cfg = ROUTINE.adaptReps;
-  const target = focus ? cfg.focusGuide[focus] : null; // focus 방향이 조정할 운동
-  if (target !== guideId) return baseReps;             // 대상 아님/focus=null → 그대로(안전 폴백)
-  if (baseReps >= cfg.cap) return baseReps;            // 이미 상한 이상 → 그대로(내리지 않음)
-  const bonus = focusSoft ? cfg.bonusSoft : cfg.bonus;
-  return Math.min(baseReps + bonus, cfg.cap);          // 소폭↑ 후 상한 clamp
+  const target = focus ? cfg.focusGuide[focus] : null;
+  const focusBonus = target === guideId ? (focusSoft ? cfg.bonusSoft : cfg.bonus) : 0;
+  const baseHoldSec = step.holdSec ?? null; // 현재 가이드엔 없음(reps 기반) — 향후 hold 운동 대비
+  return distributeDose({ baseReps: step.reps, baseHoldSec, focusBonus, levels: level });
 }
 
 /**
- * 재생용 가이드 — 방향 특이적 reps 조정(computeReps)을 얹은 사본을 돌려준다.
- * 원본 GUIDES는 불변으로 둔다(공유 배열 오염 방지): follow 스텝의 reps만 교체한
- * 얕은 사본을 만들고, anim·detect·base 등 판정·인식 파라미터는 그대로 복사한다.
- * 조정이 없으면(대상 아님·focus=null·상한) 원본을 그대로 반환 — 불필요한 사본 안 만듦.
- * (루틴 모드 재생 진입점에서만 호출; 둘러보기는 기본 reps 그대로.)
+ * 운동의 조정된 reps/hold — focus 보정(§4.2) + 저장된 doseLevel(§4.3)을 합성한 순수 계산.
+ * 대상 아님·focus=null·doseLevel 0이면 기본값 그대로(안전 폴백). 상한을 절대 초과하지 않음.
+ * @returns {{ reps:(number|null), holdSec:(number|null) }}
+ */
+export function computeDose(state = load(), guideId) {
+  const level = (getAdapt(state).doseLevel || {})[guideId] || 0;
+  return doseAtLevel(state, guideId, level);
+}
+
+/**
+ * 재생용 가이드 — dose 조정(computeDose)을 얹은 사본을 돌려준다. 원본 GUIDES는
+ * 불변으로 둔다(공유 배열 오염 방지): follow 스텝의 reps(있으면 holdSec)만 교체하고
+ * anim·detect·base 등 판정·인식 파라미터는 그대로 복사한다. 조정이 없으면 원본 그대로
+ * 반환(불필요한 사본 안 만듦). 루틴 모드 재생 진입점에서만 호출; 둘러보기는 기본값 그대로.
  */
 export function getRoutineGuide(guideId, state = load()) {
   const g = getGuide(guideId);
   if (!g) return null;
+  const dose = computeDose(state, guideId);
   let changed = false;
   const steps = g.steps.map((s) => {
     if (s.type !== 'follow' || s.reps == null) return s;
-    const reps = computeReps(guideId, s.reps, state);
-    if (reps === s.reps) return s;
-    if (DEBUG_ADAPT) {
-      console.log('[adapt] reps', { guideId, focus: getAdapt(state).focus, base: s.reps, adjusted: reps });
-    }
+    const next = {};
+    if (dose.reps != null && dose.reps !== s.reps) next.reps = dose.reps;
+    if (dose.holdSec != null && s.holdSec != null && dose.holdSec !== s.holdSec) next.holdSec = dose.holdSec;
+    if (!Object.keys(next).length) return s;
     changed = true;
-    return { ...s, reps };
+    return { ...s, ...next };
   });
+  if (changed && DEBUG_ADAPT) {
+    console.log('[adapt] dose', { guideId, focus: getAdapt(state).focus, reps: dose.reps, holdSec: dose.holdSec });
+  }
   return changed ? { ...g, steps } : g;
+}
+
+/**
+ * 진행/후퇴 판정 (설계 §4.3·§4.4) — 순수 계산(저장 안 함). condition은 루틴 '후'
+ * 기록이라 "최근 vs 직전" 2개 기록으로 판단한다. 조정 대상은 focus 방향 guideId만.
+ * 안전 규칙(우선순위):
+ *   1) stiff(자기보고 뻐근) → focus 대상 doseLevel 0으로 원위치 + streak 0 (§4.4)
+ *      (순한 코스 전환은 isGentleDay가 별도로 처리)
+ *   2) 직전 대비 하락(good→soso 등) → focus 대상 doseLevel 1단계 하강 + streak 0 (§4.4)
+ *   3) 위 후퇴가 없고 3조건(무난 3세션 연속 · 직전대비 악화없음 · comp 낮음) 모두면
+ *      focus 대상 doseLevel 1단계 상승(상한 도달 시 정지) + streak 0 (§4.3)
+ *   그 외(조건 미달·focus 없음·컨디션 부족) → 유지. 상승은 reps→cap→hold 중 하나만.
+ * @returns 판정 결과(대상·전후 doseLevel·streak·사유 등) — 저장은 updateDose가.
+ */
+export function decideDose(state = load(), date = todayStr()) {
+  const adapt = getAdapt(state);
+  const cfg = ROUTINE.adaptReps;
+  const dz = ROUTINE.adaptDose;
+  const target = adapt.focus ? cfg.focusGuide[adapt.focus] : null;
+  const doseLevel = { ...(adapt.doseLevel || {}) };
+  let streak = adapt.toleratedStreak || 0;
+
+  const conds = state.conditions || [];
+  const latest = conds[conds.length - 1] || null;
+  const prev = conds[conds.length - 2] || null;
+
+  const isStiff = !!latest && latest.condition === 'stiff';
+  const worsened = !!latest && !!prev
+    && (CONDITION_RANK[latest.condition] ?? 1) < (CONDITION_RANK[prev.condition] ?? 1);
+  const comp = latest && typeof latest.comp === 'number' ? latest.comp : null;
+  const compLow = comp != null && comp <= dz.compProgressMax;
+  const before = target ? (doseLevel[target] || 0) : 0;
+
+  let action;
+  if (!target) {
+    action = 'no-focus';                       // focus 없음 → 조정 대상 없음(안전 폴백)
+  } else if (!latest) {
+    action = 'no-condition';                    // 컨디션 기록 없음 → 판정 불가(유지)
+  } else if (isStiff) {                          // ── 후퇴(우선): stiff → 원위치
+    doseLevel[target] = 0; streak = 0; action = 'reset-stiff';
+  } else if (worsened) {                         // ── 후퇴(우선): 직전 대비 하락 → 1단계 하강
+    doseLevel[target] = Math.max(0, before - 1); streak = 0; action = 'down';
+  } else {                                       // ── 무난 세션 → streak 누적 후 상승 판정
+    streak = Math.min(streak + 1, dz.progressStreak);
+    const streakOK = streak >= dz.progressStreak;
+    if (!streakOK) action = 'hold-streak';            // 아직 3세션 미만 → 유지
+    else if (!compLow) action = 'hold-comp';          // 보상동작 많음/미상 → 유지
+    else {
+      const cur = doseAtLevel(state, target, before);
+      const nxt = doseAtLevel(state, target, before + 1);
+      const canProgress = nxt.reps !== cur.reps || nxt.holdSec !== cur.holdSec;
+      if (canProgress) { doseLevel[target] = before + 1; streak = 0; action = 'up'; } // 1단계 상승 후 리셋
+      else action = 'cap';                             // 상한 도달 → 정지
+    }
+  }
+
+  return {
+    action, target, doseBefore: before, doseAfter: target ? (doseLevel[target] || 0) : 0,
+    doseLevel, toleratedStreak: streak,
+    latest: latest?.condition ?? null, prev: prev?.condition ?? null,
+    worsened, isStiff, comp, compLow,
+  };
+}
+
+/**
+ * 진행/후퇴 반영·저장 — condition 기록 직후 1회 호출(멱등). decideDose 판정을
+ * adapt.doseLevel·toleratedStreak에 반영하고 lastAdaptedAt으로 같은 날 재적용을 막는다.
+ * 화면 변화 없음(조용히). 판정 근거는 DEBUG_ADAPT 로그로만 확인.
+ * @returns decideDose 결과(로그·테스트용). 같은 날 재호출이면 { action:'already', skipped:true }.
+ */
+export function updateDose(state = load(), date = todayStr()) {
+  const adapt = getAdapt(state);
+  if (adapt.lastAdaptedAt === date) {
+    return { action: 'already', target: adapt.focus ? ROUTINE.adaptReps.focusGuide[adapt.focus] : null, skipped: true };
+  }
+  const res = decideDose(state, date);
+  saveAdapt(state, { doseLevel: res.doseLevel, toleratedStreak: res.toleratedStreak, lastAdaptedAt: date });
+  if (DEBUG_ADAPT) {
+    console.log('[adapt] dose update', {
+      action: res.action, target: res.target, dose: `${res.doseBefore}→${res.doseAfter}`,
+      streak: res.toleratedStreak, prev: res.prev, latest: res.latest,
+      worsened: res.worsened, stiff: res.isStiff, comp: res.comp, compLow: res.compLow,
+    });
+  }
+  return res;
 }

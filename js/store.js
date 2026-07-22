@@ -297,7 +297,8 @@ export function completeTodayConstellation(state = load(), date = todayStr()) {
 //   { focus: 'flex'|'ext'|null,   // 현재 우선 강화 방향
 //     doseLevel: { [guideId]: n },// 운동별 강도 단계(0=기본), 없으면 0
 //     toleratedStreak: n,         // 연속 잘 견딘 세션 수
-//     lastImproveShownAt: date }  // 긍정 신호 마지막 표시일(도배 방지)
+//     lastImproveShownAt: date,   // 긍정 신호 마지막 표시일(도배 방지)
+//     lastAdaptedAt: date }       // 진행/후퇴 마지막 적용일(하루 1회 멱등 가드)
 // (기본값은 null — sky와 같은 얕은 머지 함정 회피. 생성은 아래 헬퍼가 담당.)
 // ═══════════════════════════════════════════════════════════
 
@@ -309,12 +310,21 @@ function defaultAdapt() {
     doseLevel: {},          // { [guideId]: n } — 운동별 강도 단계(0=기본)
     toleratedStreak: 0,     // 연속 잘 견딘 세션 수
     lastImproveShownAt: null, // 긍정 신호 마지막 표시일(도배 방지)
+    lastAdaptedAt: null,    // 진행/후퇴(updateDose) 마지막 적용일 — 하루 1회 멱등 가드
   };
 }
 
 /** 현재 adapt 반환 (없으면 기본 구조 — 저장은 하지 않음) */
 export function getAdapt(state = load()) {
   return state.adapt || defaultAdapt();
+}
+
+/** adapt 부분 갱신 — 기본 구조 위에 기존값·patch를 병합해 저장(부분 adapt에도 안전).
+ *  adapt 형태의 소유는 store에 둔다(routine.js의 진행/후퇴 로직이 이걸 통해 저장). */
+export function saveAdapt(state, patch) {
+  state.adapt = { ...defaultAdapt(), ...getAdapt(state), ...patch };
+  save(state);
+  return state.adapt;
 }
 
 // 최근 측정이 이 일수 이상 지났으면 신뢰도↓ — focus를 약하게(soft)만 적용한다.

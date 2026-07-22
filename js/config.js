@@ -128,6 +128,16 @@ export const ROUTINE = {
     bonusSoft: 1,   // focusSoft(둘 다 40°↑ 참고 코칭 등, §4.1)면 더 작게
     cap: 10,        // 자동 상승 reps 상한(§4.3) — 조정 후 이 값 초과 금지
   },
+  // 측정 기반 맞춤(설계 §4.3 진행 · §4.4 후퇴) — 증상 유도로 focus 방향 운동의
+  // 강도(dose)를 조용히 올렸다 내렸다 한다. 상승은 3조건 모두 충족 시 1단계씩(보수적),
+  // 하강은 악화 낌새면 즉시(안전, 상승보다 우선). reps 상한은 adaptReps.cap 재사용.
+  adaptDose: {
+    progressStreak: 3,   // 연속 무난(condition≠stiff·직전대비 악화없음) 세션 수 — 이만큼 쌓여야 1단계 상승
+    compProgressMax: 15, // 상승 허용 comp 비율(%) 상한 — 이보다 낮아야 "보상동작 적음(§4.3)"
+    repStep: 1,          // dose 1단계가 올리는 reps (reps를 cap까지 먼저 소진)
+    holdStepSec: 3,      // reps가 cap 도달 후, dose 1단계가 올리는 hold(초) — §4.3 "2~5초" 범위
+    holdCapSec: 15,      // hold 상한(초, §4.3) — 조정 후 이 값 초과 금지
+  },
 };
 
 // ─── localStorage 키 ───
