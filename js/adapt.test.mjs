@@ -149,5 +149,41 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
   eq(improveSignal(mkI({ lastImproveShownAt: D }, []), D), '손목이 부드러워지고 있어요 ✨', 'I8 오늘 표시 유지');
 }
 
-console.log(`\n맞춤 5·6단계(진행/후퇴·긍정 신호) 테스트: ${pass} pass, ${fail} fail`);
+// ── F1: red(측정 급락) 날 focus 운동 base 클램프 — 표시용, 상태 불변, 다음날 복귀 ──
+// isRedSignal: 최근 측정이 직전 대비 flex/ext ≥8° 하락. RED_DROP_DEG=8.
+{
+  const mkR = (measurements, doseLevel = { flex_ext: 1 }, patch = {}) => ({
+    adapt: { focus: 'flex', focusSoft: false, doseLevel, toleratedStreak: 3, lastImproveShownAt: null, lastAdaptedAt: null, lastDoseAction: null, ...patch },
+    measurements,
+  });
+  const red = [{ at: 'p', flex: 40, ext: 40, rom: 80 }, { at: 'l', flex: 30, ext: 40, rom: 70 }]; // flex -10 → red
+  const okMeas = [{ at: 'p', flex: 30, ext: 40, rom: 70 }, { at: 'l', flex: 40, ext: 41, rom: 81 }]; // 회복 → red 아님
+  const followReps = (g) => g.steps.find((s) => s.type === 'follow').reps;
+
+  // R1: red 날 flex_ext는 base(5)로 클램프(focus +2 · dose +1 모두 무시)
+  {
+    const s = mkR(red);
+    eq(computeDose(s, 'flex_ext').reps, 5, 'R1 red 날 base 5로 클램프');
+    // ★상태 불변: doseLevel·toleratedStreak·focusSoft 그대로
+    eq(s.adapt.doseLevel.flex_ext, 1, 'R1 doseLevel 불변');
+    eq(s.adapt.toleratedStreak, 3, 'R1 toleratedStreak 불변');
+    eq(s.adapt.focusSoft, false, 'R1 focusSoft 불변');
+  }
+  // R2: red 아닌 날(같은 dose 상태) → 조정값(5+2+1=8)으로 복귀 — 상태를 안 깎았으므로
+  eq(computeDose(mkR(okMeas), 'flex_ext').reps, 8, 'R2 red 걷히면 조정값 8 복귀');
+  // R3: getRoutineGuide도 동일 — red면 base 5, 아니면 8
+  eq(followReps(getRoutineGuide('flex_ext', mkR(red))), 5, 'R3 red 날 재생 reps 5');
+  eq(followReps(getRoutineGuide('flex_ext', mkR(okMeas))), 8, 'R3 red 아닌 날 재생 reps 8');
+  // R4: focusSoft·더 높은 dose여도 red면 base로 — 그리고 focusSoft 원본 불변
+  {
+    const s = mkR(red, { flex_ext: 2 }, { focusSoft: true });
+    eq(computeDose(s, 'flex_ext').reps, 5, 'R4 soft+dose2여도 red면 base 5');
+    eq(s.adapt.focusSoft, true, 'R4 focusSoft 원본 불변');
+    eq(s.adapt.doseLevel.flex_ext, 2, 'R4 doseLevel 원본 불변');
+  }
+  // R5: red 날이어도 focus 대상 아닌 운동(deviation)은 기존과 동일(클램프 대상 아님)
+  eq(computeDose(mkR(red), 'deviation').reps, 5, 'R5 비대상 운동은 그대로(base 5)');
+}
+
+console.log(`\n맞춤 5·6·F1(진행/후퇴·긍정 신호·red 클램프) 테스트: ${pass} pass, ${fail} fail`);
 if (typeof process !== 'undefined' && fail > 0) process.exitCode = 1;

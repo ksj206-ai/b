@@ -216,11 +216,30 @@ function doseAtLevel(state, guideId, level) {
 /**
  * 운동의 조정된 reps/hold — focus 보정(§4.2) + 저장된 doseLevel(§4.3)을 합성한 순수 계산.
  * 대상 아님·focus=null·doseLevel 0이면 기본값 그대로(안전 폴백). 상한을 절대 초과하지 않음.
+ * F1: 그 날이 red(측정 급락, isRedSignal)면 focus 대상 운동을 base로 클램프해 재생한다(아래 참조).
  * @returns {{ reps:(number|null), holdSec:(number|null) }}
  */
-export function computeDose(state = load(), guideId) {
-  const level = (getAdapt(state).doseLevel || {})[guideId] || 0;
-  return doseAtLevel(state, guideId, level);
+export function computeDose(state = load(), guideId, date = todayStr()) {
+  const adapt = getAdapt(state);
+  const level = (adapt.doseLevel || {})[guideId] || 0;
+  const dose = doseAtLevel(state, guideId, level);
+
+  // F1(표시용 클램프): red(측정 급락) 날에는 focus 대상 운동을 base로 재생 — focus 보너스와
+  // doseLevel 증가분을 '모두' 무시하고 원본 기본값(step.reps/holdSec)으로 돌려, 순한 코스의
+  // "쉬어가기"와 결을 맞춘다. ★상태(doseLevel·toleratedStreak·focusSoft)는 절대 안 바꾼다
+  // (computeDose는 순수 계산) — red는 지나가는 하루짜리 신호라 doseLevel을 실제로 깎으면 red가
+  // 걷힌 다음날 dose가 눌린 채 남는 새 버그가 된다. 상태를 안 건드리므로 red가 걷히면(isRedSignal
+  // false) 다음날 저장된 dose로 저절로 복귀하고, 진행/후퇴(decideDose)와도 충돌하지 않는다.
+  // red 한정 — stiff는 이미 reset-stiff로 doseLevel 0이라 별개 사안(여기서 확장 안 함).
+  const target = adapt.focus ? ROUTINE.adaptReps.focusGuide[adapt.focus] : null;
+  if (target === guideId && isRedSignal(state, date)) {
+    const step = getGuide(guideId)?.steps.find((s) => s.type === 'follow' && s.reps != null);
+    if (step) {
+      if (DEBUG_ADAPT) console.log('[adapt] red clamp → base', { guideId, from: dose.reps, base: step.reps });
+      return { reps: step.reps, holdSec: step.holdSec ?? null };
+    }
+  }
+  return dose;
 }
 
 /**
@@ -229,10 +248,10 @@ export function computeDose(state = load(), guideId) {
  * anim·detect·base 등 판정·인식 파라미터는 그대로 복사한다. 조정이 없으면 원본 그대로
  * 반환(불필요한 사본 안 만듦). 루틴 모드 재생 진입점에서만 호출; 둘러보기는 기본값 그대로.
  */
-export function getRoutineGuide(guideId, state = load()) {
+export function getRoutineGuide(guideId, state = load(), date = todayStr()) {
   const g = getGuide(guideId);
   if (!g) return null;
-  const dose = computeDose(state, guideId);
+  const dose = computeDose(state, guideId, date);
   let changed = false;
   const steps = g.steps.map((s) => {
     if (s.type !== 'follow' || s.reps == null) return s;
