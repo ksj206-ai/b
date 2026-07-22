@@ -12,6 +12,7 @@ if (typeof localStorage === 'undefined') {
 }
 
 import { decideDose, updateDose, computeDose, getRoutineGuide, improveSignal } from './routine.js';
+import { getAdapt, freshComp } from './store.js';
 
 let pass = 0, fail = 0;
 const eq = (got, want, msg) => {
@@ -212,6 +213,24 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
   eq(r2.action, 'up', 'C2 이틀 간격은 가드 미발동(기존 판정 유지 → up)');
   const r3 = decideDose(st([g('2026-11-01', 'good'), g('2026-11-05', 'stiff')]), '2026-11-05'); // stiff 우선
   eq(r3.action, 'reset-stiff', 'C2 큰 간격이어도 stiff 우선');
+}
+
+// ── C3(견고화): getAdapt 기본값 병합 — 옛 adapt(새 필드 없음)에도 기본값이 실린다 ──
+{
+  const old = { focus: 'flex', doseLevel: { flex_ext: 1 }, toleratedStreak: 2 }; // 새 필드들 없음
+  const a = getAdapt({ adapt: old });
+  eq(a.lastDoseAction, null, 'C3 새 필드(lastDoseAction) 기본값');
+  eq(a.lastAdaptedAt, null, 'C3 새 필드(lastAdaptedAt) 기본값');
+  eq(a.focusSoft, false, 'C3 새 필드(focusSoft) 기본값');
+  eq(a.focus, 'flex', 'C3 기존 값 보존');
+  eq(a.doseLevel.flex_ext, 1, 'C3 doseLevel 보존');
+}
+
+// ── C4(견고화): freshComp — 날짜 비교로 낡은 comp 리셋(자정 타이머 없이 결정적) ──
+{
+  eq(freshComp(30, '2026-07-22', '2026-07-22'), 30, 'C4 오늘 잰 comp → 유지');
+  eq(freshComp(30, '2026-07-21', '2026-07-22'), null, 'C4 어제 comp → 리셋(null)');
+  eq(freshComp(30, null, '2026-07-22'), null, 'C4 스탬프 없음 → null');
 }
 
 console.log(`\n맞춤 적응형 루틴 테스트: ${pass} pass, ${fail} fail`);

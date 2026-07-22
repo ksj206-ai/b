@@ -7,7 +7,7 @@ import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
 import {
   load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky,
-  isTodayComplete, completeTodayConstellation, refreshFocus,
+  isTodayComplete, completeTodayConstellation, refreshFocus, freshComp,
 } from './store.js';
 import { renderSky } from './sky.js';
 import { CONSTELLATIONS } from './constellations.js';
@@ -755,7 +755,7 @@ async function initGuide() {
     routineMode: false, autoNextTimer: null, // 루틴 연속 재생 상태
     handSeen: false, seenN: 0, lostN: 0,     // 손 감지 칩 히스테리시스
     lmCtx: null, diagAt: 0,
-    compN: 0, frameN: 0, lastCompRatio: null, // 세션 comp 비율 (추후 코칭 힌트용)
+    compN: 0, frameN: 0, lastCompRatio: null, lastCompAt: null, // 세션 comp 비율 + 잰 날(신선도 리셋용)
     neutralWait: null, baseWrist: null,       // ⓑ 중립 대기 / ⓐ 중립 시점 손목 기준점
     startGen: 0, // 시작 세대 — 로딩 중 화면 이탈 시 in-flight 시작 무효화 (카메라 누수 방지)
   };
@@ -915,6 +915,8 @@ async function startGuide(id, routineMode = false) {
     }
     guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
     guide.compN = 0; guide.frameN = 0; // 세션 comp 비율 집계 (추후 코칭 힌트용)
+    // 날 넘어가며 낡은 comp가 진행 판정에 쓰이지 않게 — 세션 시작 시 날짜 비교로 리셋(자정 타이머 없이)
+    guide.lastCompRatio = freshComp(guide.lastCompRatio, guide.lastCompAt, todayStr());
     guide.neutralWait = null; guide.baseWrist = null;
     els.priv.hidden = true; // 스트리밍 시작 → 안심 안내 숨김
     setCamChip('🖐', '손을 화면에 보여주세요', false);
@@ -1074,6 +1076,7 @@ function flushCompRatio() {
   const g = guide;
   if (!g || !g.frameN) return;
   g.lastCompRatio = Math.round((g.compN / g.frameN) * 100);
+  g.lastCompAt = todayStr(); // 이 비율을 잰 날 — 세션 시작 신선도 리셋(freshComp)에 쓴다
   // 진단 로그 — config.DEBUG_GUIDE를 켰을 때만 출력
   if (DEBUG_GUIDE) console.log(`[guide-diag] 세션 comp 비율: ${g.compN}/${g.frameN} (${g.lastCompRatio}%)`);
   g.compN = 0; g.frameN = 0;

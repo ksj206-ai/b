@@ -317,9 +317,20 @@ function defaultAdapt() {
   };
 }
 
-/** 현재 adapt 반환 (없으면 기본 구조 — 저장은 하지 않음) */
+/** 현재 adapt 반환 — 기본 구조 위에 저장된 adapt를 병합해, 옛 데이터(새 필드 없음)에도
+ *  새 필드 기본값이 항상 실리게 한다. doseLevel 등은 통째 관리라 얕은 병합으로 충분(중첩
+ *  하위 기본값이 덮이는 문제 없음). 저장은 하지 않는다. */
 export function getAdapt(state = load()) {
-  return state.adapt || defaultAdapt();
+  return { ...defaultAdapt(), ...(state.adapt || {}) };
+}
+
+/**
+ * 세션 comp 비율의 신선도 — lastCompAt(그 비율을 잰 날)이 date와 같으면 그대로, 아니면 null.
+ * 날 넘어가며 낡은 comp가 진행 판정("보상동작 적음")에 쓰이지 않게, 세션 시작 시 날짜 비교로
+ * 리셋한다(자정 타이머 없이 SPA에서 안전). 순수 함수 — 날짜를 주입해 결정적으로 테스트한다.
+ */
+export function freshComp(lastCompRatio, lastCompAt, date = todayStr()) {
+  return lastCompAt === date ? lastCompRatio : null;
 }
 
 /** adapt 부분 갱신 — 기본 구조 위에 기존값·patch를 병합해 저장(부분 adapt에도 안전).
