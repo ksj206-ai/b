@@ -7,7 +7,7 @@ import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
 import {
   load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky,
-  isTodayComplete, completeTodayConstellation,
+  isTodayComplete, completeTodayConstellation, refreshFocus,
 } from './store.js';
 import { renderSky } from './sky.js';
 import { CONSTELLATIONS } from './constellations.js';
@@ -583,6 +583,7 @@ function finishMeasure() {
   s.lastMeasureHand = m.hand; // 다음 측정의 기본 선택
   save(s);
   recordActivity(s); // 측정도 오늘 활동으로 스트릭 반영
+  refreshFocus(s);   // 최신 측정으로 약한 방향(focus) 재판정·저장 (루틴 반영은 다음 단계)
   renderStreak();
 
   e.rFlex.textContent = flex + '°'; e.rExt.textContent = ext + '°';

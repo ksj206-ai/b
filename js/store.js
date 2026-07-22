@@ -2,7 +2,7 @@
 // store.js — localStorage 저장/조회 (영상 미저장, 좌표·수치만)
 // 하나의 루트 키(wristGarden) 아래 JSON 트리로 보관.
 // ═══════════════════════════════════════════════════════════
-import { STORAGE_KEYS } from './config.js';
+import { STORAGE_KEYS, FUNCTIONAL_ROM, DEBUG_ADAPT } from './config.js';
 import { CONSTELLATIONS, getConstellation, constellationsBySeason } from './constellations.js';
 
 const ROOT = STORAGE_KEYS.ROOT;
@@ -305,6 +305,7 @@ export function completeTodayConstellation(state = load(), date = todayStr()) {
 function defaultAdapt() {
   return {
     focus: null,            // 'flex' | 'ext' | null — 현재 우선 강화 방향
+    focusSoft: false,       // true면 "약함" 아닌 참고 코칭 신호(조정 폭 작게)
     doseLevel: {},          // { [guideId]: n } — 운동별 강도 단계(0=기본)
     toleratedStreak: 0,     // 연속 잘 견딘 세션 수
     lastImproveShownAt: null, // 긍정 신호 마지막 표시일(도배 방지)
@@ -314,4 +315,63 @@ function defaultAdapt() {
 /** 현재 adapt 반환 (없으면 기본 구조 — 저장은 하지 않음) */
 export function getAdapt(state = load()) {
   return state.adapt || defaultAdapt();
+}
+
+// 최근 측정이 이 일수 이상 지났으면 신뢰도↓ — focus를 약하게(soft)만 적용한다.
+// (설계 §7 엣지: 오래된 측정은 신뢰도 낮음. null 대신 soft로 신호는 남기되 조정 폭↓)
+const FOCUS_STALE_DAYS = 30;
+
+/**
+ * 약한 방향(focus) 판정 — 가장 최근 측정의 flex/ext를 FUNCTIONAL_ROM과 비교(설계 §4.1).
+ * 저장하지 않는 순수 계산(로그·테스트용). 반영·저장은 refreshFocus가 담당.
+ * 규칙:
+ *   · 측정 0회 → focus=null
+ *   · flex === ext → 방향 비대칭 없음 → focus=null
+ *   · 그 외 더 낮은 쪽을 focus로. 그 값이 기능선(40°) 미만이면 "약함"(soft=false),
+ *     기능선 이상이면 "약함" 아님 → 참고 코칭 신호로만(soft=true)
+ *   · 최근 측정이 오래됨(30일↑)이면 어떤 focus든 soft=true(신뢰도↓)
+ * @returns {{ focus:'flex'|'ext'|null, focusSoft:boolean, reason:string, at?:string, flex?:number, ext?:number }}
+ */
+export function computeFocus(state = load(), date = todayStr()) {
+  const ms = state.measurements || [];
+  const last = ms[ms.length - 1];
+  if (!last) return { focus: null, focusSoft: false, reason: 'no-measurement' };
+
+  const flex = Number(last.flex) || 0;
+  const ext = Number(last.ext) || 0;
+  const F = FUNCTIONAL_ROM;
+
+  // 방향 비대칭이 없으면(측정 실패로 둘 다 0인 경우 포함) 우선 방향 없음
+  if (flex === ext) {
+    return { focus: null, focusSoft: false, reason: 'balanced', at: last.at, flex, ext };
+  }
+
+  const focus = flex < ext ? 'flex' : 'ext';
+  const focusVal = focus === 'flex' ? flex : ext;
+  const threshold = focus === 'flex' ? F.flex : F.ext;
+
+  // 오래된 측정: 신뢰도 낮음 → soft. (파싱 실패도 오래된 것으로 간주)
+  const ageDays = dayDiff(last.at, date);
+  const stale = Number.isNaN(ageDays) || ageDays >= FOCUS_STALE_DAYS;
+
+  // 낮은 쪽이 기능선 이상이면 "약함" 아님(참고 코칭). 오래된 측정도 soft.
+  const focusSoft = focusVal >= threshold || stale;
+  const reason = focusVal < threshold ? (stale ? 'weak-stale' : 'weak')
+    : (stale ? 'coaching-stale' : 'coaching');
+
+  return { focus, focusSoft, reason, at: last.at, flex, ext };
+}
+
+/**
+ * computeFocus 결과를 adapt.focus/focusSoft에 반영·저장. 측정 종료 시(finishMeasure)
+ * 호출. 아직 이 focus로 루틴을 바꾸지 않음(다음 단계) — 저장만.
+ * (부분 adapt에도 안전하도록 기본값 위에 병합해 전체 객체로 저장.)
+ * @returns computeFocus 결과(로그·확인용)
+ */
+export function refreshFocus(state = load(), date = todayStr()) {
+  const res = computeFocus(state, date);
+  state.adapt = { ...defaultAdapt(), ...getAdapt(state), focus: res.focus, focusSoft: res.focusSoft };
+  save(state);
+  if (DEBUG_ADAPT) console.log('[adapt] focus', res);
+  return res;
 }
