@@ -73,6 +73,9 @@ wrist-garden/
 │   ├── reminder.js           # 손목 리마인더 알림 (Notification — 탭 켜짐 필요)
 │   ├── tracking.js           # 손 인식 (MediaPipe 초기화·카메라·감지 루프)
 │   ├── measurement.js        # 지표 계산·스무딩·rel·보상동작·ROM 측정
+│   ├── sky.js                # 밤하늘 화면 (별자리 성장 시각화)
+│   ├── constellations.js     # 별자리 데이터
+│   ├── *.test.mjs            # 단위·통합 테스트 (node --test)
 │   ├── guide/
 │   │   ├── guideData.js      # 운동 콘텐츠(GUIDES) — 데이터만 추가하면 운동 추가
 │   │   ├── guideHand.js      # 파라미터로 조종하는 벡터 손 그리기 (side/front)
@@ -80,10 +83,10 @@ wrist-garden/
 │   │   └── stepEngine.js     # 스텝 진행·인식 카운트·판정기(detector)
 │   └── games/
 │       └── README.md         # 미니게임 이식 매핑 메모
-├── wrist-garden_32.html      # 이전 단일파일 프로토타입 (로직 이식 원본, 참고용)
-├── 계획서_손목웰니스앱.md      # 기획 문서
-└── 가이드모듈_구현명세서.md    # 가이드 모듈 구현 명세
+└── docs/                     # 기획·설계 문서 (목차: docs/README.md)
 ```
+
+📚 설계 문서는 [`docs/`](docs/README.md)에 모아 두었습니다.
 
 ---
 
