@@ -201,7 +201,7 @@ body::after{
   background:var(--glass-bg-cozy);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
   border:var(--glass-border-warm); border-radius:var(--r-hero);
-  padding:var(--sp-md) var(--sp-2xl) var(--sp-2xl); text-align:center;
+  padding:var(--sp-md) var(--sp-2xl) var(--sp-xl); text-align:center;
   box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft);
 }
 /* ── 하늘: 발광하는 달 + 잔별 ──
@@ -324,12 +324,12 @@ body::after{
 .home-hero-label{
   font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--moss-dd);
   background:var(--white-a85); display:inline-block; padding:var(--sp-xs) var(--sp-lg);
-  border-radius:var(--r-pill); margin:var(--sp-3xs) 0 0;
+  border-radius:var(--r-pill); margin:0;
   box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(var(--cream-ink),.16);
 }
 .home-hero-title{
   font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-xl);
-  color:var(--ink); margin:var(--sp-sm) 0 var(--sp-xs); line-height:var(--lh-title); word-break:keep-all;
+  color:var(--ink); margin:var(--sp-xs) 0 var(--sp-2xs); line-height:var(--lh-title); word-break:keep-all;
 }
 
 /* ─── 홈: 오늘의 별자리 (히어로 전용 영역) ─── */
@@ -337,9 +337,13 @@ body::after{
 .sky-label b{ font-weight:400; color:var(--honey); }
 /* 별자리 무대: 마스코트 아래 넉넉한 영역. 배경은 투명 —
    히어로 카드의 밤하늘 표면 위에 별자리가 그대로 뜬 느낌. */
+/* 무대 폭을 장면 폭으로 제한한다. SVG는 preserveAspectRatio="meet"이라 세로로 긴
+   별자리는 어차피 높이에 맞춰 그려져 좌우가 텅 비었다 — 그 빈 띠를 잘라내면
+   달·고양이·언덕·별자리가 가운데 한 덩어리로 모인다(카드를 넓혀도 흩어지지 않음). */
 .sky-stage{
-  position:relative; z-index:1; width:100%; aspect-ratio:3/2; max-height:264px; min-height:158px;
-  margin:var(--sp-2xs) auto var(--sp-2xs);   /* 마스코트와 한 덩어리로 보이게 위아래를 조임 */
+  position:relative; z-index:1; width:100%; max-width:400px;
+  aspect-ratio:3/2; max-height:236px; min-height:150px;
+  margin:0 auto;   /* 마스코트와 한 덩어리로 보이게 위아래를 조임 */
 }
 /* SVG는 절대배치로 상자를 꽉 채운다 — 세로로 긴 별자리가 aspect-ratio 상자를
    밀어 늘리지 않게(도감 격자 칸 높이가 튀는 문제 방지). 컨테이너는 position:relative. */
@@ -347,7 +351,7 @@ body::after{
 
 /* 연결선 — 도면 선이 아니라 별 사이에 걸린 실처럼. 기본은 거의 안 보일 만큼 흐리고
    따뜻한 쪽으로 톤 다운, 양 끝 별이 켜지면 골드로 밝게(구분 유지). */
-.sky-link{ stroke:rgba(238,226,255,.075); stroke-linecap:round; fill:none; }
+.sky-link{ stroke:rgba(238,226,255,.09); stroke-linecap:round; fill:none; }
 .sky-link.is-on{
   stroke:rgba(255,214,140,.55);
   filter:drop-shadow(0 0 1.5px rgba(255,211,107,.6));
@@ -357,9 +361,13 @@ body::after{
    켜진 별과의 구분은 (a) 헤일로 유무 (b) 코어 크기 (c) 밝기·글로우 세기로 확실히 남는다. */
 .sky-star{ transform-box:fill-box; transform-origin:center; }
 .sky-dim{
-  fill:rgba(255,243,222,.44);
-  /* SVG 필터 길이는 user unit 기준 — viewBox(≈95unit)에서 2.6unit ≈ 화면 7px의 부드러운 번짐 */
-  filter:drop-shadow(0 0 2.6px rgba(var(--warm-glow),.55));
+  /* 알파 .44는 크림색이 남색에 묻혀 '회색 점'으로 보였다 → 코어를 또렷하게 올리고,
+     밝기는 fill보다 글로우로 만든다(멀리 있는 작은 별의 번짐). */
+  fill:rgba(255,241,214,.62);
+  /* SVG 필터 길이는 user unit 기준 — viewBox(≈95unit)에서 1unit ≈ 화면 2.8px.
+     좁고 밝은 블룸 + 넓고 옅은 금빛 헤일로 2단. */
+  filter:drop-shadow(0 0 1.4px rgba(255,238,200,.85))
+         drop-shadow(0 0 4.5px rgba(var(--warm-glow),.45));
 }
 .sky-halo{ fill:url(#skyHaloGrad); animation:halo-breathe 6.2s ease-in-out infinite; }
 .sky-core{ fill:#fff6df; filter:drop-shadow(0 0 3px rgba(255,211,107,.9)); }
@@ -375,7 +383,7 @@ body::after{
 .sky-star.twinkle{ animation:sky-twinkle .72s cubic-bezier(.3,1.5,.5,1) both; }
 
 /* 오늘의 루틴 요약 한 줄 ("6개 운동 · 약 3분") — 별자리 아래, 시작 버튼 위 */
-.rp-text{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft); margin:0 0 var(--sp-md); }
+.rp-text{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft); margin:0 0 var(--sp-sm); }
 
 /* ─── 홈: 오늘의 별자리 완성 축하 (조용한 1회 연출) ─── */
 .sky-stage-wrap{ position:relative; }
@@ -591,11 +599,15 @@ body::after{
 .remind-btns{ display:flex; gap:var(--sp-sm); }
 .remind-btns .btn[disabled]{ opacity:.5; cursor:default; }
 
-/* ─── 홈: 3 섹션 (작은 개별 진입 — 주인공은 오늘의 루틴 카드) ─── */
-.sections{ display:flex; flex-direction:row; gap:var(--sp); margin-top:var(--sp-lg); }
+/* ─── 홈: 기능 카드 그리드 (주인공은 오늘의 루틴 카드) ───
+   가로 목록(flex row)이면 카드마다 폭이 같아 '설정 목록'처럼 읽혔다 → 2열 그리드로
+   바꾸고 매일 쓰는 '오늘의 루틴'만 한 줄을 다 차지하게 해 위계를 준다. */
+.sections{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp); margin-top:var(--sp-lg); }
 .section-card{
   position:relative; flex:1; display:flex; flex-direction:column;
-  align-items:center; gap:var(--sp-xs); text-align:center;
+  /* 그리드에서 같은 행의 카드는 높이가 맞춰진다 — 내용이 적은 카드(도감)가 위로
+     쏠리지 않게 세로 가운데 정렬 */
+  align-items:center; justify-content:center; gap:var(--sp-xs); text-align:center;
   background:var(--glass-bg-cozy);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
   border:var(--glass-border-warm); border-radius:var(--r-card);
@@ -610,10 +622,17 @@ body::after{
   box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft);
 }
 .section-card:active{ transform:translateY(1px) scale(.99); }
+/* 오늘의 루틴 — 한 줄 전체를 쓰는 주 카드. 폭이 넓어진 만큼 세로 스택 대신
+   가로 구성(오브 옆에 이름)으로 두어 빈 여백 없이 꽉 차게. */
 .section-card.is-main{
+  grid-column:1 / -1;
+  flex-direction:row; justify-content:center; align-items:center; gap:var(--sp-md);
+  padding:var(--sp-lg) var(--sp-xl);
   background:var(--glass-bg-cozy-strong);
   box-shadow:var(--glass-shadow), var(--ring-warm), var(--glass-rim-warm), var(--glow-warm-soft);
 }
+.section-card.is-main .section-emoji{ width:52px; height:52px; }
+.section-card.is-main .section-name{ font-size:var(--fs-md); }
 .section-emoji{
   width:46px; height:46px; border-radius:50%;
   display:flex; align-items:center; justify-content:center; font-size:var(--fs-num);
@@ -1025,18 +1044,12 @@ body::after{
 @media (min-width:960px){
   .app{ width:min(1080px,92vw); }
 
-  /* 홈: 히어로(좌) + 알림·카드(우) */
-  #screen-home.is-active{
-    display:grid; grid-template-columns:1.25fr 1fr; gap:var(--sp-md) var(--sp-xl); align-items:start;
-  }
-  #screen-home > .home-hero{ grid-column:1; grid-row:1 / span 4; }
-  #screen-home > .remind-entry-chip,
-  #screen-home > .remind-panel,
-  #screen-home > .sections{ grid-column:2; }
-  /* 데스크톱: 세로 간격은 그리드 row-gap이 담당 → 모바일용 상단 마진 제거 */
-  #screen-home > .remind-entry-chip,
-  #screen-home > .remind-panel{ margin-top:0; }
-  #screen-home > .sections{ flex-direction:column; margin-top:0; }
+  /* 홈: 2단(히어로 좌 · 목록 우) → 세로 한 컬럼.
+     "상단 밤하늘 장면 + 하단 기능 카드 그리드"로, 모바일의 읽기 흐름을 데스크톱에도
+     그대로 가져온다. 대신 폭을 좁혀 가운데로 모아 '작은 세계'처럼 보이게 —
+     넓게 펼치면 장면이 흩어지고 카드가 다시 목록처럼 읽힌다. */
+  #screen-home.is-active{ width:min(680px,100%); margin-inline:auto; }
+  #screen-home > .sections{ gap:var(--sp-md); }
 
   /* 기록: 추이 카드 전체 폭 + 나머지 2단 */
   #screen-records.is-active{
