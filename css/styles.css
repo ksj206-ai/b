@@ -18,6 +18,8 @@
   --sun:#ffd36b; --sun-soft:rgba(240,190,90,.15); --honey:#ffcf87;
   --peach:#ffd9c2; --terra:#f0a878; --rose:#f6b3c2; --water:#8fcef0; --water-d:#5ab0e8;
   --peach-soft:#fdeee2;                                     /* 따뜻한 오브 틴트 (이모지) */
+  --warm-glow:255,214,150; --peach-rgb:255,217,194; --honey-rgb:255,207,135; /* 금빛/복숭아 알파 조합 → rgba(var(--warm-glow),a) */
+  --cream-ink:255,246,232;                                  /* 크림 하이라이트(림·오브) */
   /* ── 색: 표면/스크림/글로우 ── */
   --card-border:rgba(255,255,255,.10);                      /* 카드 별빛 림 */
   --grad-surface:linear-gradient(165deg,#2a3160,#1e2550);   /* 히어로·스테이지·결과 표면 (살짝 푸른 인디고) */
@@ -83,6 +85,20 @@
   --glass-border:1px solid rgba(255,255,255,.14);           /* 은은한 유리 테두리 */
   --glass-rim:inset 0 1px 0 rgba(255,255,255,.24);          /* 위쪽 밝은 림 라이트 */
   --glass-shadow:0 12px 30px rgba(var(--shade-rgb),.38);    /* 떠 있는 부드러운 그림자 */
+
+  /* ── 코지 유리: 위 기본 유리에 '따뜻한 미세 악센트'만 덧입힌 변형 ──
+     남색 유리는 그대로 두고 ①위쪽에 금빛 ②아래쪽에 복숭아 기운을 아주 옅게 깔아
+     평평한 사각형이 아니라 안쪽에서 빛이 도는 말랑한 표면으로 읽히게 한다.
+     (알파가 .04~.08이라 색이 '보이는' 게 아니라 온도만 올라간다 — 가독성 불변) */
+  --glass-warm:
+    radial-gradient(124% 88% at 50% -8%, rgba(var(--warm-glow),.075), transparent 62%),
+    radial-gradient(96% 72% at 50% 110%, rgba(var(--peach-rgb),.055), transparent 68%);
+  --glass-bg-cozy:var(--glass-warm), var(--glass-bg);
+  --glass-bg-cozy-strong:var(--glass-warm), var(--glass-bg-strong);
+  --glass-border-warm:1px solid rgba(var(--cream-ink),.15);   /* 살짝 따뜻한 테두리 */
+  --glass-rim-warm:inset 0 1px 0 rgba(var(--cream-ink),.26);  /* 크림빛 림 라이트 */
+  --glow-warm-soft:0 0 26px rgba(var(--warm-glow),.10);       /* 카드 주변 은은한 금빛 번짐 */
+  --ring-warm:inset 0 0 0 2px rgba(var(--honey-rgb),.30);     /* 주 카드 강조 링(골드) */
 }
 
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -130,6 +146,22 @@ body::after{
 @keyframes star-twinkle{ 0%,100%{ opacity:.5; } 50%{ opacity:1; } }
 
 .app{ width:min(560px,95vw); display:flex; flex-direction:column; gap:var(--sp-xl); }
+/* 금빛 별 한 겹 — 푸른 별밭 위에 아주 드문드문(타일이 커서 화면당 2~3개), 더 느린 주기로.
+   각 별은 '작은 코어 + 넓은 금빛 헤일로' 2겹이라 점이 아니라 온기로 읽힌다.
+   position:fixed라 flex 아이템이 되어도 레이아웃에 영향 없음(별밭 body::before/after와 동일 규칙). */
+.app::after{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-repeat:repeat; background-size:760px 700px;
+  background-image:
+    radial-gradient(9px 9px at 150px 210px, rgba(var(--warm-glow),.10), transparent 70%),
+    radial-gradient(2px 2px at 150px 210px, rgba(255,238,206,.90), transparent),
+    radial-gradient(8px 8px at 612px 128px, rgba(var(--warm-glow),.09), transparent 70%),
+    radial-gradient(1.5px 1.5px at 612px 128px, rgba(255,234,198,.82), transparent),
+    radial-gradient(8px 8px at 428px 560px, rgba(var(--warm-glow),.08), transparent 70%),
+    radial-gradient(2px 2px at 428px 560px, rgba(255,240,214,.78), transparent);
+  animation:star-twinkle-warm 9s ease-in-out infinite;
+}
+@keyframes star-twinkle-warm{ 0%,100%{ opacity:.45; } 50%{ opacity:.95; } }
 
 /* ─── 헤더 ─── */
 .app-header{ text-align:center; }
@@ -158,48 +190,80 @@ body::after{
 /* ─── 홈: 히어로 + 마스코트 ─── */
 .home-hero{
   position:relative;
-  --mascot-size:clamp(172px, 46vw, 208px);   /* 마스코트 크기 (기존 132 → 약 1.6배) */
-  --mascot-overhang:calc(var(--mascot-size) * 0.46);  /* 카드 위로 튀어나오는 높이 = 마스코트의 ≈46%(어느 화면이든 일정 비율로 절반쯤 밖) */
-  margin-top:var(--mascot-overhang);          /* 튀어나온 마스코트 머리 공간을 위에 확보 */
-  background:var(--glass-bg);
+  --mascot-size:clamp(160px, 42vw, 192px);   /* 마스코트 크기 — 카드 안에 앉으므로 살짝 축소 */
+  background:var(--glass-bg-cozy);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
-  border:var(--glass-border); border-radius:var(--r-hero);
-  padding:var(--pad-card-sm) var(--sp-2xl) var(--sp-2xl); text-align:center;
-  box-shadow:var(--glass-shadow), var(--glass-rim);
+  border:var(--glass-border-warm); border-radius:var(--r-hero);
+  padding:var(--sp-lg) var(--sp-2xl) var(--sp-2xl); text-align:center;
+  box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft);
 }
-/* 마스코트를 카드 위로 끌어올려 아래 절반은 카드에 걸치고 위는 카드 밖으로 (앞에 서 있는 구도) */
+/* 마스코트 자리 — 말풍선과 고양이를 세로로 쌓아 겹칠 수 없게 하고(한마디가 몇 줄이든 안전),
+   카드 밖으로 튀어나오던 구도를 접어 '카드 안에 앉은' 장면으로 바꾼다.
+   ::before 별빛 웅덩이 + ::after 바닥 그림자가 고양이의 '자리'를 만들어
+   떠다니는 스티커가 아니라 여기 앉아 있는 캐릭터로 읽히게 한다. */
 .mascot-wrap{
-  position:relative; z-index:3; display:flex; justify-content:center;
-  margin-top:calc(-1 * (var(--mascot-overhang) + 14px));   /* 14px ≈ 히어로 상단 패딩 상쇄 */
+  position:relative; z-index:3;
+  display:flex; flex-direction:column; align-items:center;
+  gap:var(--sp-md); padding-bottom:var(--sp-xs);   /* 말풍선 꼬리(5px)까지 감안한 여유 */
+}
+/* 별빛 웅덩이 — 고양이 뒤로 번지는 따뜻한 달무리(금빛 안쪽, 보라 바깥쪽) */
+.mascot-wrap::before{
+  content:''; position:absolute; z-index:-1; left:50%; bottom:-4px; transform:translateX(-50%);
+  width:calc(var(--mascot-size) * 1.22); height:calc(var(--mascot-size) * 0.72);
+  border-radius:50%; pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 62%,
+    rgba(var(--warm-glow),.17), rgba(var(--glow),.09) 52%, transparent 76%);
+  animation:pool-breathe 7.4s ease-in-out infinite;
+}
+/* 바닥 그림자 — 고양이가 '놓여 있는' 접지감. 부유 애니와 살짝 다른 주기로 숨 쉼 */
+.mascot-wrap::after{
+  content:''; position:absolute; z-index:-1; left:50%; bottom:2px; transform:translateX(-50%);
+  width:calc(var(--mascot-size) * 0.50); height:calc(var(--mascot-size) * 0.095);
+  border-radius:50%; pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 50%, rgba(var(--shade-rgb),.40), transparent 72%);
+  animation:shadow-breathe 5.4s ease-in-out infinite;
 }
 .mascot{
   width:var(--mascot-size); height:auto; object-fit:contain; display:block;
-  filter:drop-shadow(0 12px 24px rgba(var(--glow),.40));   /* 우주에 뜬 느낌: 부드러운 보라 글로우(커진 만큼 살짝 키움) */
-  animation:float 3.6s ease-in-out infinite;               /* 살짝 둥둥 뜨는 상하 애니 */
-  transform-origin:50% 85%;
+  /* 아래로 떨어지는 그림자(접지) + 아주 옅은 금빛 테두리 광(밤하늘 속 온기) */
+  filter:drop-shadow(0 8px 16px rgba(var(--shade-rgb),.34))
+         drop-shadow(0 0 14px rgba(var(--warm-glow),.20));
+  animation:float 5.4s ease-in-out infinite;               /* 둥실 + 숨쉬기 (느리고 미세하게) */
+  transform-origin:50% 92%;
 }
 .mascot:hover{ animation:wiggle .6s ease-in-out; }
-/* 상하 부유(마스코트) — 회전 없이 부드럽게 */
-@keyframes float{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-9px); } }
+/* 상하 부유(마스코트) — 회전 없이, 아주 미세한 호흡 스케일만 곁들여 */
+@keyframes float{
+  0%,100%{ transform:translateY(0) scale(1); }
+  50%{ transform:translateY(-5px) scale(1.012); }
+}
+/* 별빛 웅덩이·바닥 그림자의 잔잔한 호흡 (시선을 끌지 않을 만큼만) */
+@keyframes pool-breathe{ 0%,100%{ opacity:.72; transform:translateX(-50%) scale(.97); } 50%{ opacity:1; transform:translateX(-50%) scale(1.03); } }
+@keyframes shadow-breathe{ 0%,100%{ opacity:.9; transform:translateX(-50%) scale(1); } 50%{ opacity:.6; transform:translateX(-50%) scale(.9); } }
 /* bob: 이모지 장식(placeholder·완료·빈 상태)에서 계속 사용 */
 @keyframes bob{ 0%,100%{ transform:translateY(0) rotate(-1.5deg); } 50%{ transform:translateY(-8px) rotate(1.5deg); } }
 @keyframes wiggle{ 0%,100%{ transform:rotate(0); } 25%{ transform:rotate(-9deg); } 75%{ transform:rotate(9deg); } }
+/* 말풍선 — 흐름 안(고양이 위)에 놓여 어떤 길이의 한마디도 고양이·칩과 겹치지 않는다.
+   nowrap을 풀고 폭을 제한해 좁은 화면에서 2줄로 접힌다(문구는 그대로). */
 .speech{
-  position:absolute; top:6px; left:50%; transform:translateX(-50%);
+  position:relative; max-width:min(100%, 320px);
   font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--moss-dd);
-  background:var(--paper); padding:var(--sp-sm) var(--sp-lg); border-radius:var(--r-pill); white-space:nowrap;
-  box-shadow:var(--shadow-sm); z-index:2; animation:pop-in .5s cubic-bezier(.3,1.5,.5,1);
+  background:var(--paper); padding:var(--sp-sm) var(--sp-lg); border-radius:var(--r-lg);
+  text-align:center; line-height:1.45; word-break:keep-all;
+  box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(var(--cream-ink),.14);
+  animation:pop-in .5s cubic-bezier(.3,1.5,.5,1);
 }
 .speech::after{
-  content:''; position:absolute; bottom:-6px; left:50%; transform:translateX(-50%) rotate(45deg);
+  content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%) rotate(45deg);
   width:12px; height:12px; background:var(--paper); border-radius:var(--r-xs);
 }
-@keyframes pop-in{ from{ opacity:0; transform:translateX(-50%) translateY(6px) scale(.7); } to{ opacity:1; transform:translateX(-50%) scale(1); } }
+@keyframes pop-in{ from{ opacity:0; transform:translateY(6px) scale(.85); } to{ opacity:1; transform:none; } }
 
 .home-hero-label{
   font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--moss-dd);
   background:var(--white-a85); display:inline-block; padding:var(--sp-xs) var(--sp-lg);
-  border-radius:var(--r-pill); margin:var(--sp-3xs) 0 0; box-shadow:var(--shadow-sm);
+  border-radius:var(--r-pill); margin:var(--sp-3xs) 0 0;
+  box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(var(--cream-ink),.16);
 }
 .home-hero-title{
   font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-xl);
@@ -229,8 +293,10 @@ body::after{
 /* 별 — 안 켜진 별은 흐릿한 밑그림, 켜진 별은 골드 코어 + 은은한 헤일로 */
 .sky-star{ transform-box:fill-box; transform-origin:center; }
 .sky-dim{ fill:rgba(199,187,255,.32); }
-.sky-halo{ fill:url(#skyHaloGrad); }
+.sky-halo{ fill:url(#skyHaloGrad); animation:halo-breathe 6.2s ease-in-out infinite; }
 .sky-core{ fill:#fff6df; filter:drop-shadow(0 0 3px rgba(255,211,107,.9)); }
+/* 켜진 별의 아주 잔잔한 숨 — 헤일로만(코어는 고정) 살짝 넓어졌다 좁아진다 */
+@keyframes halo-breathe{ 0%,100%{ opacity:.78; } 50%{ opacity:1; } }
 
 /* 점등 순간의 부드러운 반짝임 (과하지 않게 — 별 하나씩 살짝 늦춰 켜짐) */
 @keyframes sky-twinkle{
@@ -377,14 +443,14 @@ body::after{
 /* ─── 홈: 알림 입구 (부차 기능 — 접힌 한 줄 카드, 탭하면 아래 패널이 펼쳐짐) ─── */
 .remind-entry-chip{
   display:block; width:100%; margin-top:var(--sp-lg); cursor:pointer; text-align:center;
-  background:var(--glass-bg);
+  background:var(--glass-bg-cozy);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
-  border:var(--glass-border); border-radius:var(--r-lg);
+  border:var(--glass-border-warm); border-radius:var(--r-card);
   color:var(--ink-soft); font-family:"Jua",sans-serif; font-size:var(--fs-base);
-  padding:var(--sp-md) var(--sp-lg); box-shadow:var(--glass-shadow), var(--glass-rim);
+  padding:var(--sp-md) var(--sp-lg); box-shadow:var(--glass-shadow), var(--glass-rim-warm);
   transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
 }
-.remind-entry-chip:hover{ transform:translateY(-2px); box-shadow:var(--glass-shadow), var(--glass-rim); }
+.remind-entry-chip:hover{ transform:translateY(-2px); box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft); }
 .remind-entry-chip:active{ transform:translateY(1px) scale(.99); }
 /* 펼침/접힘 표시 쉐브론 — 펼치면 위로 뒤집혀(▴) 다시 탭하면 접힌다는 신호 */
 .remind-entry-chip::after{
@@ -397,10 +463,10 @@ body::after{
 
 /* ─── 리마인더 온보딩/설정 ─── */
 .remind-panel{
-  background:var(--glass-bg-strong);
+  background:var(--glass-bg-cozy-strong);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
-  border:var(--glass-border); border-radius:var(--r-card);
-  padding:var(--sp-xl) var(--pad-card); margin-top:var(--sp-lg); box-shadow:var(--glass-shadow), var(--glass-rim);
+  border:var(--glass-border-warm); border-radius:var(--r-card);
+  padding:var(--sp-xl) var(--pad-card); margin-top:var(--sp-lg); box-shadow:var(--glass-shadow), var(--glass-rim-warm);
   display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
 }
 .remind-q{ font-family:"Jua",sans-serif; font-size:var(--fs-md); color:var(--ink); margin:0; text-align:center; }
@@ -449,35 +515,42 @@ body::after{
 .section-card{
   position:relative; flex:1; display:flex; flex-direction:column;
   align-items:center; gap:var(--sp-xs); text-align:center;
-  background:var(--glass-bg);
+  background:var(--glass-bg-cozy);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
-  border:var(--glass-border); border-radius:var(--r-lg);
+  border:var(--glass-border-warm); border-radius:var(--r-card);
   padding:var(--pad-card-sm) var(--sp-sm) var(--sp-md); cursor:pointer;
-  box-shadow:var(--glass-shadow), var(--glass-rim);
+  box-shadow:var(--glass-shadow), var(--glass-rim-warm);
   transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
   font-family:inherit; color:inherit;
 }
-.section-card:hover{ transform:translateY(-3px); box-shadow:var(--glass-shadow), var(--glass-rim); }
+/* 호버: 들리면서 금빛이 살짝 번진다 (설정 목록이 아니라 '눌러보고 싶은 카드'로) */
+.section-card:hover{
+  transform:translateY(-3px);
+  box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft);
+}
 .section-card:active{ transform:translateY(1px) scale(.99); }
 .section-card.is-main{
-  background:var(--glass-bg-strong);
-  box-shadow:var(--glass-shadow), var(--ring-accent), var(--glass-rim);
+  background:var(--glass-bg-cozy-strong);
+  box-shadow:var(--glass-shadow), var(--ring-warm), var(--glass-rim-warm), var(--glow-warm-soft);
 }
 .section-emoji{
   width:46px; height:46px; border-radius:50%;
   display:flex; align-items:center; justify-content:center; font-size:var(--fs-num);
-  background:radial-gradient(circle at 38% 32%, #fff, var(--sage-soft));
-  box-shadow:var(--shadow-emoji);
+  background:radial-gradient(circle at 38% 30%, #fff8ec, var(--sage-soft));
+  /* 순백 링 → 크림 링 + 옅은 금빛 번짐 (차가운 하이라이트 제거) */
+  box-shadow:inset 0 0 0 2px rgba(var(--cream-ink),.92),
+             0 4px 12px rgba(var(--shade-rgb),.22),
+             0 0 14px rgba(var(--warm-glow),.16);
 }
-.section-card:nth-child(2) .section-emoji{ background:radial-gradient(circle at 38% 32%,#fff,var(--water-soft)); }
-.section-card:nth-child(3) .section-emoji{ background:radial-gradient(circle at 38% 32%,#fff,var(--peach-soft)); }
+.section-card:nth-child(2) .section-emoji{ background:radial-gradient(circle at 38% 30%,#fff8ec,var(--water-soft)); }
+.section-card:nth-child(3) .section-emoji{ background:radial-gradient(circle at 38% 30%,#fff8ec,var(--peach-soft)); }
 .section-name{
   font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-base);
   color:var(--moss-dd);
 }
 .section-desc{ display:none; } /* 홈은 루틴 카드가 주인공 — 개별 진입은 이름만 */
 .section-badge{
-  position:absolute; top:8px; right:9px; font-family:"Jua",sans-serif;
+  position:absolute; top:10px; right:13px; font-family:"Jua",sans-serif;   /* 카드 반경 확대(24→30)에 맞춰 안쪽으로 */
   font-size:var(--fs-2xs); color:#fff; background:var(--moss-d);
   padding:var(--sp-2xs) var(--sp-sm); border-radius:var(--r-pill); box-shadow:var(--shadow-badge);
 }
@@ -828,7 +901,9 @@ body::after{
 .btn:active{ transform:translateY(4px); box-shadow:0 2px 0 var(--moss-shadow); }
 .btn-hero{
   padding:var(--btn-pad-hero); font-size:var(--fs-lg); margin-top:var(--sp-2xs);
-  animation:breathe 2.8s ease-in-out infinite;
+  /* 3D 밑동은 유지하고 바깥으로 금빛 온기만 한 겹 (홈의 유일한 주 CTA) */
+  box-shadow:0 var(--btn-lift) 0 var(--moss-shadow), 0 0 30px rgba(var(--warm-glow),.14);
+  animation:breathe 3.6s ease-in-out infinite;
 }
 @keyframes breathe{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
 .btn-hero:active{ animation:none; }
