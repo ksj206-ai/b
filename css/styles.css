@@ -190,13 +190,35 @@ body::after{
 /* ─── 홈: 히어로 + 마스코트 ─── */
 .home-hero{
   position:relative;
-  --mascot-size:clamp(160px, 42vw, 192px);   /* 마스코트 크기 — 카드 안에 앉으므로 살짝 축소 */
+  --mascot-size:clamp(190px, 50vw, 232px);   /* 마스코트 크기 — 히어로의 주인공 */
   background:var(--glass-bg-cozy);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
   border:var(--glass-border-warm); border-radius:var(--r-hero);
-  padding:var(--sp-lg) var(--sp-2xl) var(--sp-2xl); text-align:center;
+  padding:var(--sp-md) var(--sp-2xl) var(--sp-2xl); text-align:center;
   box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft);
 }
+/* 히어로 = "오늘의 별자리 한 컷".
+   카드 위쪽(마스코트~별자리 구간)에 공유 밤하늘 한 겹을 깔아, 고양이와 별자리가
+   각자 떠 있는 두 요소가 아니라 같은 하늘 안의 한 장면으로 읽히게 한다.
+   아래로 갈수록 마스크로 사라져 제목·요약·CTA 구간은 깨끗한 표면 그대로. */
+.home-hero::before{
+  content:''; position:absolute; z-index:0; inset:0 0 auto 0; height:80%;
+  pointer-events:none; border-radius:inherit;
+  background-repeat:repeat; background-size:208px 214px;
+  background-image:
+    radial-gradient(1.2px 1.2px at 24px 30px, rgba(255,255,255,.44), transparent),
+    radial-gradient(1px 1px at 96px 74px, rgba(198,214,255,.34), transparent),
+    radial-gradient(1.6px 1.6px at 150px 22px, rgba(255,241,214,.32), transparent),
+    radial-gradient(1px 1px at 58px 128px, rgba(224,230,255,.36), transparent),
+    radial-gradient(1.4px 1.4px at 176px 150px, rgba(255,236,206,.28), transparent),
+    radial-gradient(1px 1px at 122px 186px, rgba(210,222,255,.30), transparent);
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 58%,transparent 100%);
+          mask-image:linear-gradient(180deg,#000 0%,#000 58%,transparent 100%);
+  animation:hero-sky-drift 12s ease-in-out infinite;
+}
+@keyframes hero-sky-drift{ 0%,100%{ opacity:.72; } 50%{ opacity:1; } }
+/* 본문은 공유 하늘 위로 (마스코트는 z-index:3을 따로 쓴다) */
+.home-hero > *{ position:relative; z-index:1; }
 /* 마스코트 자리 — 말풍선과 고양이를 세로로 쌓아 겹칠 수 없게 하고(한마디가 몇 줄이든 안전),
    카드 밖으로 튀어나오던 구도를 접어 '카드 안에 앉은' 장면으로 바꾼다.
    ::before 별빛 웅덩이 + ::after 바닥 그림자가 고양이의 '자리'를 만들어
@@ -204,7 +226,7 @@ body::after{
 .mascot-wrap{
   position:relative; z-index:3;
   display:flex; flex-direction:column; align-items:center;
-  gap:var(--sp-md); padding-bottom:var(--sp-xs);   /* 말풍선 꼬리(5px)까지 감안한 여유 */
+  gap:var(--sp-md);   /* 말풍선 꼬리(5px)까지 감안한 여유 */
 }
 /* 별빛 웅덩이 — 고양이 뒤로 번지는 따뜻한 달무리(금빛 안쪽, 보라 바깥쪽) */
 .mascot-wrap::before{
@@ -267,7 +289,7 @@ body::after{
 }
 .home-hero-title{
   font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-xl);
-  color:var(--ink); margin:var(--sp-md) 0 var(--sp-xs); line-height:var(--lh-title); word-break:keep-all;
+  color:var(--ink); margin:var(--sp-sm) 0 var(--sp-xs); line-height:var(--lh-title); word-break:keep-all;
 }
 
 /* ─── 홈: 오늘의 별자리 (히어로 전용 영역) ─── */
@@ -276,23 +298,29 @@ body::after{
 /* 별자리 무대: 마스코트 아래 넉넉한 영역. 배경은 투명 —
    히어로 카드의 밤하늘 표면 위에 별자리가 그대로 뜬 느낌. */
 .sky-stage{
-  position:relative; width:100%; aspect-ratio:3/2; max-height:300px; min-height:180px;
-  margin:var(--sp) auto var(--sp-xs);
+  position:relative; z-index:1; width:100%; aspect-ratio:3/2; max-height:264px; min-height:158px;
+  margin:var(--sp-2xs) auto var(--sp-2xs);   /* 마스코트와 한 덩어리로 보이게 위아래를 조임 */
 }
 /* SVG는 절대배치로 상자를 꽉 채운다 — 세로로 긴 별자리가 aspect-ratio 상자를
    밀어 늘리지 않게(도감 격자 칸 높이가 튀는 문제 방지). 컨테이너는 position:relative. */
 .sky-svg{ position:absolute; inset:0; display:block; width:100%; height:100%; }
 
-/* 연결선 — 기본은 흐릿한 밑그림, 양 끝 별이 켜지면 골드로 밝게 */
-.sky-link{ stroke:rgba(197,187,255,.15); stroke-linecap:round; fill:none; }
+/* 연결선 — 도면 선이 아니라 별 사이에 걸린 실처럼. 기본은 거의 안 보일 만큼 흐리고
+   따뜻한 쪽으로 톤 다운, 양 끝 별이 켜지면 골드로 밝게(구분 유지). */
+.sky-link{ stroke:rgba(238,226,255,.075); stroke-linecap:round; fill:none; }
 .sky-link.is-on{
   stroke:rgba(255,214,140,.55);
   filter:drop-shadow(0 0 1.5px rgba(255,211,107,.6));
 }
 
-/* 별 — 안 켜진 별은 흐릿한 밑그림, 켜진 별은 골드 코어 + 은은한 헤일로 */
+/* 별 — 안 켜진 별도 '삭막한 회색 점'이 아니라 아직 멀리 있는 작은 warm dim 발광점.
+   켜진 별과의 구분은 (a) 헤일로 유무 (b) 코어 크기 (c) 밝기·글로우 세기로 확실히 남는다. */
 .sky-star{ transform-box:fill-box; transform-origin:center; }
-.sky-dim{ fill:rgba(199,187,255,.32); }
+.sky-dim{
+  fill:rgba(255,243,222,.44);
+  /* SVG 필터 길이는 user unit 기준 — viewBox(≈95unit)에서 2.6unit ≈ 화면 7px의 부드러운 번짐 */
+  filter:drop-shadow(0 0 2.6px rgba(var(--warm-glow),.55));
+}
 .sky-halo{ fill:url(#skyHaloGrad); animation:halo-breathe 6.2s ease-in-out infinite; }
 .sky-core{ fill:#fff6df; filter:drop-shadow(0 0 3px rgba(255,211,107,.9)); }
 /* 켜진 별의 아주 잔잔한 숨 — 헤일로만(코어는 고정) 살짝 넓어졌다 좁아진다 */
@@ -311,6 +339,19 @@ body::after{
 
 /* ─── 홈: 오늘의 별자리 완성 축하 (조용한 1회 연출) ─── */
 .sky-stage-wrap{ position:relative; }
+/* 별자리가 뜬 자리에 옅은 성운 한 겹 — 마스코트 뒤 별빛 웅덩이와 같은 재료(보라+금빛)라
+   두 덩어리가 하나의 하늘로 이어져 보인다. 별자리 도형 뒤에만 은은하게. */
+.sky-stage-wrap::before{
+  content:''; position:absolute; z-index:0; left:50%; top:48%; transform:translate(-50%,-50%);
+  width:min(74%, 340px); height:82%; border-radius:50%; pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 50%,
+    rgba(var(--glow),.15), rgba(var(--warm-glow),.08) 46%, transparent 74%);
+  animation:nebula-breathe 9.6s ease-in-out infinite;
+}
+@keyframes nebula-breathe{
+  0%,100%{ opacity:.7; transform:translate(-50%,-50%) scale(.98); }
+  50%{ opacity:1; transform:translate(-50%,-50%) scale(1.04); }
+}
 /* 완성 순간: 별자리 전체가 잠깐 은은히 밝아짐 (한 번, 과하지 않게) */
 @keyframes sky-shine{
   0%{ filter:none; }

@@ -30,7 +30,10 @@ function frame(con) {
   const unit = Math.max(w, h); // 별·선 크기의 기준(별자리 규모에 비례해 일정하게 보이도록)
   return {
     vb: `${P(minX * S)} ${P(minY * S)} ${P(w)} ${P(h)}`,
-    rHalo: unit * 0.09, rCore: unit * 0.03, rDim: unit * 0.018, lw: unit * 0.0065,
+    // 외형 상수만 — 별 점등/동기화 로직과 무관.
+    // 연결선은 더 얇게(0.0065→0.005: 도면 선 느낌 제거), 안 켜진 별은 살짝 키워
+    // warm dim 발광점으로 읽히게(0.018→0.021). 켜진 별(코어 0.03+헤일로)과는 여전히 확연히 구분.
+    rHalo: unit * 0.09, rCore: unit * 0.03, rDim: unit * 0.021, lw: unit * 0.005,
   };
 }
 
