@@ -218,21 +218,17 @@ body::after{
 @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px) scale(.98); } to{ opacity:1; transform:none; } }
 
 /* ─── 홈: 히어로 + 마스코트 ─── */
-/* 마스코트 크기와 '패널 위로 넘치는 높이'는 패널 자체가 아니라 화면 컨테이너가 들고 있다.
-   넘친 만큼 위쪽에 자리를 비워둬야(padding-top) 헤더를 침범하지 않기 때문 —
-   두 값이 늘 같은 변수를 보게 해서 어긋날 여지를 없앤다. */
+/* 구도 = "위=하늘의 별자리 / 아래=언덕 위 고양이".
+   flex order로 라벨·별자리를 위로, 마스코트를 맨 아래로 재배치한다(DOM 순서는 그대로).
+   흐름 안에서 상하로 나뉘므로 별자리와 고양이는 겹칠 수 없다. */
 #screen-home{
   --mascot-size:clamp(190px, 50vw, 232px);
-  --orb-size:calc(var(--mascot-size) * 0.62);        /* 고양이가 올라선 행성 오브 */
-  --mascot-overhang:calc(var(--mascot-size) * 0.72); /* 고양이 몸통 대부분이 패널 위로 */
-  padding-top:var(--mascot-overhang);
+  --hill-w:calc(var(--mascot-size) * 1.5);           /* 고양이가 올라선 언덕 폭 */
+  --hill-h:calc(var(--mascot-size) * 0.46);          /* 언덕 높이(발밑 곡면) */
 }
-/* 히어로 = "달 · 별자리 · 오브 위의 고양이" 한 장면.
-   레이어 순서(뒤 → 앞): ::before 하늘(달+잔별) → ::after 행성 언덕 → 본문(z:1) →
-   마스코트(z:3).
-   ⚠ overflow는 visible이어야 한다 — 마스코트가 패널 위 경계를 넘어 떠 있는 구도라
-   overflow:hidden이면 머리가 잘린다. 그래서 배경 언덕도 패널 안쪽에서 완결되도록
-   좌우/아래로 삐져나가지 않게 그린다(아래 ::after 참고). */
+/* 히어로 = 밤하늘 패널. 레이어(뒤 → 앞): ::before 하늘(달+잔별) → ::after 패널 바닥
+   지평선 → 본문(z:1) → 마스코트(z:3, 발밑 언덕은 ::before로 함께).
+   ⚠ overflow는 visible — 고양이가 패널 왼쪽 아래 경계를 살짝 넘어 서므로 hidden이면 잘린다. */
 .home-hero{
   position:relative; overflow:visible;
   display:flex; flex-direction:column;        /* 데스크톱에서 별자리 무대가 남는 높이를 먹도록 */
@@ -241,9 +237,13 @@ body::after{
   background:var(--glass-warm), var(--grad-night-panel);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
   border:var(--glass-border-warm); border-radius:var(--r-hero);
-  padding:var(--sp-md) var(--sp-2xl) var(--sp-xl); text-align:center;
+  padding:var(--sp-lg) var(--sp-2xl) var(--sp-md); text-align:center;
   box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft);
 }
+/* flex 재배치: 라벨(1) → 별자리 무대(2, 남는 높이를 먹음) → 고양이(3, 맨 아래) */
+.home-hero > .sky-label{ order:1; }
+.home-hero > .sky-stage-wrap{ order:2; }
+.home-hero > .mascot-wrap{ order:3; }
 /* ── 하늘: 발광하는 달 + 잔별 ──
    달은 '본체 → 가까운 번짐 → 넓은 헤일로'를 한 겹의 원형 그라디언트로 그린다.
    카드 오른쪽 위(고양이·말풍선 바깥)에 두어 텍스트를 가리지 않는다.
@@ -272,60 +272,47 @@ body::after{
   animation:hero-sky-drift 12s ease-in-out infinite;
 }
 @keyframes hero-sky-drift{ 0%,100%{ opacity:.84; } 50%{ opacity:1; } }
-/* ── 행성 언덕: 패널 하단의 지평선 ──
-   예전엔 좌우로 패널 밖까지 넓힌 뒤 overflow로 잘라 곡률을 만들었지만, 마스코트가
-   패널 위로 넘치려면 overflow를 열어야 해서 '패널 안에서 완결되는' 아치로 바꿨다.
-   가로 반경 50%(=완만한 활), 아래 모서리는 패널 반경을 따라가 코너에서 튀지 않는다. */
+/* ── 패널 바닥 지평선 ── 고양이가 선 언덕이 '땅'에서 솟은 것으로 읽히게, 패널 바닥
+   전체를 아주 옅게 어둡혀 지면을 만든다(고양이의 발밑 언덕은 .mascot-wrap::before). */
 .home-hero::after{
-  content:''; position:absolute; z-index:0; left:0; right:0; bottom:0; height:74px;
+  content:''; position:absolute; z-index:0; left:0; right:0; bottom:0; height:58px;
   pointer-events:none;
-  border-radius:50% 50% var(--r-hero) var(--r-hero) / 100% 100% var(--r-hero) var(--r-hero);
-  background:linear-gradient(180deg,
-    rgba(var(--glow),.11) 0%,
-    rgba(40,46,92,.30) 40%,
-    rgba(20,24,54,.44) 100%);
-  box-shadow:inset 0 1.5px 0 rgba(var(--warm-glow),.20);   /* 달빛 받은 능선 */
+  border-radius:0 0 var(--r-hero) var(--r-hero);
+  background:linear-gradient(180deg, transparent 0%, rgba(20,24,54,.32) 100%);
 }
 /* 본문은 하늘·언덕 위로 (마스코트는 z-index:3을 따로 쓴다) */
 .home-hero > *{ position:relative; z-index:1; }
-/* 마스코트 자리 — 말풍선과 고양이를 세로로 쌓아 겹칠 수 없게 하고(한마디가 몇 줄이든 안전),
-   카드 밖으로 튀어나오던 구도를 접어 '카드 안에 앉은' 장면으로 바꾼다.
-   ::before 별빛 웅덩이 + ::after 바닥 그림자가 고양이의 '자리'를 만들어
-   떠다니는 스티커가 아니라 여기 앉아 있는 캐릭터로 읽히게 한다. */
-/* 마스코트 자리 — 패널 상단 패딩만큼 더 끌어올려, 오브에 올라선 고양이가 패널 위
-   경계를 살짝 넘어 떠 있게 한다. 넘치는 높이는 #screen-home의 padding-top과 같은
-   변수라 헤더를 침범하지 않는다. */
+/* 마스코트 자리 — 패널 왼쪽 아래 코너. 발밑 언덕(::before) 위에 서고, 왼쪽으로 살짝
+   붙되(패널 안쪽 여백만큼) 페이지 밖으로는 넘치지 않는다. 말풍선(한마디)은 고양이 위에
+   그대로 쌓여 어떤 길이든 겹치지 않는다. */
 .mascot-wrap{
   position:relative; z-index:3;
   display:flex; flex-direction:column; align-items:center;
   gap:var(--sp-md);   /* 말풍선 꼬리(5px)까지 감안한 여유 */
-  margin-top:calc(-1 * (var(--mascot-overhang) + var(--sp-md)));
-  margin-bottom:calc(var(--orb-size) * 0.80);   /* 발밑 오브가 드러날 자리(라벨과 안 겹치게) */
+  align-self:flex-start;                            /* 패널 왼쪽으로 */
+  margin-left:calc(-1 * var(--sp-lg));              /* 살짝만 왼쪽으로(패널 여백 안, 페이지 오버플로 없음) */
+  margin-top:var(--sp-md);                          /* 별자리 무대와의 간격 */
+  padding-bottom:calc(var(--hill-h) * 0.24);        /* 발밑 언덕이 아래로 드러날 자리 */
 }
-/* 작은 행성 오브 — 고양이가 올라선 자리.
-   납작한 능선 대신 온전한 구체로: 왼쪽 위에서 빛을 받아 아래로 어두워지고,
-   위쪽 가장자리에 금빛 림라이트가 돈다. 고양이와 함께 패널 위 경계를 걸쳐 있어
-   '카드에서 삐져나와 떠 있는' 구도를 만든다. */
+/* 발밑 언덕 — 밤하늘 톤의 곡면(형광 초록 X). 크레스트는 발밑에, 몸통은 아래로 이어져
+   '언덕 위에 선' 형태. 위쪽 가장자리에 달빛 림. */
 .mascot-wrap::before{
   content:''; position:absolute; z-index:-1; left:50%;
-  /* 오브의 윗머리만 발밑에 살짝 물리고(12%), 나머지는 발 아래로 온전히 드러난다 */
-  bottom:calc(var(--orb-size) * -0.88); transform:translateX(-50%);
-  width:var(--orb-size); height:var(--orb-size);
+  bottom:calc(var(--hill-h) * -0.16); transform:translateX(-50%);
+  width:var(--hill-w); height:var(--hill-h);
   border-radius:50%; pointer-events:none;
-  background:radial-gradient(circle at 34% 24%,
-    rgba(255,248,232,.50) 0%, rgba(214,200,255,.34) 34%,
-    rgba(126,112,204,.30) 66%, rgba(48,48,98,.34) 100%);
-  box-shadow:inset 0 2px 1px rgba(var(--warm-glow),.50),             /* 위쪽 림라이트 */
-             inset 0 -14px 24px -8px rgba(var(--shade-rgb),.50),     /* 아래쪽 그림자면 */
-             0 0 34px rgba(var(--warm-glow),.16);                    /* 은은한 번짐 */
-  /* 움직임은 고양이의 부유(float) 하나만 — 오브는 고정이라 '위에 떠 있는' 관계가 살아난다 */
+  background:radial-gradient(58% 84% at 42% 24%,
+    rgba(220,210,255,.30) 0%, rgba(126,114,202,.26) 40%,
+    rgba(58,56,116,.30) 70%, rgba(32,32,72,.34) 100%);
+  box-shadow:inset 0 3px 1px rgba(var(--warm-glow),.32),             /* 달빛 받은 크레스트 */
+             0 0 32px rgba(var(--warm-glow),.10);                    /* 은은한 번짐 */
 }
-/* 접지 그림자 — 고양이가 언덕 위에 '앉아 있는' 무게감. 부유 애니와 다른 주기로 숨 쉼 */
+/* 접지 그림자 — 고양이가 언덕 위에 '딛고 선' 무게감. */
 .mascot-wrap::after{
-  content:''; position:absolute; z-index:-1; left:50%; bottom:0; transform:translateX(-50%);
-  width:calc(var(--mascot-size) * 0.46); height:calc(var(--mascot-size) * 0.085);
+  content:''; position:absolute; z-index:-1; left:50%; bottom:calc(var(--hill-h) * 0.10); transform:translateX(-50%);
+  width:calc(var(--mascot-size) * 0.44); height:calc(var(--mascot-size) * 0.08);
   border-radius:50%; pointer-events:none;
-  background:radial-gradient(50% 50% at 50% 50%, rgba(var(--shade-rgb),.44), transparent 72%);
+  background:radial-gradient(50% 50% at 50% 50%, rgba(var(--shade-rgb),.42), transparent 72%);
   animation:shadow-breathe 5.4s ease-in-out infinite;
 }
 .mascot{
@@ -1132,9 +1119,10 @@ body::after{
   /* 패널의 주인공은 별자리 — 마스코트를 한 단계 줄여 그만큼을 무대에 넘긴다.
      (세로로 긴 별자리는 preserveAspectRatio="meet"이라 '무대 높이'가 곧 별자리 크기다) */
   #screen-home.is-active{ --mascot-size:clamp(168px, 17vw, 196px); }
-  .home-hero .sky-stage-wrap{ flex:1; display:flex; align-items:center; }
-  /* 무대는 남은 높이를 채운다 — 폭 상한(400px)만 유지해 좌우로 흩어지지 않게 */
-  .home-hero .sky-stage{ height:100%; max-height:none; min-height:274px; aspect-ratio:auto; }
+  /* 별자리 무대는 라벨과 고양이 사이의 남는 높이를 먹되, 위쪽(하늘)에 자리하도록
+     제 공간의 상단으로 붙인다 — 아래쪽은 고양이·언덕의 몫. */
+  .home-hero .sky-stage-wrap{ flex:1; display:flex; align-items:flex-start; }
+  .home-hero .sky-stage{ height:auto; max-height:none; min-height:232px; aspect-ratio:auto; }
   .routine-card{ flex:1; justify-content:center; }
 
   /* 기록: 추이 카드 전체 폭 + 나머지 2단 */
