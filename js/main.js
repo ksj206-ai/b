@@ -18,8 +18,8 @@ import {
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
-  needMeasureSuggest, conditionOf, recordCondition, gentleReason, getRoutineGuide, updateDose,
-  improveSignal,
+  needMeasureSuggest, conditionOf, recordCondition, getRoutineGuide, updateDose,
+  dailyStarMessage,
 } from './routine.js';
 import { getGuide } from './guide/guideData.js';
 import {
@@ -111,25 +111,18 @@ function renderHome() {
     title.textContent = `잘하고 있어요! 이어서 ${getGuide(nextId).name}`;
     btn.textContent = `이어하기 (${nextNo}번째부터)`;
     speech.textContent = '아까 하던 거 이어서 할까요?';
-  } else if (r.gentle) {
-    title.textContent = `오늘은 순한 코스로 가볍게, ${leftMin}분이면 돼요`;
-    btn.textContent = '시작하기 🚀';
-    // 순한 이유별 문구: stiff(사용자 자기보고)면 공감, 그 외(red 추론 등)는 중립.
-    // red로 뜬 날 "어제 뻐근했죠?"는 사실과 안 맞고 앱이 추론한 "안 좋음"을 노출하므로 회피.
-    speech.textContent = gentleReason() === 'stiff'
-      ? '어제 뻐근했죠? 오늘은 살살 해요 🐾'
-      : '오늘은 살살 가볼까요 🐾';
   } else {
-    title.textContent = `오늘의 손목 풀코스, ${leftMin}분이면 돼요`;
+    // 시작 전 — 말풍선은 "오늘의 별자리 한마디"가 맡는다(보이는_돌봄_설계 §1).
+    // 개선·순한·레벨업·포커스·꾸준함을 한 우선순위 안에서 하나만 고르므로, 예전처럼
+    // 순한 문구 위에 개선 문구가 덧씌워져 그날의 톤이 흔들리는 일이 없다.
+    // (완주·이어하기는 루틴 진행 안내라 위에서 그대로 둔다 — 한마디는 하루 한 줄·홈에서만.)
+    title.textContent = r.gentle
+      ? `오늘은 순한 코스로 가볍게, ${leftMin}분이면 돼요`
+      : `오늘의 손목 풀코스, ${leftMin}분이면 돼요`;
     btn.textContent = '시작하기 🚀';
-    speech.textContent = streak >= 2 ? `${streak}일 연속이에요! 🔥` : '오늘도 만나서 반가워요! 🐾';
+    // 오늘 별자리 배정이 끝난 skyState를 넘긴다 — 기본 tier가 별자리 이름을 쓸 수 있게
+    speech.textContent = dailyStarMessage(skyState).text;
   }
-
-  // 긍정 신호(§4.5) — 측정 개선 + 최근 잘 견딤일 때만 가끔 1회, 말풍선만 교체한다.
-  // updateDose(§4.3·§4.4)가 컨디션 기록 직후 먼저 갱신해 둔 adapt(streak·오늘 하강 여부)를 읽으므로
-  // 순서가 보장됨. 악화·정체·red엔 improveSignal이 null → 위 문구가 그대로 유지된다(무표시).
-  const improveMsg = improveSignal();
-  if (improveMsg) speech.textContent = improveMsg;
 
   // 마스코트(우주 고양이) 표정 — 말풍선과 같은 상태 조건 재사용.
   //   완주=happy / 스트릭 끊김·며칠 만 방문(이전 활동 있는데 스트릭 0)=sad / 그 외=idle

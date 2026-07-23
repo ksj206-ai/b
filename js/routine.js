@@ -16,9 +16,13 @@
 // 확장 지점: ids 원소는 현재 가이드 id 문자열. 향후 게임 슬롯이
 //   필요하면 { type:'game', id } 원소 도입으로 확장.
 // ═══════════════════════════════════════════════════════════
-import { load, save, todayStr, isRedSignal, isImproving, getAdapt, saveAdapt } from './store.js';
-import { ROUTINE, DEBUG_ADAPT } from './config.js';
+import {
+  load, save, todayStr, isRedSignal, isImproving, getAdapt, saveAdapt,
+  currentStreak, getSky,
+} from './store.js';
+import { ROUTINE, DEBUG_ADAPT, STAR_MESSAGE } from './config.js';
 import { getGuide } from './guide/guideData.js';
+import { getConstellation } from './constellations.js';
 
 /** 두 YYYY-MM-DD 사이 일수 차 (b - a). 파싱 실패 시 NaN */
 function dayDiff(a, b) {
@@ -60,9 +64,18 @@ export function recordCondition(condition, state = load(), date = todayStr(), co
  *   2) 최근 측정이 직전 대비 크게 나빠짐 (red 신호, store.isRedSignal — 신규 §4.4)
  *  둘 다 "더 순하게" 방향이라 안전. 사용자에겐 순한 코스만 보일 뿐(조용히). */
 function isGentleDay(state, date) {
-  const last = (state.conditions || [])[state.conditions.length - 1];
+  const last = lastCondition(state);
   const stiffYesterday = !!last && last.condition === 'stiff' && dayDiff(last.at, date) === 1;
   return stiffYesterday || isRedSignal(state, date);
+}
+
+/** 마지막 컨디션 기록 (없으면 null).
+ *  `(state.conditions || [])[state.conditions.length - 1]`는 || 가드가 인덱스에만 걸리고
+ *  바로 옆 .length는 그대로 터진다 — conditions가 없는 부분 state에서 크래시. 한 곳으로 모아 막는다.
+ *  (판정 규칙은 그대로 — 값이 있을 때 결과가 달라지지 않는 방어 처리) */
+function lastCondition(state) {
+  const list = state.conditions || [];
+  return list[list.length - 1] || null;
 }
 
 /** 순한 코스가 발동한 "이유" — 문구 분기 전용. isGentleDay와 같은 신호를 읽되
@@ -72,7 +85,7 @@ function isGentleDay(state, date) {
  *   · null   : 순한 코스 아님
  *  둘 다면 'stiff' 우선(자기보고가 red 추론보다 구체적이라). */
 export function gentleReason(state = load(), date = todayStr()) {
-  const last = (state.conditions || [])[state.conditions.length - 1];
+  const last = lastCondition(state);
   const stiffYesterday = !!last && last.condition === 'stiff' && dayDiff(last.at, date) === 1;
   if (stiffYesterday) return 'stiff';
   if (isRedSignal(state, date)) return 'red';
@@ -419,4 +432,106 @@ export function improveSignal(state = load(), date = todayStr()) {
   if (!show) return null;
   saveAdapt(state, { lastImproveShownAt: date });
   return IMPROVE_MESSAGE;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 오늘의 별자리 한마디 (보이는_돌봄_설계 §1)
+// 내부 적응 신호를 긍정·따뜻한 중립으로 번역해 홈에 하루 한 줄로 내보낸다.
+// 판정 로직은 하나도 새로 만들지 않는다 — 기존 신호(improveSignal·gentleReason·
+// getAdapt·currentStreak)를 '읽어서' 어느 tier인지만 고르고, 문구는 config에서 꺼낸다.
+// ═══════════════════════════════════════════════════════════
+
+/** 문자열 → 안정 해시 (같은 날 = 같은 문구, 날이 바뀌면 로테이션). Math.random 금지 —
+ *  홈을 다시 그릴 때마다 문구가 바뀌면 "앱이 날 본다"가 아니라 소음이 된다. */
+function hashStr(s) {
+  let h = 0;
+  const str = String(s);
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+const PLACEHOLDER = /\{(\w+)\}/g;
+
+/** 이 문구의 치환자를 지금 다 채울 수 있는가 ({n}이 없는데 "{n}일째"를 쓰면 안 되므로) */
+function fillable(msg, vars) {
+  return [...String(msg).matchAll(PLACEHOLDER)]
+    .every((m) => vars[m[1]] != null && vars[m[1]] !== '');
+}
+
+/** tier 문구 배열에서 하나 골라 치환자를 채운다. 채울 수 없는 문구는 후보에서 제외.
+ *  후보가 하나도 없으면 null(호출부가 기본 tier로 폴백). */
+function pickMessage(list, vars, seed) {
+  const ok = (list || []).filter((m) => fillable(m, vars));
+  if (!ok.length) return null;
+  return ok[hashStr(seed) % ok.length].replace(PLACEHOLDER, (_, k) => vars[k]);
+}
+
+// 문구 세트가 통째로 비는 극단(설정 오류)에서도 말풍선이 비지 않게
+const STAR_FALLBACK = '오늘도 만나서 반가워요 🐾';
+
+/**
+ * 오늘의 한마디 선택 — 우선순위대로 딱 하나(설계 §1.1).
+ *   개선 > 순한(stiff/red) > 레벨업 > 오늘의 포커스 > 꾸준함 > 기본
+ *
+ * ⚠ 부수효과: 개선 tier 판정에 improveSignal을 그대로 재사용하므로, 개선이 발동하면
+ *   그 안에서 lastImproveShownAt=오늘이 저장된다. 일부러 이렇게 뒀다 — 도배 방지
+ *   간격(minGapDays)을 여기서 다시 구현하면 규칙이 두 곳으로 갈라진다. 같은 날 두 번째
+ *   호출은 improveSignal이 재저장 없이 같은 결과를 돌려주므로 멱등이다.
+ *   improveSignal의 반환 문구는 참/거짓 신호로만 쓰고, 실제 문구는 config에서 고른다.
+ *
+ * @returns {{tier:string, text:string}} tier는 테스트·디버그용(홈은 text만 쓴다)
+ */
+export function dailyStarMessage(state = load(), date = todayStr()) {
+  const adapt = getAdapt(state);
+  const cfg = STAR_MESSAGE;
+  const vars = {};
+  let tier = null;
+
+  // 1) 개선 — 기존 게이트(측정 개선 + 견딤 + 하강한 날 스킵 + 간격 + 신선도)를 그대로 쓴다
+  if (improveSignal(state, date)) tier = 'improve';
+
+  // 2) 순한 날 — 사유별로 톤이 갈린다. stiff는 사용자 자기보고라 공감해도 되지만,
+  //    red는 앱이 측정 추이로 '추론'한 것이라 중립으로만 말한다(추론을 사실처럼 말하지 않기).
+  if (!tier) {
+    const g = gentleReason(state, date);
+    if (g === 'stiff') tier = 'gentleStiff';
+    else if (g === 'red') tier = 'gentleRed';
+  }
+
+  // 3) 레벨업 — 오늘 dose가 올라간 날만(어제 오른 걸 오늘 또 축하하지 않는다)
+  if (!tier && adapt.lastAdaptedAt === date && adapt.lastDoseAction === 'up') tier = 'levelUp';
+
+  // 4) 오늘의 포커스 — focus는 내부적으론 '약한 방향'이지만 밖으로는 방향으로만 말한다
+  if (!tier && adapt.focus) {
+    const label = cfg.focusLabel[adapt.focus];
+    const g = getGuide((ROUTINE.adaptReps.focusGuide || {})[adapt.focus]);
+    if (label) vars.focus = label;
+    if (g) vars.guide = g.short || g.name;
+    tier = 'focus';
+  }
+
+  // 5) 꾸준함 — 연속 방문 또는 적응형 견딤 중 하나만 넘으면 인정
+  if (!tier) {
+    const n = currentStreak(state, date);
+    if (n >= cfg.streakMin || (adapt.toleratedStreak || 0) >= cfg.toleratedMin) {
+      if (n >= 1) vars.n = n;   // 0일째라고 말하지 않게 — {n} 문구는 후보에서 빠진다
+      tier = 'streak';
+    }
+  }
+
+  // 6) 기본 — 오늘 별자리 이름을 곁들인 중립·따뜻
+  if (!tier) tier = 'base';
+  const today = getSky(state).today;
+  const con = today ? getConstellation(today.constellationId) : null;
+  if (con) vars.constellation = con.name;
+
+  let text = pickMessage(cfg.tiers[tier], vars, `${date}:${tier}`);
+  if (!text) {                         // 고른 tier에 쓸 문구가 없으면 조용히 기본으로
+    tier = 'base';
+    text = pickMessage(cfg.tiers.base, vars, `${date}:base`);
+  }
+  if (!text) text = STAR_FALLBACK;
+
+  if (DEBUG_ADAPT) console.log('[star] tier', { tier, date, vars, text });
+  return { tier, text };
 }

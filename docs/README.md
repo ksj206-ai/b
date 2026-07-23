@@ -10,6 +10,7 @@
 | [측정모듈_설계서_v2.md](측정모듈_설계서_v2.md) | ROM 측정·판정·콘텐츠 통합 설계 (원근 단축 보정, judge 계층, 미니게임 구조) | 설계 확정 |
 | [가이드모듈_구현명세서.md](가이드모듈_구현명세서.md) | 캐릭터 애니메이션 기반 운동 가이드 모듈 구현 명세 | 구현 완료 |
 | [맞춤루틴_설계문서_1.md](맞춤루틴_설계문서_1.md) | 측정 기록 기반 적응형(adaptive) 루틴 조정 시스템 | 구현 진행 중 |
+| [보이는_돌봄_설계.md](보이는_돌봄_설계.md) | 적응형 신호를 긍정으로 번역해 노출 — "오늘의 별자리 한마디" 외 | 1단계 구현 완료 |
 
 ## 관련 코드 매핑
 
@@ -19,6 +20,7 @@
 | 지표 계산 · ROM 측정 | `js/measurement.js` |
 | 운동 가이드 | `js/guide/` (guideData · guideHand · animPlayer · stepEngine) |
 | 루틴 구성 · 적응형 조정 | `js/routine.js`, `js/store.js` |
+| 오늘의 별자리 한마디 | `js/routine.js` (dailyStarMessage), `js/config.js` (STAR_MESSAGE) |
 | 상수 단일 출처 | `js/config.js` |
 
 프로젝트 개요와 실행 방법은 [루트 README](../README.md)를 참고하세요.
