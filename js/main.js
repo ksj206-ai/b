@@ -8,10 +8,11 @@ import {
   load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky,
   isTodayComplete, completeTodayConstellation, refreshFocus, freshComp,
+  makeMeasurement,
 } from './store.js';
 import { renderSky } from './sky.js';
 import { CONSTELLATIONS } from './constellations.js';
-import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, FUNCTIONAL_ROM } from './config.js';
+import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, DEBUG_MEASURE, FUNCTIONAL_ROM } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
@@ -401,10 +402,14 @@ function boot() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// 측정 화면: 손목 가동범위(굽힘·폄) 측정 → 저장 (지연 로드)
-// 흐름(phase): idle → neutral(중립 잡기) → measure(끝범위 유지-캡처) → result(저장)
-// tracking.js/measurement.js의 검증된 로직 재사용. rel<0=굽힘(A), rel>0=폄(B)
-// — 이 부호는 왼손 기준. 오른손은 화면상 각도가 거울 반대라 측정 시 부호를 반전한다.
+// 측정 화면: 손목 가동범위 측정 → 저장 (지연 로드)
+// 흐름(phase): idle → neutral(옆모습 중립) → measure(굽힘·폄 캡처)
+//              → devNeutral(정면 중립 재보정) → dev(요측·척측 캡처) → result(저장)
+// 굽힘·폄(옆모습)과 편위(정면)는 자세도 기준 중립도 달라 트래커·ROM 측정기를 각각
+// 따로 둔다(tracker/rom · devTracker/devRom). 어느 쪽이든 tracking.js/measurement.js의
+// 같은 직접-각도 파이프라인을 그대로 재사용한다 — 정면 편위도 화면 평면 안 움직임이라
+// 길이-비율 역산 없이 직접각으로 잰다(설계서 §5.2·§5.3).
+// rel의 A/B 부호 정규화(손별 거울 보정)는 measurement.js의 flexExtRel/deviationRel 참고.
 // 손(left/right)은 사용자가 직접 선택한다 — MediaPipe handedness는 측면 뷰에서
 // 신뢰할 수 없어 자동 인식을 쓰지 않는다. 마지막 선택은 lastMeasureHand로 기억.
 // ═══════════════════════════════════════════════════════════
@@ -439,7 +444,8 @@ async function initMeasure() {
 
 async function wireMeasure() {
   const tracking = await import('./tracking.js');
-  const { createWristTracker, createRomMeasurer } = await import('./measurement.js');
+  const { createWristTracker, createRomMeasurer, flexExtRel, deviationRel } =
+    await import('./measurement.js');
 
   const $ = (id) => document.getElementById(id);
   const els = {
@@ -447,26 +453,35 @@ async function wireMeasure() {
     mLive: $('mLive'), mLiveVal: $('mLiveVal'), mLiveCap: $('mLiveCap'),
     mProg: $('mProg'), mProgBar: $('mProgBar'), mGuide: $('mGuide'),
     mIdle: $('mIdle'), mStart: $('mStart'),
-    mCapture: $('mCapture'), capFlex: $('capFlex'), capFlexV: $('capFlexV'),
-    capExt: $('capExt'), capExtV: $('capExtV'), mComp: $('mComp'),
+    mCapture: $('mCapture'), capFlex: $('capFlex'), capFlexK: $('capFlexK'), capFlexV: $('capFlexV'),
+    capExt: $('capExt'), capExtK: $('capExtK'), capExtV: $('capExtV'), mComp: $('mComp'),
     mActions: $('mActions'), mReneutral: $('mReneutral'), mFinish: $('mFinish'),
     mResult: $('mResult'), rFlex: $('rFlex'), rExt: $('rExt'),
     rDelta: $('rDelta'), rFunc: $('rFunc'), rNarr: $('rNarr'), mAgain: $('mAgain'),
     mHandSel: $('mHandSel'), mHandChip: $('mHandChip'),
   };
 
-  const tracker = createWristTracker('measure');
-  const rom = createRomMeasurer();
   const savedHand = load().lastMeasureHand;
   measure = {
-    wired: true, tracking, tracker, rom, els, running: false, phase: 'idle', neutralStart: null,
+    wired: true, tracking, els, running: false, phase: 'idle', neutralStart: null,
+    mods: { flexExtRel, deviationRel },
+    tracker: createWristTracker('measure'), rom: createRomMeasurer(),       // 옆모습: 굽힘·폄
+    devTracker: createWristTracker('measure'), devRom: createRomMeasurer(), // 정면: 요측·척측
+    devLogAt: 0, // DEBUG_MEASURE 진단 로그 스로틀
     startGen: 0, // 시작 세대 — 로딩 중 화면 이탈 시 in-flight 시작을 무효화 (카메라 누수·버튼 무반응 방지)
     hand: savedHand === 'left' ? 'left' : 'right', // 측정할 손 — 사용자가 선택 (마지막 선택 기억)
   };
 
   els.mStart.addEventListener('click', () => startMeasure());
-  els.mReneutral.addEventListener('click', () => { if (measure.running) enterNeutral(); });
-  els.mFinish.addEventListener('click', () => finishMeasure());
+  // "중립 다시"는 지금 단계의 중립만 다시 잡는다 — 편위 단계에서 눌러도 이미 캡처한 굽힘·폄은 유지
+  els.mReneutral.addEventListener('click', () => {
+    if (!measure.running) return;
+    if (isDevPhase(measure.phase)) enterDevNeutral(); else enterNeutral();
+  });
+  // 굽힘·폄 단계의 버튼은 "다음 → 편위", 편위 단계에서야 저장으로 끝낸다
+  els.mFinish.addEventListener('click', () => {
+    if (measure.phase === 'measure') enterDevNeutral(); else finishMeasure();
+  });
   els.mAgain.addEventListener('click', () => { if (measure.running) enterNeutral(); else startMeasure(); });
   for (const b of els.mHandSel.querySelectorAll('.m-hand-btn')) {
     b.addEventListener('click', () => setHand(b.dataset.hand));
@@ -491,9 +506,14 @@ async function startMeasure() {
     els.camBadge.textContent = '인식 중';
     m.running = true;
     m.tracker.reset(); m.rom.reset();
+    m.devTracker.reset(); m.devRom.reset();
     enterNeutral();
+    // 단계에 맞는 트래커만 먹인다 — 옆모습/정면은 기준 중립이 서로 달라 섞으면 안 된다.
+    // usePose는 굽힘·폄과 동일하게 true: 정면에서도 전완(팔꿈치→손목)이 화면 평면 안이라
+    // 전완 상대각이 유효하고, 무엇보다 보상동작(snap.comp)은 usePose가 켜져야만 계산된다.
     tracking.startLoop(({ hand, pose, now }) => {
-      measureFrame(now, m.tracker.update(hand, pose, { usePose: true }));
+      const t = isDevPhase(m.phase) ? m.devTracker : m.tracker;
+      measureFrame(now, t.update(hand, pose, { usePose: true }));
     }, { pose: true });
   } catch (e) {
     if (m.startGen !== gen) return;                         // 이미 이탈했으면 안내 표시 안 함
@@ -503,26 +523,48 @@ async function startMeasure() {
   }
 }
 
-/** 중립 재수집 시작 */
+/** 정면(편위) 단계인가 — 프레임 루프의 트래커 선택·버튼 분기 기준 */
+const isDevPhase = (phase) => phase === 'devNeutral' || phase === 'dev';
+
+/** 중립 재수집 시작 (옆모습 — 굽힘·폄 처음부터). 편위 캡처도 함께 버린다 */
 function enterNeutral() {
   measure.neutralStart = null;
   measure.rom.reset();
+  measure.devRom.reset();
   setMeasurePhase('neutral');
 }
 
-/** 측정할 손 선택/전환 — 측정 중 전환 시 이미 캡처된 굽힘/폄 값도 서로 맞바꾼다
- *  (거울상 보정 방향이 바뀌면 기존 A/B 캡처의 물리적 의미가 뒤바뀌기 때문) */
+/** 정면 중립 재보정 시작 — 굽힘·폄 캡처(m.rom)는 그대로 두고 편위 쪽만 새로 잡는다.
+ *  devTracker를 reset하는 이유: 옆모습에서 쌓인 평활값(smooth)이 정면 중립 표본에
+ *  섞이면 기준각이 치우친다. 새 자세는 새 트래커로 처음부터 잡는다. */
+function enterDevNeutral() {
+  measure.neutralStart = null;
+  measure.devTracker.reset();
+  measure.devRom.reset();
+  setMeasurePhase('devNeutral');
+}
+
+/** 측정할 손 선택/전환 — 측정 중 전환 시 이미 캡처된 A/B 값도 서로 맞바꾼다
+ *  (거울상 보정 방향이 바뀌면 기존 A/B 캡처의 물리적 의미가 뒤바뀌기 때문).
+ *  굽힘·폄 단계면 굽힘↔폄을, 편위 단계면 요측↔척측을 맞바꾼다 — 두 단계는 반전하는
+ *  손이 서로 반대지만(measurement.js 참고) "손을 바꾸면 A/B가 뒤집힌다"는 사실은 같다. */
 function setHand(hand) {
   const m = measure;
   if (!m || (hand !== 'left' && hand !== 'right') || m.hand === hand) return;
+  const dev = isDevPhase(m.phase);
   m.hand = hand;
-  if (m.phase === 'measure') {
-    const st = m.rom.state;
-    [st.maxA, st.maxB] = [st.maxB, st.maxA];
-    [st.latchA, st.latchB] = [st.latchB, st.latchA];
-    st.holdRef = null; st.holdSamp = []; // 진행 중이던 끝범위 유지는 새로 시작
+  if (m.phase === 'measure' || dev) {
+    // 두 단계 모두 맞바꾼다 — 편위 단계에서 손을 바꿔도 앞서 잰 굽힘·폄이 어긋나지
+    // 않아야 한다(굽힘·폄 단계에선 devRom이 비어 있어 그쪽 교환은 무해한 no-op).
+    for (const st of [m.rom.state, m.devRom.state]) {
+      [st.maxA, st.maxB] = [st.maxB, st.maxA];
+      [st.latchA, st.latchB] = [st.latchB, st.latchA];
+      st.holdRef = null; st.holdSamp = []; // 진행 중이던 끝범위 유지는 새로 시작
+    }
+    const st = (dev ? m.devRom : m.rom).state; // 칩·버튼은 지금 단계 것만 다시 그린다
     setCapVal(m.els.capFlexV, st.maxA); setCapVal(m.els.capExtV, st.maxB);
-    m.els.mFinish.disabled = !(st.maxA > 0 || st.maxB > 0);
+    // 편위는 선택 단계라 완료 버튼을 잠그지 않는다(못 재도 굽힘·폄은 저장)
+    m.els.mFinish.disabled = dev ? false : !(st.maxA > 0 || st.maxB > 0);
   }
   renderHandUI();
 }
@@ -539,11 +581,15 @@ function renderHandUI() {
 
 const HAND_KO = { left: '왼손', right: '오른손' };
 
-const fmtLive = (rel) => {
+// 라이브 각도 문구 — A(rel<0)/B(rel>0)를 단계에 맞는 말로. 편위는 임상 용어(요측/척측)
+// 대신 몸으로 알아듣는 "엄지쪽/새끼쪽"으로 보여준다(저장 필드명은 radialDev/ulnarDev).
+const fmtLiveBy = (a0, b0) => (rel) => {
   const a = Math.round(Math.abs(rel));
   if (a < 3) return '중립 0°';
-  return (rel < 0 ? '굽힘 ' : '폄 ') + a + '°';
+  return (rel < 0 ? a0 : b0) + ' ' + a + '°';
 };
+const fmtLive = fmtLiveBy('굽힘', '폄');
+const fmtLiveDev = fmtLiveBy('엄지쪽', '새끼쪽');
 const setCapVal = (el, v) => { el.textContent = v > 0 ? v + '°' : '–'; };
 const setProg = (p) => { measure.els.mProgBar.style.width = (Math.max(0, Math.min(1, p)) * 100) + '%'; };
 function pulseCap(chip) { chip.classList.remove('pop'); void chip.offsetWidth; chip.classList.add('pop'); }
@@ -551,14 +597,24 @@ function pulseCap(chip) { chip.classList.remove('pop'); void chip.offsetWidth; c
 function measureFrame(now, snap) {
   const m = measure, e = m.els;
 
-  if (m.phase === 'neutral') {
+  // 중립 잡기 — 옆모습(neutral)과 정면(devNeutral)이 같은 절차를 각자의 트래커로 돈다
+  if (m.phase === 'neutral' || m.phase === 'devNeutral') {
+    const dev = m.phase === 'devNeutral';
+    const tracker = dev ? m.devTracker : m.tracker;
+    const rom = dev ? m.devRom : m.rom;
     if (snap.detected) {
-      if (m.neutralStart == null) { m.neutralStart = now; m.tracker.beginNeutral(); }
+      if (m.neutralStart == null) { m.neutralStart = now; tracker.beginNeutral(); }
       const p = Math.min(1, (now - m.neutralStart) / NEUTRAL_MS);
       setProg(p);
+      const left = Math.ceil((NEUTRAL_MS - (now - m.neutralStart)) / 1000);
       e.mLiveVal.textContent = '중립 잡는 중';
-      e.mLiveCap.textContent = `손목을 곧게 편 채 유지 (${Math.ceil((NEUTRAL_MS - (now - m.neutralStart)) / 1000)}s)`;
-      if (p >= 1) { m.tracker.commitNeutral(); m.rom.reset(); m.neutralStart = null; setMeasurePhase('measure'); }
+      e.mLiveCap.textContent = dev
+        ? `손바닥이 카메라를 보게, 곧게 편 채 유지 (${left}s)`
+        : `손목을 곧게 편 채 유지 (${left}s)`;
+      if (p >= 1) {
+        tracker.commitNeutral(); rom.reset(); m.neutralStart = null;
+        setMeasurePhase(dev ? 'dev' : 'measure');
+      }
     } else {
       m.neutralStart = null; setProg(0);
       e.mLiveVal.textContent = '손을 보여주세요';
@@ -567,36 +623,53 @@ function measureFrame(now, snap) {
     return;
   }
 
-  if (m.phase === 'measure') {
-    // 왼손/오른손 거울상 보정 — 옆모습에서 두 손은 거울상이라 굽힘 때 기우는
-    // 방향이 반대. rel 부호는 왼손 기준이므로 오른손이면 여기 한 곳에서 반전한다.
-    const rel = m.hand === 'right' ? -snap.rel : snap.rel;
-    e.mLiveVal.textContent = snap.detected ? fmtLive(rel) : '손을 보여주세요';
-    e.mLiveCap.textContent = snap.detected ? '최대한 굽혔다 → 폈다' : '';
-    const r = m.rom.feed(rel, now, snap.comp || !snap.detected);
+  // 끝범위 유지-캡처 — 굽힘·폄(measure)과 편위(dev)가 같은 ROM 측정기를 각자 돌린다.
+  // 다른 건 셋뿐: 어느 트래커/ROM을 쓰는지, 손별 거울 보정 방향(measurement.js), 문구.
+  if (m.phase === 'measure' || m.phase === 'dev') {
+    const dev = m.phase === 'dev';
+    const rel = dev ? m.mods.deviationRel(snap.rel, m.hand) : m.mods.flexExtRel(snap.rel, m.hand);
+    e.mLiveVal.textContent = snap.detected ? (dev ? fmtLiveDev(rel) : fmtLive(rel)) : '손을 보여주세요';
+    e.mLiveCap.textContent = !snap.detected ? ''
+      : dev ? '엄지쪽 끝까지 → 새끼쪽 끝까지' : '최대한 굽혔다 → 폈다';
+    const r = (dev ? m.devRom : m.rom).feed(rel, now, snap.comp || !snap.detected);
     setCapVal(e.capFlexV, r.maxA); setCapVal(e.capExtV, r.maxB);
     if (r.captured) pulseCap(r.captured.side === 'A' ? e.capFlex : e.capExt);
     setProg(r.progress > 0 && r.progress < 1 ? r.progress : 0);
     e.mComp.hidden = !(snap.comp && snap.detected);
-    e.mFinish.disabled = !(r.maxA > 0 || r.maxB > 0);
+    // 편위는 선택 단계 — 못 재도 굽힘·폄은 저장되게 완료 버튼을 잠그지 않는다
+    e.mFinish.disabled = dev ? false : !(r.maxA > 0 || r.maxB > 0);
+
+    if (dev && DEBUG_MEASURE && snap.detected && now - m.devLogAt > 250) {
+      m.devLogAt = now;
+      console.log(`[dev] hand=${m.hand} rel=${rel.toFixed(1)}° ${rel < 0 ? '요측' : '척측'} ` +
+                  `요측max=${r.maxA} 척측max=${r.maxB} comp=${snap.comp}`);
+    }
     return;
   }
 }
 
 function finishMeasure() {
-  const m = measure, e = m.els, r = m.rom.state;
+  const m = measure, e = m.els, r = m.rom.state, d = m.devRom.state;
   const flex = r.maxA, ext = r.maxB, sum = flex + ext;
 
   const s = load();
   s.measurements = s.measurements || [];
   const prev = s.measurements[s.measurements.length - 1] || null;
-  s.measurements.push({ v: 1, at: todayStr(), hand: m.hand, flex, ext, rom: sum });
+  // 편위는 캡처 못 했으면 makeMeasurement가 null로 남긴다(편위 단계를 건너뛴 경우 포함).
+  // rom은 기존대로 굽힘+폄 — 편위를 섞지 않는다(computeFocus 등이 읽는 축 불변).
+  const rec = makeMeasurement({
+    at: todayStr(), hand: m.hand, flex, ext, radialDev: d.maxA, ulnarDev: d.maxB,
+  });
+  s.measurements.push(rec);
   s.lastMeasureHand = m.hand; // 다음 측정의 기본 선택
   save(s);
   recordActivity(s); // 측정도 오늘 활동으로 스트릭 반영
-  refreshFocus(s);   // 최신 측정으로 약한 방향(focus) 재판정·저장 (루틴 반영은 다음 단계)
+  refreshFocus(s);   // 최신 측정으로 약한 방향(focus) 재판정·저장 (편위는 아직 focus에 안 씀)
   renderStreak();
+  // 편위가 실제로 잡혔는지 확인용 한 줄 (결과 화면 표시는 ②단계 — 지금은 콘솔로만)
+  console.log('[measure] 저장', rec);
 
+  // 결과 화면은 아직 굽힘·폄만 — 편위 표시는 ②단계
   e.rFlex.textContent = flex + '°'; e.rExt.textContent = ext + '°';
 
   // 기능 기준(일상생활 참고) — 진척률만 표시. "정상인 대비 %"·"N도 남았어요" 같은
@@ -648,14 +721,23 @@ function setMeasurePhase(phase) {
   m.phase = phase;
   const e = m.els, show = (el, on) => { if (el) el.hidden = !on; };
 
+  const capturing = phase === 'measure' || phase === 'dev';
+  const live = capturing || phase === 'neutral' || phase === 'devNeutral';
+
   show(e.mIdle, phase === 'idle');
-  show(e.mCapture, phase === 'measure');
-  show(e.mActions, phase === 'measure');
+  show(e.mCapture, capturing);
+  show(e.mActions, capturing);
   show(e.mResult, phase === 'result');
-  show(e.mLive, phase === 'neutral' || phase === 'measure');
-  show(e.mProg, phase === 'neutral' || phase === 'measure');
-  show(e.mHandChip, phase === 'neutral' || phase === 'measure');
+  show(e.mLive, live);
+  show(e.mProg, live);
+  show(e.mHandChip, live);
   show(e.mComp, false);
+
+  // 캡처 칩 라벨 — 옆모습(굽힘·폄) / 정면(엄지쪽·새끼쪽). 값 칸(capFlexV/capExtV)은
+  // 두 단계가 공유하므로 라벨도 단계마다 갈아 끼운다.
+  const devStage = isDevPhase(phase);
+  e.capFlexK.textContent = devStage ? '엄지쪽' : '굽힘';
+  e.capExtK.textContent = devStage ? '새끼쪽' : '폄';
 
   if (phase === 'idle') {
     show(e.mGuide, true);
@@ -670,7 +752,21 @@ function setMeasurePhase(phase) {
     show(e.mGuide, true);
     e.mGuide.textContent = '천천히 최대한 굽혔다가, 최대한 펴세요. 끝에서 잠깐 멈추면 기록돼요.';
     setCapVal(e.capFlexV, 0); setCapVal(e.capExtV, 0);
+    e.mFinish.textContent = '다음 (좌우 편위)';
     e.mFinish.disabled = true; setProg(0);
+  } else if (phase === 'devNeutral') {
+    show(e.mGuide, true);
+    // 편위는 손바닥-카메라 자세로 통일(설계서 §5.3) — 손등을 위로 두면 원근 단축으로 측정이 무너진다
+    e.mGuide.textContent = '이제 손바닥이 카메라를 보도록 정면으로 돌리고, 곧게 편 채 잠깐 유지해요.';
+    setCapVal(e.capFlexV, 0); setCapVal(e.capExtV, 0);
+    setProg(0);
+  } else if (phase === 'dev') {
+    show(e.mGuide, true);
+    e.mGuide.textContent = '손목을 좌우로 — 엄지쪽 끝까지, 새끼쪽 끝까지. 끝에서 잠깐 멈추면 기록돼요.';
+    setCapVal(e.capFlexV, 0); setCapVal(e.capExtV, 0);
+    e.mFinish.textContent = '체크 완료';
+    e.mFinish.disabled = false; // 편위는 선택 — 못 재도 굽힘·폄은 저장된다
+    setProg(0);
   } else if (phase === 'result') {
     show(e.mGuide, false);
   }

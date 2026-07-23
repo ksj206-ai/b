@@ -171,3 +171,7 @@ export const DEBUG_GUIDE = false;
 // 맞춤 루틴 판정 로그([adapt])를 콘솔에 출력할지. 평소 false —
 // 약한 방향(focus) 판정을 확인할 때만 true로 켠다.
 export const DEBUG_ADAPT = false;
+// 정면 편위(요측/척측) 측정 진단 로그([dev])를 콘솔에 출력할지. 평소 false —
+// 편위 부호·유지-캡처를 프레임 단위로 확인할 때만 true로 켠다.
+// (측정 저장 요약 한 줄 [measure] 저장 은 이 플래그와 무관하게 항상 출력된다.)
+export const DEBUG_MEASURE = false;

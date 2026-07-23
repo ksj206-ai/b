@@ -7,16 +7,31 @@ import { CONSTELLATIONS, getConstellation, constellationsBySeason } from './cons
 
 const ROOT = STORAGE_KEYS.ROOT;
 
+/** 저장 구조 버전. 올릴 때는 migrate()에 그 단계의 변환을 함께 추가한다.
+ *  v1 → v2: 측정 레코드에 정면 편위(radialDev/ulnarDev)가 추가됨 (추가 전용). */
+export const SCHEMA_VERSION = 2;
+
 /** 전체 상태 로드 (없으면 기본 구조) */
 export function load() {
   try {
     const raw = localStorage.getItem(ROOT);
     if (!raw) return defaults();
-    return { ...defaults(), ...JSON.parse(raw) };
+    return migrate({ ...defaults(), ...JSON.parse(raw) });
   } catch (e) {
     console.warn('[store] 로드 실패, 기본값 사용', e);
     return defaults();
   }
+}
+
+/**
+ * 옛 저장본을 현재 스키마로 올린다(로드 시 1회, 저장은 다음 save에서).
+ * v1 → v2는 '추가 전용' 변경이라 옛 측정 레코드는 손대지 않는다 — 편위 필드가
+ * 없으면 undefined로 남고, 읽는 쪽(computeFocus·isRedSignal·isImproving·기록 추이)은
+ * flex/ext/rom만 보므로 영향이 없다. 재구조화·값 변환 없음, 버전 도장만 찍는다.
+ */
+export function migrate(state) {
+  if (!(Number(state.schemaVersion) >= SCHEMA_VERSION)) state.schemaVersion = SCHEMA_VERSION;
+  return state;
 }
 
 /** 전체 상태 저장 */
@@ -37,12 +52,16 @@ export function update(patch) {
 
 function defaults() {
   return {
-    schemaVersion: 1,     // 저장 구조 버전 — 구조가 바뀌면 올리고 load()에서 마이그레이션
+    schemaVersion: SCHEMA_VERSION, // 저장 구조 버전 — 구조가 바뀌면 올리고 load()의 migrate()에서 처리
     streakDays: 0,        // 연속 달성일 (마지막 활동일 기준으로 누적)
     lastActiveDate: null, // 마지막으로 활동(가이드 완료·측정)한 날 (YYYY-MM-DD, 로컬)
     lastFreezeAt: null,   // 스트릭 프리즈로 건너뛴 공백일 (YYYY-MM-DD) — 주 1회 자동
     lastVisit: null,      // ISO 날짜
-    measurements: [],     // ROM 측정 기록 — v1: { v, at, hand: 'left'|'right'|null, flex, ext, rom }
+    // ROM 측정 기록 (생성은 makeMeasurement)
+    //   v1: { v, at, hand: 'left'|'right'|null, flex, ext, rom }
+    //   v2: + { radialDev, ulnarDev } — 정면 편위(요측/척측). 못 쟀으면 null,
+    //        v1 옛 기록엔 아예 없음(undefined). 읽는 쪽은 둘 다 "없음"으로 다뤄야 한다.
+    measurements: [],
     lastMeasureHand: null, // 마지막으로 측정한 손 — 측정 화면의 기본 선택값
     guideDone: [],        // 완료한 가이드 기록 (가이드 모듈 이후)
     // 오늘의 루틴 캐시 — 반드시 null 유지(부분 객체 금지: load()의 얕은
@@ -59,6 +78,28 @@ function defaults() {
     // 측정 기반 맞춤 루틴 상태 — null이면 아직 맞춤 전. sky와 같은 이유로
     // null 기본값(얕은 머지 함정 회피). 구조는 아래 defaultAdapt/getAdapt가 담당.
     adapt: null,
+  };
+}
+
+/**
+ * 측정 레코드(v2) 생성 — 저장 스키마의 단일 출처. finishMeasure가 이걸로만 만든다.
+ *
+ * · 편위(radialDev/ulnarDev)는 이번 세션에서 캡처하지 못했으면 **null**. 편위 단계를
+ *   건너뛰거나 끝범위 유지를 못 채운 경우가 여기 해당하며, 편위 필드가 아예 없는 v1
+ *   옛 기록(undefined)과 읽는 쪽에서 같은 "없음"으로 취급되도록 맞춘 것이다.
+ * · rom은 기존 정의 그대로 **굽힘+폄 합**(편위 미포함). 편위를 섞으면 computeFocus·
+ *   isRedSignal·isImproving·기록 추이가 읽는 축의 의미가 바뀌므로 절대 합치지 않는다.
+ * @returns {{v:2, at, hand, flex, ext, rom, radialDev:number|null, ulnarDev:number|null}}
+ */
+export function makeMeasurement({
+  at = todayStr(), hand = null, flex = 0, ext = 0, radialDev = null, ulnarDev = null,
+} = {}) {
+  const deg = (v) => Math.max(0, Math.round(Number(v) || 0));
+  const devDeg = (v) => { const d = deg(v); return d > 0 ? d : null; }; // 0·null·NaN → 미측정(null)
+  const f = deg(flex), e = deg(ext);
+  return {
+    v: 2, at, hand: hand || null, flex: f, ext: e, rom: f + e,
+    radialDev: devDeg(radialDev), ulnarDev: devDeg(ulnarDev),
   };
 }
 
