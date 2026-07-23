@@ -30,6 +30,9 @@ function frame(con) {
   const unit = Math.max(w, h); // 별·선 크기의 기준(별자리 규모에 비례해 일정하게 보이도록)
   return {
     vb: `${P(minX * S)} ${P(minY * S)} ${P(w)} ${P(h)}`,
+    // 금빛 luminous line 그라디언트용 좌표(userSpaceOnUse). objectBoundingBox를 쓰면
+    // 수직·수평 선에서 bbox 한 변이 0이라 그라디언트가 죽는다.
+    x1: P(minX * S), y1: P(minY * S), x2: P(maxX * S), y2: P(maxY * S),
     // 외형 상수만 — 별 점등/동기화 로직과 무관.
     // 연결선은 더 얇게(0.0065→0.005: 도면 선 느낌 제거), 안 켜진 별은 살짝 키워
     // warm dim 발광점으로 읽히게(0.018→0.021). 켜진 별(코어 0.03+헤일로)과는 여전히 확연히 구분.
@@ -66,7 +69,15 @@ function buildSvg(con, litSet) {
       `<stop offset="0%" stop-color="#ffe6a8" stop-opacity=".70"/>` +
       `<stop offset="42%" stop-color="#ffd36b" stop-opacity=".26"/>` +
       `<stop offset="100%" stop-color="#ffd36b" stop-opacity="0"/>` +
-    `</radialGradient></defs>` +
+    `</radialGradient>` +
+    // 켜진 연결선용 금빛 그라디언트 — 라인아트 포스터처럼 선 자체가 빛을 머금게.
+    // 별자리 전체 박스에 걸쳐 있어 어느 방향의 선이든 자연스럽게 색이 흐른다.
+    `<linearGradient id="skyLinkGrad" gradientUnits="userSpaceOnUse" ` +
+      `x1="${f.x1}" y1="${f.y1}" x2="${f.x2}" y2="${f.y2}">` +
+      `<stop offset="0%" stop-color="#ffdca8"/>` +
+      `<stop offset="50%" stop-color="#ffcf6b"/>` +
+      `<stop offset="100%" stop-color="#ffe9a8"/>` +
+    `</linearGradient></defs>` +
     `<g class="sky-links">${lines}</g>` +
     `<g class="sky-stars">${stars}</g>` +
   `</svg>`;

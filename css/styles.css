@@ -97,6 +97,12 @@
     radial-gradient(124% 88% at 50% -8%, rgba(var(--warm-glow),.075), transparent 62%),
     radial-gradient(96% 72% at 50% 110%, rgba(var(--peach-rgb),.055), transparent 68%);
   --glass-bg-cozy:var(--glass-warm), var(--glass-bg);
+  /* 히어로 전용 밤하늘 패널 — 성운 글로우 2개(보라·쪽빛) + 남색→보라→쪽빛 세로 그라데이션.
+     오른쪽 유리 카드보다 짙어서 '창밖의 하늘' 처럼 읽힌다. */
+  --grad-night-panel:
+    radial-gradient(120% 62% at 78% 6%, rgba(138,104,214,.22), transparent 68%),
+    radial-gradient(110% 58% at 12% 82%, rgba(44,104,178,.18), transparent 70%),
+    linear-gradient(180deg, #1b2350 0%, #232a5e 34%, #1d2a5a 68%, #15224a 100%);
   --glass-bg-cozy-strong:var(--glass-warm), var(--glass-bg-strong);
   --glass-border-warm:1px solid rgba(var(--cream-ink),.18);   /* 살짝 따뜻한 테두리 */
   /* 유리 림: 위쪽 크림빛 하이라이트 + 아래쪽 옅은 반사광 → 평평한 면이 두께를 갖는다 */
@@ -197,8 +203,11 @@ body::after{
    마스코트(z:3). 언덕이 카드 밖으로 나가지 않게 overflow:hidden. */
 .home-hero{
   position:relative; overflow:hidden;
+  display:flex; flex-direction:column;        /* 데스크톱에서 별자리 무대가 남는 높이를 먹도록 */
   --mascot-size:clamp(190px, 50vw, 232px);   /* 마스코트 크기 — 히어로의 주인공 */
-  background:var(--glass-bg-cozy);
+  /* 오른쪽 유리 카드와 대비되는 '짙은 밤하늘 패널' — 남색 → 보라 → 쪽빛 세로 그라데이션
+     위에 코지 워밍 레이어를 얹는다(가장 위 레이어부터 나열). */
+  background:var(--glass-warm), var(--grad-night-panel);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
   border:var(--glass-border-warm); border-radius:var(--r-hero);
   padding:var(--sp-md) var(--sp-2xl) var(--sp-xl); text-align:center;
@@ -237,7 +246,7 @@ body::after{
    위쪽 능선에만 옅은 금빛 림(달빛 받은 가장자리), 아래로는 어두워져 문구·CTA의
    대비는 오히려 좋아진다. */
 .home-hero::after{
-  content:''; position:absolute; z-index:0; left:-22%; right:-22%; bottom:-86px; height:196px;
+  content:''; position:absolute; z-index:0; left:-22%; right:-22%; bottom:-146px; height:206px;
   pointer-events:none; border-radius:50% 50% 0 0 / 100% 100% 0 0;
   background:linear-gradient(180deg,
     rgba(var(--glow),.10) 0%,
@@ -349,25 +358,34 @@ body::after{
    밀어 늘리지 않게(도감 격자 칸 높이가 튀는 문제 방지). 컨테이너는 position:relative. */
 .sky-svg{ position:absolute; inset:0; display:block; width:100%; height:100%; }
 
-/* 연결선 — 도면 선이 아니라 별 사이에 걸린 실처럼. 기본은 거의 안 보일 만큼 흐리고
-   따뜻한 쪽으로 톤 다운, 양 끝 별이 켜지면 골드로 밝게(구분 유지). */
-.sky-link{ stroke:rgba(238,226,255,.09); stroke-linecap:round; fill:none; }
+/* 연결선 — 안 켜진 선은 별 사이에 걸린 실처럼 거의 안 보이게(차분),
+   양 끝 별이 켜지면 금빛 그라디언트(#skyLinkGrad)를 머금은 luminous line이 된다. */
+.sky-link{ stroke:rgba(255,232,196,.10); stroke-linecap:round; fill:none; }
 .sky-link.is-on{
-  stroke:rgba(255,214,140,.55);
-  filter:drop-shadow(0 0 1.5px rgba(255,211,107,.6));
+  /* 두 번째 값은 SVG paint 폴백 — 그라디언트를 못 찾아도 선이 사라지지 않고 금빛 단색으로 */
+  stroke:url(#skyLinkGrad) #ffcf6b; stroke-opacity:.72;
+  filter:drop-shadow(0 0 1.6px rgba(255,207,107,.75));
+}
+/* 완성 payoff — 라인이 한 번 은은하게 밝아졌다 돌아온다.
+   기존 1회 플래그(.sky-stage.celebrate, main.js celebrateSky)에 그대로 물린다. */
+.sky-stage.celebrate .sky-link.is-on{ animation:link-flare 1.8s ease-in-out; }
+@keyframes link-flare{
+  0%{ stroke-opacity:.72; }
+  32%{ stroke-opacity:1; filter:drop-shadow(0 0 4px rgba(255,207,107,.95)); }
+  100%{ stroke-opacity:.72; }
 }
 
 /* 별 — 안 켜진 별도 '삭막한 회색 점'이 아니라 아직 멀리 있는 작은 warm dim 발광점.
    켜진 별과의 구분은 (a) 헤일로 유무 (b) 코어 크기 (c) 밝기·글로우 세기로 확실히 남는다. */
 .sky-star{ transform-box:fill-box; transform-origin:center; }
+/* 안 켜진 별도 회색 점이 아니라 금빛 발광점 — 코어 #ffe9a8 + 헤일로 #ffcf6b.
+   켜진 별과는 색이 아니라 '세기'로 갈린다: 여기는 fill-opacity로 눌러 차분하게,
+   켜진 별은 불투명 코어 + 넓은 헤일로 원(sky-halo)까지 얹힌다.
+   SVG 필터 길이는 user unit 기준 — viewBox(≈95unit)에서 1unit ≈ 화면 2.8px. */
 .sky-dim{
-  /* 알파 .44는 크림색이 남색에 묻혀 '회색 점'으로 보였다 → 코어를 또렷하게 올리고,
-     밝기는 fill보다 글로우로 만든다(멀리 있는 작은 별의 번짐). */
-  fill:rgba(255,241,214,.62);
-  /* SVG 필터 길이는 user unit 기준 — viewBox(≈95unit)에서 1unit ≈ 화면 2.8px.
-     좁고 밝은 블룸 + 넓고 옅은 금빛 헤일로 2단. */
-  filter:drop-shadow(0 0 1.4px rgba(255,238,200,.85))
-         drop-shadow(0 0 4.5px rgba(var(--warm-glow),.45));
+  fill:#ffe9a8; fill-opacity:.60;
+  filter:drop-shadow(0 0 1.4px rgba(255,233,168,.85))    /* 좁고 밝은 블룸 */
+         drop-shadow(0 0 4.6px rgba(255,207,107,.50));   /* 넓고 옅은 금빛 헤일로 */
 }
 .sky-halo{ fill:url(#skyHaloGrad); animation:halo-breathe 6.2s ease-in-out infinite; }
 .sky-core{ fill:#fff6df; filter:drop-shadow(0 0 3px rgba(255,211,107,.9)); }
@@ -622,17 +640,37 @@ body::after{
   box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft);
 }
 .section-card:active{ transform:translateY(1px) scale(.99); }
-/* 오늘의 루틴 — 한 줄 전체를 쓰는 주 카드. 폭이 넓어진 만큼 세로 스택 대신
-   가로 구성(오브 옆에 이름)으로 두어 빈 여백 없이 꽉 차게. */
 .section-card.is-main{
-  grid-column:1 / -1;
-  flex-direction:row; justify-content:center; align-items:center; gap:var(--sp-md);
-  padding:var(--sp-lg) var(--sp-xl);
   background:var(--glass-bg-cozy-strong);
   box-shadow:var(--glass-shadow), var(--ring-warm), var(--glass-rim-warm), var(--glow-warm-soft);
 }
-.section-card.is-main .section-emoji{ width:52px; height:52px; }
-.section-card.is-main .section-name{ font-size:var(--fs-md); }
+
+/* ─── 홈: 오른쪽 카드 열 ─── */
+.home-side{ display:flex; flex-direction:column; gap:var(--sp-md); margin-top:var(--sp-lg); }
+.home-side > .sections,
+.home-side > .remind-entry-chip,
+.home-side > .remind-panel{ margin-top:0; }   /* 세로 간격은 열의 gap이 담당 */
+
+/* ① 오늘의 루틴 — 홈의 주인공 카드. 오늘 할 일 문구 + 주 CTA를 품는다. */
+.routine-card{
+  cursor:default; gap:var(--sp-sm);
+  padding:var(--pad-card) var(--sp-xl) var(--sp-xl);
+}
+.routine-card:hover{ transform:none; }   /* 카드 자체는 버튼이 아니다 — 안의 두 버튼만 눌린다 */
+/* 카드 머리(🎬 오늘의 루틴) — 가이드 목록으로 가는 버튼 */
+.routine-card-head{
+  display:flex; align-items:center; gap:var(--sp-sm);
+  background:none; border:none; padding:var(--sp-2xs) var(--sp-sm); cursor:pointer;
+  font-family:inherit; color:inherit; border-radius:var(--r-pill);
+  transition:transform .12s cubic-bezier(.34,1.5,.5,1);
+}
+.routine-card-head:hover{ transform:translateY(-2px); }
+.routine-card-head:active{ transform:translateY(1px); }
+.routine-card .section-emoji{ width:44px; height:44px; font-size:var(--fs-num); }
+.routine-card .section-name{ font-size:var(--fs-md); }
+.routine-card .home-hero-title{ margin:var(--sp-2xs) 0 0; }
+.routine-card .rp-text{ margin:0; }
+.routine-card .btn-hero{ margin-top:var(--sp-xs); }
 .section-emoji{
   width:46px; height:46px; border-radius:50%;
   display:flex; align-items:center; justify-content:center; font-size:var(--fs-num);
@@ -642,8 +680,9 @@ body::after{
              0 4px 12px rgba(var(--shade-rgb),.22),
              0 0 14px rgba(var(--warm-glow),.16);
 }
-.section-card:nth-child(2) .section-emoji{ background:radial-gradient(circle at 38% 30%,#fff8ec,var(--water-soft)); }
-.section-card:nth-child(3) .section-emoji{ background:radial-gradient(circle at 38% 30%,#fff8ec,var(--peach-soft)); }
+/* 오브 톤은 카드가 가는 화면으로 구분 — nth-child는 루틴 카드가 nav 밖으로 나가며 어긋난다 */
+.section-card[data-nav="measure"] .section-emoji{ background:radial-gradient(circle at 38% 30%,#fff8ec,var(--water-soft)); }
+.section-card[data-nav="sky"] .section-emoji{ background:radial-gradient(circle at 38% 30%,#fff8ec,var(--peach-soft)); }
 .section-name{
   font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-base);
   color:var(--moss-dd);
@@ -1044,12 +1083,20 @@ body::after{
 @media (min-width:960px){
   .app{ width:min(1080px,92vw); }
 
-  /* 홈: 2단(히어로 좌 · 목록 우) → 세로 한 컬럼.
-     "상단 밤하늘 장면 + 하단 기능 카드 그리드"로, 모바일의 읽기 흐름을 데스크톱에도
-     그대로 가져온다. 대신 폭을 좁혀 가운데로 모아 '작은 세계'처럼 보이게 —
-     넓게 펼치면 장면이 흩어지고 카드가 다시 목록처럼 읽힌다. */
-  #screen-home.is-active{ width:min(680px,100%); margin-inline:auto; }
-  #screen-home > .sections{ gap:var(--sp-md); }
+  /* 홈: 가로 2영역 웹 대시보드 — 왼쪽 밤하늘 히어로(고양이+별자리) 42% /
+     오른쪽 기능 카드 열 58%. 두 영역은 같은 높이로 늘어나고(align-items 기본 stretch),
+     남는 세로 공간은 각 영역 안에서 흡수한다:
+       · 왼쪽 → 별자리 무대(.sky-stage-wrap flex:1)가 먹는다
+       · 오른쪽 → 주 카드(.routine-card flex:1)가 먹는다
+     어느 쪽이 더 길어져도 반대쪽에 빈 띠가 남지 않는다. */
+  #screen-home.is-active{
+    display:grid; grid-template-columns:42fr 58fr; gap:var(--sp-xl); align-items:stretch;
+  }
+  #screen-home > .home-side{ margin-top:0; }
+  .home-hero .sky-stage-wrap{ flex:1; display:flex; align-items:center; }
+  /* 무대는 남은 높이를 채운다 — 폭 상한(400px)만 유지해 좌우로 흩어지지 않게 */
+  .home-hero .sky-stage{ height:100%; max-height:none; min-height:210px; aspect-ratio:auto; }
+  .routine-card{ flex:1; justify-content:center; }
 
   /* 기록: 추이 카드 전체 폭 + 나머지 2단 */
   #screen-records.is-active{
