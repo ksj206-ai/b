@@ -246,7 +246,7 @@ body::after{
    위쪽 능선에만 옅은 금빛 림(달빛 받은 가장자리), 아래로는 어두워져 문구·CTA의
    대비는 오히려 좋아진다. */
 .home-hero::after{
-  content:''; position:absolute; z-index:0; left:-22%; right:-22%; bottom:-146px; height:206px;
+  content:''; position:absolute; z-index:0; left:-22%; right:-22%; bottom:-180px; height:210px;
   pointer-events:none; border-radius:50% 50% 0 0 / 100% 100% 0 0;
   background:linear-gradient(180deg,
     rgba(var(--glow),.10) 0%,
@@ -383,9 +383,10 @@ body::after{
    켜진 별은 불투명 코어 + 넓은 헤일로 원(sky-halo)까지 얹힌다.
    SVG 필터 길이는 user unit 기준 — viewBox(≈95unit)에서 1unit ≈ 화면 2.8px. */
 .sky-dim{
-  fill:#ffe9a8; fill-opacity:.60;
-  filter:drop-shadow(0 0 1.4px rgba(255,233,168,.85))    /* 좁고 밝은 블룸 */
-         drop-shadow(0 0 4.6px rgba(255,207,107,.50));   /* 넓고 옅은 금빛 헤일로 */
+  fill:#ffe9a8; fill-opacity:.68;
+  /* 필터 길이는 user unit이라 무대가 커지면 발광 반경도 함께 커진다(별도 조정 불필요) */
+  filter:drop-shadow(0 0 1.5px rgba(255,233,168,.92))    /* 좁고 밝은 블룸 */
+         drop-shadow(0 0 5.2px rgba(255,207,107,.58));   /* 넓고 옅은 금빛 헤일로 */
 }
 .sky-halo{ fill:url(#skyHaloGrad); animation:halo-breathe 6.2s ease-in-out infinite; }
 .sky-core{ fill:#fff6df; filter:drop-shadow(0 0 3px rgba(255,211,107,.9)); }
@@ -1093,9 +1094,12 @@ body::after{
     display:grid; grid-template-columns:42fr 58fr; gap:var(--sp-xl); align-items:stretch;
   }
   #screen-home > .home-side{ margin-top:0; }
+  /* 패널의 주인공은 별자리 — 마스코트를 한 단계 줄여 그만큼을 무대에 넘긴다.
+     (세로로 긴 별자리는 preserveAspectRatio="meet"이라 '무대 높이'가 곧 별자리 크기다) */
+  #screen-home > .home-hero{ --mascot-size:clamp(168px, 17vw, 196px); }
   .home-hero .sky-stage-wrap{ flex:1; display:flex; align-items:center; }
   /* 무대는 남은 높이를 채운다 — 폭 상한(400px)만 유지해 좌우로 흩어지지 않게 */
-  .home-hero .sky-stage{ height:100%; max-height:none; min-height:210px; aspect-ratio:auto; }
+  .home-hero .sky-stage{ height:100%; max-height:none; min-height:274px; aspect-ratio:auto; }
   .routine-card{ flex:1; justify-content:center; }
 
   /* 기록: 추이 카드 전체 폭 + 나머지 2단 */

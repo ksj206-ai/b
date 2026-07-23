@@ -23,8 +23,10 @@ function frame(con) {
   const ys = con.stars.map((s) => s.y);
   let minX = Math.min(...xs), maxX = Math.max(...xs);
   let minY = Math.min(...ys), maxY = Math.max(...ys);
-  // 여백: 가장 긴 변 기준으로 균일하게(모양 왜곡 없이) — 헤일로가 잘리지 않게 넉넉히
-  const m = Math.max(maxX - minX, maxY - minY) * 0.18 || 0.18;
+  // 여백: 가장 긴 변 기준으로 균일하게(모양 왜곡 없이) — 표시 스케일만 결정한다(좌표 불변).
+  // 0.18 → 0.13: 별자리를 무대 안에서 약 8% 크게 그린다. 하한은 헤일로가 잘리지 않는 선 —
+  // 여백은 0.13/(1+2·0.13) ≈ 0.103 unit 으로 rHalo(0.09 unit)보다 아직 넉넉하다.
+  const m = Math.max(maxX - minX, maxY - minY) * 0.13 || 0.13;
   minX -= m; maxX += m; minY -= m; maxY += m;
   const w = (maxX - minX) * S, h = (maxY - minY) * S;
   const unit = Math.max(w, h); // 별·선 크기의 기준(별자리 규모에 비례해 일정하게 보이도록)
