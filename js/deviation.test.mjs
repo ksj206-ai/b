@@ -17,10 +17,10 @@ if (typeof localStorage === 'undefined') {
 
 import { flexExtRel, deviationRel, createRomMeasurer } from './measurement.js';
 import {
-  makeMeasurement, migrate, load, SCHEMA_VERSION,
+  makeMeasurement, migrate, load, SCHEMA_VERSION, deviationProgress,
   computeFocus, isRedSignal, isImproving, getAdapt,
 } from './store.js';
-import { ROM, STORAGE_KEYS } from './config.js';
+import { ROM, STORAGE_KEYS, FUNCTIONAL_ROM } from './config.js';
 
 let pass = 0, fail = 0;
 const eq = (got, want, msg) => {
@@ -207,5 +207,78 @@ const rearm = (rom, t) => rom.feed(0, t, false);
   }
 }
 
-console.log(`\n정면 편위(측정·저장) 테스트: ${pass} pass, ${fail} fail`);
+// ═══ 7) 합 기능 진척률 (②단계 표시용) — (요측+척측)/40, 0~100 clamp ═══
+{
+  const T = FUNCTIONAL_ROM.deviationCombined;
+  eq(T, 40, '7 기준은 config에서 온다(하드코딩 아님)');
+  const rec = (rd, ud) => makeMeasurement({ at: 'd', hand: 'right', flex: 40, ext: 40, radialDev: rd, ulnarDev: ud });
+
+  // 7a: 기본 계산 — 합 ÷ 40
+  {
+    const d = deviationProgress(rec(18, 30));   // 합 48
+    eq(d.sum, 48, '7a 합 = 요측+척측');
+    eq(d.pct, 100, '7a 48/40 → 100으로 clamp(120% 금지)');
+    eq(d.both, true, '7a 양쪽 다 잼');
+    eq(deviationProgress(rec(10, 10)).pct, 50, '7a 20/40 = 50%');
+    eq(deviationProgress(rec(8, 8)).pct, 40, '7a 16/40 = 40%');
+    eq(deviationProgress(rec(20, 20)).pct, 100, '7a 정확히 기준이면 100%');
+  }
+
+  // 7b: 상단 clamp — 기준을 크게 넘겨도 100을 안 넘는다("정상 대비 %" 금지 원칙과도 맞음)
+  {
+    eq(deviationProgress(rec(60, 60)).pct, 100, '7b 큰 값도 100 상한');
+    eq(deviationProgress(rec(60, 60)).sum, 120, '7b 합 자체는 clamp 안 함(추이용 원값)');
+  }
+
+  // 7c: 하단 — 음수·0은 makeMeasurement가 null로 만들고, 진척률은 0 밑으로 안 감
+  {
+    const d = deviationProgress(rec(0, 0));
+    eq(d.has, false, '7c 양쪽 미캡처 → 편위 없음(표시 안 함)');
+    eq(d.pct, 0, '7c pct 0');
+    eq(deviationProgress({ radialDev: -30, ulnarDev: -10 }).has, false, '7c 음수는 편위 없음 취급');
+    eq(deviationProgress({ radialDev: 5, ulnarDev: -10 }).pct, 13, '7c 음수 한쪽 무시 → 5/40=12.5→13');
+  }
+
+  // 7d: 한쪽만 캡처 — has=true지만 both=false (화면은 이때 헤드라인 진척률을 쓰지 않는다)
+  {
+    const d = deviationProgress(rec(18, 0));
+    eq(d.has, true, '7d 한쪽만이라도 편위 있음');
+    eq(d.both, false, '7d 양쪽은 아님');
+    eq(d.sum, 18, '7d 잰 쪽만 합산');
+    eq(d.radial, 18, '7d 잰 쪽 값');
+    eq(d.ulnar, null, '7d 못 잰 쪽 null');
+  }
+
+  // 7e: 옛 기록(v1, 편위 필드 없음)·null·빈 객체 — 에러 없이 has=false
+  {
+    eq(deviationProgress({ v: 1, at: 'd', flex: 35, ext: 50, rom: 85 }).has, false, '7e v1 옛 기록 안전');
+    eq(deviationProgress(null).has, false, '7e null 안전');
+    eq(deviationProgress(undefined).has, false, '7e undefined 안전');
+    eq(deviationProgress({}).has, false, '7e 빈 객체 안전');
+    eq(deviationProgress(null).pct, 0, '7e null이어도 pct 0');
+  }
+
+  // 7f: 라벨이 뒤바뀌어도(부호 미확정 리스크) 합·진척률은 그대로 — 이게 합을 쓰는 이유
+  {
+    const a = deviationProgress(rec(12, 25));
+    const flipped = deviationProgress(rec(25, 12));   // 요측/척측이 서로 뒤바뀐 경우
+    eq(a.sum, flipped.sum, '7f 라벨이 뒤집혀도 합 동일');
+    eq(a.pct, flipped.pct, '7f 라벨이 뒤집혀도 진척률 동일');
+  }
+
+  // 7g: 기준 주입 — 0·음수 기준에도 ÷0 없이 안전
+  {
+    eq(deviationProgress(rec(10, 10), 20).pct, 100, '7g 기준 20이면 20/20=100%');
+    eq(Number.isFinite(deviationProgress(rec(10, 10), 0).pct), true, '7g 기준 0이어도 유한값');
+    eq(Number.isFinite(deviationProgress(rec(10, 10), -5).pct), true, '7g 음수 기준도 유한값');
+  }
+
+  // 7h: 반올림 — 소수점이 화면에 새지 않는다
+  {
+    eq(Number.isInteger(deviationProgress(rec(7, 6)).pct), true, '7h pct는 정수');
+    eq(deviationProgress(rec(7, 6)).pct, 33, '7h 13/40 = 32.5 → 33');
+  }
+}
+
+console.log(`\n정면 편위(측정·저장·표시) 테스트: ${pass} pass, ${fail} fail`);
 if (typeof process !== 'undefined' && fail > 0) process.exitCode = 1;

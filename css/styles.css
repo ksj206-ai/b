@@ -726,6 +726,12 @@ body::after{
   text-align:center; word-break:keep-all; line-height:var(--lh);
   background:var(--sage-soft); border-radius:var(--r-sm); padding:var(--sp-sm) var(--sp-lg);
 }
+/* 좌우 편위 블록 — 굽힘·폄 아래 보조 리포트. 같은 프레이밍(기능 진척률)이지만
+   한 단계 조용하게 두어 헤드라인(굽힘·폄)과 위계가 섞이지 않게 한다. */
+.m-dev{ display:flex; flex-direction:column; gap:var(--sp-sm); width:100%; }
+.m-func--sub{ font-size:var(--fs-sm); padding:var(--sp-xs) var(--sp-md); }
+.m-result-grid--sub b{ font-size:var(--fs-lg); }
+.m-result-grid--sub > div{ padding:var(--sp-sm) var(--sp-xs); }
 /* 서사 한 줄 — 이번 주 루틴 꾸준함 */
 .m-narr{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--moss-dd); margin:0; text-align:center; word-break:keep-all; line-height:var(--lh); }
 /* 다음 체크 안내 */
@@ -772,6 +778,7 @@ body::after{
 .rec-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:var(--sp-2xs); }
 .rec-dot--flex{ background:var(--moss-dd); }
 .rec-dot--ext{ background:var(--water-d); }
+.rec-dot--dev{ background:var(--honey); }   /* 편위 합 — 굽힘(라벤더)·폄(시안)과 구분되는 골드 */
 
 .rec-canvas{ display:block; width:100%; height:170px; }
 .rec-hint{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted); text-align:center; margin:var(--sp-sm) 0 0; }

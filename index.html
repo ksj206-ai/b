@@ -238,6 +238,18 @@
             <!-- 기능 기준 진척(일상생활 참고) — 부족 표현·정상인 대비 % 금지 -->
             <p id="rFunc" class="m-func"></p>
             <p id="rDelta" class="m-delta"></p>
+
+            <!-- 좌우 편위 — 편위를 잰 체크에서만 노출. 헤드라인은 요측+척측 '합'의 기능
+                 진척률(개별 방향 라벨이 아직 잠정이라 합이 안전), 개별 각도는 보조. -->
+            <div id="rDevBlock" class="m-dev" hidden>
+              <p id="rDevFunc" class="m-func m-func--sub"></p>
+              <div id="rDevGrid" class="m-result-grid m-result-grid--sub">
+                <div><span id="rDevAK">엄지쪽</span><b id="rDevA">–</b></div>
+                <div><span id="rDevBK">새끼쪽</span><b id="rDevB">–</b></div>
+              </div>
+              <p id="rDevDelta" class="m-delta"></p>
+            </div>
+
             <!-- 서사 한 줄 — 이번 주 루틴 완료 일수 (0회면 숨김) -->
             <p id="rNarr" class="m-narr" hidden></p>
             <p class="m-next">🗓 다음 체크는 다음 주쯤이 좋아요</p>
@@ -297,6 +309,25 @@
             <p class="rec-empty-text">아직 체크 기록이 없어요.<br>손목 상태를 재고 변화를 지켜봐요.</p>
             <button class="btn" data-nav="measure">체크하러 가기</button>
           </div>
+        </div>
+
+        <!-- 좌우 편위 추이 — 요측+척측 '합'만 그린다(개별 방향 라벨이 잠정이라 합이 안전).
+             편위를 잰 체크가 하나도 없으면 카드 자체를 감춘다(빈 카드로 자리 차지 않게). -->
+        <div class="rec-card" id="recDevCard" hidden>
+          <div class="rec-card-head">
+            <span class="rec-card-title">손목 좌우 편위 추이</span>
+            <span class="rec-range" id="recDevRange"></span>
+          </div>
+          <div class="rec-stats">
+            <div class="rec-stat"><span>최근 합</span><b id="recDevLatest">–</b></div>
+            <div class="rec-stat"><span>지난 대비</span><b id="recDevDelta">–</b></div>
+            <div class="rec-stat"><span>최고 기록</span><b id="recDevBest">–</b></div>
+          </div>
+          <div class="rec-legend">
+            <span><i class="rec-dot rec-dot--dev"></i>요측+척측 합</span>
+          </div>
+          <canvas id="recDevCanvas" class="rec-canvas"></canvas>
+          <p id="recDevHint" class="rec-hint"></p>
         </div>
 
         <!-- 데일리 루틴 기록 (N/6) -->

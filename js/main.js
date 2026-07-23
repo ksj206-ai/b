@@ -8,11 +8,13 @@ import {
   load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky,
   isTodayComplete, completeTodayConstellation, refreshFocus, freshComp,
-  makeMeasurement,
+  makeMeasurement, deviationProgress,
 } from './store.js';
 import { renderSky } from './sky.js';
 import { CONSTELLATIONS } from './constellations.js';
-import { SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, DEBUG_MEASURE, FUNCTIONAL_ROM } from './config.js';
+import {
+  SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, DEBUG_MEASURE, FUNCTIONAL_ROM, DEV_LABEL,
+} from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
@@ -459,6 +461,10 @@ async function wireMeasure() {
     mResult: $('mResult'), rFlex: $('rFlex'), rExt: $('rExt'),
     rDelta: $('rDelta'), rFunc: $('rFunc'), rNarr: $('rNarr'), mAgain: $('mAgain'),
     mHandSel: $('mHandSel'), mHandChip: $('mHandChip'),
+    // 결과 화면의 좌우 편위 블록 (편위를 잰 체크에서만 노출)
+    rDevBlock: $('rDevBlock'), rDevFunc: $('rDevFunc'), rDevGrid: $('rDevGrid'),
+    rDevAK: $('rDevAK'), rDevA: $('rDevA'), rDevBK: $('rDevBK'), rDevB: $('rDevB'),
+    rDevDelta: $('rDevDelta'),
   };
 
   const savedHand = load().lastMeasureHand;
@@ -666,10 +672,8 @@ function finishMeasure() {
   recordActivity(s); // 측정도 오늘 활동으로 스트릭 반영
   refreshFocus(s);   // 최신 측정으로 약한 방향(focus) 재판정·저장 (편위는 아직 focus에 안 씀)
   renderStreak();
-  // 편위가 실제로 잡혔는지 확인용 한 줄 (결과 화면 표시는 ②단계 — 지금은 콘솔로만)
-  console.log('[measure] 저장', rec);
+  if (DEBUG_MEASURE) console.log('[measure] 저장', rec);
 
-  // 결과 화면은 아직 굽힘·폄만 — 편위 표시는 ②단계
   e.rFlex.textContent = flex + '°'; e.rExt.textContent = ext + '°';
 
   // 기능 기준(일상생활 참고) — 진척률만 표시. "정상인 대비 %"·"N도 남았어요" 같은
@@ -693,6 +697,8 @@ function finishMeasure() {
     e.rDelta.textContent = '첫 체크예요. 다음부터 지난 기록과 비교해 드려요.';
   }
 
+  renderDevResult(e, rec, prev);
+
   // 서사 한 줄 — 이번 주(최근 7일) 루틴 완료 일수. 0회면 생략(질책 금지).
   const weekN = recentRoutineDays(s.routineLog || [], todayStr());
   e.rNarr.hidden = weekN < 1;
@@ -701,6 +707,46 @@ function finishMeasure() {
   }
 
   setMeasurePhase('result');
+}
+
+/**
+ * 결과 화면의 좌우 편위 블록 — 편위를 잰 체크에서만 노출한다(못 쟀으면 통째로 숨김.
+ * "편위 0°"를 보여주면 안 잰 것이 못 하는 것으로 읽힌다).
+ *
+ * 헤드라인은 요측+척측 '합'의 기능 진척률 — 굽힘·폄과 똑같은 프레이밍이고, 합은
+ * 요측/척측 라벨이 뒤바뀌어도 값이 같아 개별 방향 부호가 확정되기 전에도 안전하다.
+ * 개별 각도는 보조로만 두고, 라벨은 config.DEV_LABEL 한 곳에서 가져온다(★잠정★).
+ */
+function renderDevResult(e, rec, prev) {
+  const d = deviationProgress(rec);
+  e.rDevBlock.hidden = !d.has;
+  if (!d.has) return;
+
+  // 한쪽만 잡힌 체크는 합이 실제보다 낮게 나온다 → 진척률을 헤드라인으로 쓰지 않고
+  // 잰 쪽만 참고로 보여준다(못 잰 방향이 '부족'으로 읽히지 않게).
+  if (!d.both) {
+    e.rDevFunc.textContent = '좌우 편위는 한쪽만 기록됐어요. 다음 체크에서 양쪽 다 재보면 돼요 🌱';
+  } else if (d.pct >= 100) {
+    e.rDevFunc.textContent = '일상생활에 필요한 만큼 좌우로도 잘 움직여요 ✅';
+  } else {
+    e.rDevFunc.textContent = `좌우 편위, 일상생활 기준의 ${d.pct}%까지 왔어요 🌟`;
+  }
+
+  e.rDevAK.textContent = DEV_LABEL.radialDev;
+  e.rDevBK.textContent = DEV_LABEL.ulnarDev;
+  e.rDevA.textContent = d.radial != null ? d.radial + '°' : '–';
+  e.rDevB.textContent = d.ulnar != null ? d.ulnar + '°' : '–';
+
+  // 지난 체크 대비는 '합'끼리만, 참고값으로. 하락도 숫자로만 두고 부정 문구를 붙이지
+  // 않는다(§7.2 — 추세만 보여주고 해석은 강요하지 않는다).
+  const pd = deviationProgress(prev);
+  if (pd.has && pd.both && d.both) {
+    const diff = d.sum - pd.sum;
+    e.rDevDelta.textContent = `지난 체크 대비 편위 합 ${diff > 0 ? '+' : ''}${diff}° (참고값)`;
+    e.rDevDelta.hidden = false;
+  } else {
+    e.rDevDelta.hidden = true;
+  }
 }
 
 /** 최근 days일(오늘 포함) 안의 루틴 완료 일수 — routineLog 엔트리 1개 = 완료한 하루 */
@@ -1343,6 +1389,10 @@ async function renderRecords() {
       range: $('recRange'), trendWrap: $('recTrendWrap'), trendEmpty: $('recTrendEmpty'),
       latest: $('recLatest'), delta: $('recDelta'), best: $('recBest'),
       canvas: $('recCanvas'), trendHint: $('recTrendHint'),
+      // 좌우 편위(합) 추이 카드 — 편위를 잰 체크가 하나도 없으면 카드째 숨김
+      devCard: $('recDevCard'), devRange: $('recDevRange'), devLatest: $('recDevLatest'),
+      devDelta: $('recDevDelta'), devBest: $('recDevBest'),
+      devCanvas: $('recDevCanvas'), devHint: $('recDevHint'),
       guideCount: $('recGuideCount'), history: $('recHistory'), historyEmpty: $('recHistoryEmpty'),
       routineCount: $('recRoutineCount'), routine: $('recRoutine'), routineEmpty: $('recRoutineEmpty'),
       week: $('recWeek'), freeze: $('recFreeze'),
@@ -1354,6 +1404,7 @@ async function renderRecords() {
   }
   const s = load();
   renderTrend(recordsEls, s.measurements || []);
+  renderDevTrend(recordsEls, s.measurements || []);
   // 프리즈 사용 표시 — 숨기지 않고 그대로 보여준다 (신뢰)
   recordsEls.freeze.hidden = !freezeUsedThisWeek(s);
   renderWeek(recordsEls, s.conditions || [], s.lastFreezeAt);
@@ -1428,6 +1479,39 @@ function renderTrend(e, ms) {
     { data: flexes, color: '#b7a9f7', label: '굽힘' }, // --moss-dd
     { data: exts, color: '#5ab0e8', label: '폄' },     // --water-d
   ]);
+}
+
+/**
+ * 좌우 편위(요측+척측 합) 추이 — 굽힘·폄 추이와 같은 스타일·같은 drawTrend를 쓴다.
+ *
+ * '합'만 그리는 이유: 개별 요측/척측 라벨이 아직 잠정이라, 방향별 선을 그리면 나중에
+ * 부호가 뒤집혔을 때 지난 그래프 해석까지 통째로 틀린 게 된다. 합은 뒤바뀌어도 같다.
+ *
+ * 양쪽 다 잡힌 체크만 점으로 쓴다 — 한쪽만 잰 날의 합을 같은 선에 얹으면 실제로는
+ * 안 떨어졌는데 떨어진 것처럼 보인다. 편위 필드가 없는 v1 옛 기록도 같은 조건으로
+ * 자연스럽게 걸러진다. 남는 점이 없으면 카드 자체를 숨긴다.
+ */
+function renderDevTrend(e, ms) {
+  const pts = ms.map((m) => ({ at: m.at, d: deviationProgress(m) }))
+    .filter((p) => p.d.has && p.d.both);
+  e.devCard.hidden = pts.length === 0;
+  if (!pts.length) return;
+
+  const sums = pts.map((p) => p.d.sum);
+  const last = pts[pts.length - 1], prev = pts[pts.length - 2] || null;
+
+  e.devLatest.textContent = `${last.d.sum}° (${last.d.pct}%)`;
+  e.devBest.textContent = Math.max(...sums) + '°';
+  // 하락도 숫자로만 — 부정 문구 없이 추세만 (§7.2)
+  e.devDelta.textContent = prev
+    ? `${last.d.sum - prev.d.sum > 0 ? '+' : ''}${last.d.sum - prev.d.sum}°`
+    : '—';
+  e.devRange.textContent = pts.length > 1 ? `${fmtMd(pts[0].at)} ~ ${fmtMd(last.at)}` : fmtMd(last.at);
+  e.devHint.textContent = pts.length < 2
+    ? '편위도 2번 이상 재면 변화 추이가 그려져요.'
+    : `총 ${pts.length}회 · 일상생활 기준 ${FUNCTIONAL_ROM.deviationCombined}° 대비 참고값`;
+
+  drawTrend(e.devCanvas, [{ data: sums, color: '#ffcf87', label: '편위 합' }]); // --honey
 }
 
 /** 굽힘/폄(°) 시계열을 시간순 라인차트로 그림 — series: [{data, color, label}] */

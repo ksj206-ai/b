@@ -103,6 +103,34 @@ export function makeMeasurement({
   };
 }
 
+/**
+ * 편위 기능 진척률 — 설계 §7.1·§7.2. 표시 전용(판정·적응형에 쓰지 않는다).
+ *
+ * 개별 방향이 아니라 요측+척측 '합'을 쓰는 이유가 둘:
+ *   ① 근거(Ryu 1991)의 기능 기준 자체가 합 40°다.
+ *   ② 합은 요측/척측 라벨이 서로 뒤바뀌어도 값이 같다 — 개별 방향 부호가 실제 손으로
+ *      확정되기 전에도 헤드라인으로 안전하게 쓸 수 있는 유일한 축.
+ *
+ * 한쪽만 캡처한 기록은 both=false. 합이 실제보다 낮게 나오므로 화면은 이때 진척률을
+ * 헤드라인으로 쓰지 말고 잰 쪽 각도만 참고로 보여야 한다(못 잰 것을 '부족'으로 읽히지 않게).
+ *
+ * @param {object|null} rec 측정 레코드 (v1 옛 기록·null 안전)
+ * @returns {{has:boolean, both:boolean, radial:number|null, ulnar:number|null,
+ *            sum:number, pct:number}} has=false면 이 기록엔 편위가 없다(표시하지 않음)
+ */
+export function deviationProgress(rec, target = FUNCTIONAL_ROM.deviationCombined) {
+  const num = (v) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null; };
+  const radial = rec ? num(rec.radialDev) : null;   // v1 옛 기록엔 필드 자체가 없음 → null
+  const ulnar = rec ? num(rec.ulnarDev) : null;
+  if (radial == null && ulnar == null) {
+    return { has: false, both: false, radial: null, ulnar: null, sum: 0, pct: 0 };
+  }
+  const sum = (radial || 0) + (ulnar || 0);
+  const t = Number(target) > 0 ? Number(target) : 1;  // 기준 0/음수 방어 (÷0 방지)
+  const pct = Math.max(0, Math.min(100, Math.round((sum / t) * 100))); // 0~100 clamp
+  return { has: true, both: radial != null && ulnar != null, radial, ulnar, sum, pct };
+}
+
 // ═══════════════════════════════════════════════════════════
 // 스트릭(연속 달성) — 활동일 기준 계산
 // 정책: 하루에 한 번이라도 활동(가이드 완료·측정 저장)하면 그 날은 "달성".
