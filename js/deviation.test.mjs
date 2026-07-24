@@ -280,5 +280,34 @@ const rearm = (rom, t) => rom.feed(0, t, false);
   }
 }
 
+// ═══ 8) 기록 추이 포인트 선택 — renderDevTrend가 쓰는 필터(has && both)를 순수 재현 ═══
+// renderDevTrend는 DOM에 묶여 직접 테스트가 어렵다. 추이가 어떤 레코드를 점으로 쓰는지의
+// '규약'만 여기서 고정한다 — 핵심은 "편위 없는(옛/미측정/한쪽만) 레코드가 섞여도 안전".
+// 진척률 계산·부호 강건성은 §7이 이미 커버하므로 여기선 선별·제외만 본다.
+{
+  const rec = (rd, ud) => makeMeasurement({ at: 'd', hand: 'right', flex: 40, ext: 40, radialDev: rd, ulnarDev: ud });
+  const v1 = { v: 1, at: '2026-07-01', hand: 'right', flex: 35, ext: 50, rom: 85 }; // 옛 기록(편위 필드 없음)
+  const ms = [
+    v1,
+    rec(0, 0),      // 편위 미캡처(양쪽 null)
+    rec(18, 0),     // 한쪽만(both=false)
+    rec(12, 25),    // 양쪽 다 → 추이 포인트
+    rec(20, 20),    // 양쪽 다, 정확히 기준
+  ];
+  // renderDevTrend의 필터와 동일: has && both 인 점만 추이에 올린다
+  const pts = ms.map((m) => deviationProgress(m)).filter((d) => d.has && d.both);
+  eq(pts.length, 2, '8 both 캡처된 기록만 추이 포인트로');
+  eq(pts[0].sum, 37, '8 첫 포인트 합 12+25');
+  eq(pts[0].pct, 93, '8 37/40 = 92.5 → 93% (헤드라인 표시값)');
+  eq(pts[1].pct, 100, '8 40/40 = 100%');
+
+  // 옛/미측정/한쪽만은 조용히 제외 — 추이가 깨지지 않는다(편위 없는 레코드 안전 처리)
+  ok(ms.slice(0, 3).map((m) => deviationProgress(m)).every((d) => !(d.has && d.both)),
+     '8 v1·양쪽null·한쪽만은 추이에서 빠짐');
+  // 편위를 잰 체크가 하나도 없으면 포인트 0 → 화면은 카드째 숨긴다
+  eq([v1, rec(0, 0)].map((m) => deviationProgress(m)).filter((d) => d.has && d.both).length, 0,
+     '8 both 포인트 없으면 0(카드 숨김 조건)');
+}
+
 console.log(`\n정면 편위(측정·저장·표시) 테스트: ${pass} pass, ${fail} fail`);
 if (typeof process !== 'undefined' && fail > 0) process.exitCode = 1;

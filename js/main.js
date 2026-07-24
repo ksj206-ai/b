@@ -702,6 +702,15 @@ function finishMeasure() {
   setMeasurePhase('result');
 }
 
+/** 편위 합 진척률 → 긍정 프레이밍 한 줄. 결과 화면·기록 추이 공용(문구 톤이 갈라지지
+ *  않게 한 곳에서). 합 기준이라 요측/척측 부호와 무관 — d.both=true 전제(한쪽만 잰
+ *  경우는 호출부가 따로 처리). 하락은 여기 안 나온다(언제나 진척 표현). */
+function devProgressMessage(d) {
+  return d.pct >= 100
+    ? '일상생활에 필요한 만큼 좌우로도 잘 움직여요 ✅'
+    : `좌우 편위, 일상생활 기준의 ${d.pct}%까지 왔어요 🌟`;
+}
+
 /**
  * 결과 화면의 좌우 편위 블록 — 편위를 잰 체크에서만 노출한다(못 쟀으면 통째로 숨김.
  * "편위 0°"를 보여주면 안 잰 것이 못 하는 것으로 읽힌다).
@@ -717,13 +726,10 @@ function renderDevResult(e, rec, prev) {
 
   // 한쪽만 잡힌 체크는 합이 실제보다 낮게 나온다 → 진척률을 헤드라인으로 쓰지 않고
   // 잰 쪽만 참고로 보여준다(못 잰 방향이 '부족'으로 읽히지 않게).
-  if (!d.both) {
-    e.rDevFunc.textContent = '좌우 편위는 한쪽만 기록됐어요. 다음 체크에서 양쪽 다 재보면 돼요 🌱';
-  } else if (d.pct >= 100) {
-    e.rDevFunc.textContent = '일상생활에 필요한 만큼 좌우로도 잘 움직여요 ✅';
-  } else {
-    e.rDevFunc.textContent = `좌우 편위, 일상생활 기준의 ${d.pct}%까지 왔어요 🌟`;
-  }
+  // 양쪽 다 잰 체크는 결과·추이 공용 문구(devProgressMessage)로 — 톤이 갈라지지 않게.
+  e.rDevFunc.textContent = d.both
+    ? devProgressMessage(d)
+    : '좌우 편위는 한쪽만 기록됐어요. 다음 체크에서 양쪽 다 재보면 돼요 🌱';
 
   e.rDevAK.textContent = DEV_LABEL.radialDev;
   e.rDevBK.textContent = DEV_LABEL.ulnarDev;
@@ -1384,7 +1390,7 @@ async function renderRecords() {
       canvas: $('recCanvas'), trendHint: $('recTrendHint'),
       // 좌우 편위(합) 추이 카드 — 편위를 잰 체크가 하나도 없으면 카드째 숨김
       devCard: $('recDevCard'), devRange: $('recDevRange'), devLatest: $('recDevLatest'),
-      devDelta: $('recDevDelta'), devBest: $('recDevBest'),
+      devDelta: $('recDevDelta'), devBest: $('recDevBest'), devFunc: $('recDevFunc'),
       devCanvas: $('recDevCanvas'), devHint: $('recDevHint'),
       guideCount: $('recGuideCount'), history: $('recHistory'), historyEmpty: $('recHistoryEmpty'),
       routineCount: $('recRoutineCount'), routine: $('recRoutine'), routineEmpty: $('recRoutineEmpty'),
@@ -1493,7 +1499,10 @@ function renderDevTrend(e, ms) {
   const sums = pts.map((p) => p.d.sum);
   const last = pts[pts.length - 1], prev = pts[pts.length - 2] || null;
 
-  e.devLatest.textContent = `${last.d.sum}° (${last.d.pct}%)`;
+  // 진척 헤드라인 — 결과 화면과 같은 문구·톤(devProgressMessage). 가장 최근 '양쪽 다 잰'
+  // 체크 기준. %는 여기서만 보이고, 아래 통계는 각도(°)로 통일(굽힘·폄 추이와 같은 룩).
+  e.devFunc.textContent = devProgressMessage(last.d);
+  e.devLatest.textContent = last.d.sum + '°';
   e.devBest.textContent = Math.max(...sums) + '°';
   // 하락도 숫자로만 — 부정 문구 없이 추세만 (§7.2)
   e.devDelta.textContent = prev
@@ -1502,7 +1511,7 @@ function renderDevTrend(e, ms) {
   e.devRange.textContent = pts.length > 1 ? `${fmtMd(pts[0].at)} ~ ${fmtMd(last.at)}` : fmtMd(last.at);
   e.devHint.textContent = pts.length < 2
     ? '편위도 2번 이상 재면 변화 추이가 그려져요.'
-    : `총 ${pts.length}회 · 일상생활 기준 ${FUNCTIONAL_ROM.deviationCombined}° 대비 참고값`;
+    : `총 ${pts.length}회 · 참고값`;
 
   drawTrend(e.devCanvas, [{ data: sums, color: '#ffcf87', label: '편위 합' }]); // --honey
 }
