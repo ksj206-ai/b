@@ -133,6 +133,10 @@
 
           <div class="gp-stage" id="gpStage">
             <canvas id="guideCanvas" class="guide-canvas" width="340" height="272"></canvas>
+            <!-- 시범 손 애니(굽힘·폄·편위) — 스켈레톤 손 대신 얹히는 APNG.
+                 위치·크기는 handSprite.js가 손목=호 중심에 맞춰 계산한다.
+                 장식용이라 alt는 비움(동작 설명은 아래 안내 문구가 담당). -->
+            <img id="gpAnim" class="gp-anim" alt="" hidden>
             <div class="gp-pip" id="gpPip">
               <video id="guideVideo" class="cam-video" playsinline muted></video>
               <canvas id="gpLm" class="gp-lm"></canvas>

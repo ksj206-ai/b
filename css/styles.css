@@ -789,6 +789,9 @@ body::after{
   background:var(--grad-surface); box-shadow:var(--ring-sage);
 }
 .guide-canvas{ display:block; width:100%; height:auto; }
+/* 시범 손 애니(APNG) — 캔버스와 같은 상자에 절대 배치. left/top/width는 JS가 %로 넣어
+   손목을 호 중심에 물린다(캔버스가 늘어나도 비율 유지). 투명 여백은 .gp-stage가 잘라낸다. */
+.gp-anim{ position:absolute; height:auto; pointer-events:none; user-select:none; }
 /* 카메라(내 손) — 기본은 시범 위 PiP 오버레이(모바일), 데스크톱은 오른쪽 열로 승격.
    위치 맥락만 두 곳에서 바꾸고, 미러·오버레이 매핑은 크기와 무관하게 그대로 유지된다. */
 .gp-pip{

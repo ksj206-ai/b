@@ -4,7 +4,9 @@
 //   p: { wristAngle, devAngle, curl(number|number[5]), curlTip, spread, pinchGap,
 //        __lag(animPlayer가 주는 팔로우스루 지연값) }
 //   view: 'side'(팔뚝+손날, 굽힘·폄) | 'front'(손바닥, 편위·손가락·핀치)
-//   opts: { cx, cy, scale, now(ms — 있으면 호흡·미세 움직임 활성) }
+//   opts: { cx, cy, scale, now(ms — 있으면 호흡·미세 움직임 활성),
+//           hideHand(true면 스켈레톤 손을 그리지 않고 궤적 오버레이만 — 시범 손을
+//                    미리 렌더된 APNG 스프라이트가 대신 그리는 운동용. 기본 false) }
 //
 // ─── 구조: 파라미터 → 뼈대 → 실루엣, 3단 ───
 //  ① 뼈대(chain)  전완·손목·손바닥(중수골) 위에 손가락 MCP·PIP·DIP·끝, 엄지 CMC·MCP·IP·끝을
@@ -229,8 +231,8 @@ export function drawGuideHand(ctx, p = {}, view = 'side', opts = {}) {
   ctx.translate(cx, cy);
   ctx.scale(s, s);
   ctx.lineJoin = 'round';
-  if (view === 'side') drawSide(ctx, p, br, br2);
-  else drawFront(ctx, p, br, br2);
+  if (view === 'side') drawSide(ctx, p, br, br2, !!opts.hideHand);
+  else drawFront(ctx, p, br, br2, !!opts.hideHand);
   ctx.restore();
 }
 
@@ -260,10 +262,15 @@ const SIDE_T = {
   rest: [0, 10, 8], drive: [8, 24, 16],
 };
 
-function drawSide(ctx, p, br, br2) {
+function drawSide(ctx, p, br, br2, hideHand = false) {
   const wa = (p.wristAngle ?? 0) + br * 0.5;  // -45 굽힘(아래) ~ +45 폄(위)
-  const lagW = Math.max(-8, Math.min(8, (p.__lag && p.__lag.wristAngle) || 0));
   const wx = 4, wy = 14;                       // 손목 기준점(로컬) = 회전 중심 = 꺾임점
+
+  // 시범 손을 APNG 스프라이트가 대신 그리는 운동: 스켈레톤은 건너뛰고 궤적만.
+  // 스프라이트가 손목을 이 (wx,wy)에 맞춰 얹히므로 호의 중심은 그대로다.
+  if (hideHand) { if (p.__lag) sideMotionGuide(ctx, p, wa, wx, wy); return; }
+
+  const lagW = Math.max(-8, Math.min(8, (p.__lag && p.__lag.wristAngle) || 0));
 
   // 접지 그림자 — 팔뚝 아래 길게 한 겹 (손 그림자는 손 레이어가 따로 얹는다)
   groundShadow(ctx, wx - 40, wy + 46, 132, 20, 0.34);
@@ -352,11 +359,14 @@ function drawSide(ctx, p, br, br2) {
   ctx.restore();
 
   // 동작 궤적 오버레이 — follow 재생 중(__lag 존재)에만. intro/outro(정적)엔 숨김.
-  // 굽힘·폄은 손목 중심 회전 → 호+화살표. a1(=40°)=굽힘 끝, 진행이 굽힘쪽이면 towardA1.
-  if (p.__lag) {
-    const l = p.__lag.wristAngle ?? 0;
-    arcArrow(ctx, wx, wy, 128, -33 * D2R, 40 * D2R, -wa * D2R, l >= 0, Math.min(1, Math.abs(l) / 5));
-  }
+  if (p.__lag) sideMotionGuide(ctx, p, wa, wx, wy);
+}
+
+/** side 동작 궤적 — 굽힘·폄은 손목 중심 회전이라 호+화살표.
+ *  a1(=40°)=굽힘 끝, 진행이 굽힘쪽이면 towardA1. follow에서만 호출됨. */
+function sideMotionGuide(ctx, p, wa, wx, wy) {
+  const l = p.__lag.wristAngle ?? 0;
+  arcArrow(ctx, wx, wy, 128, -33 * D2R, 40 * D2R, -wa * D2R, l >= 0, Math.min(1, Math.abs(l) / 5));
 }
 
 /** 옆모습 손가락 뭉치 체인 — 쉼 굴곡(restK로 감쇠) + 입력 굴곡(cF)을 관절별로 합산.
@@ -580,7 +590,11 @@ function sparkle(ctx, x, y, r) {
   ctx.restore();
 }
 
-function drawFront(ctx, p, br, br2) {
+function drawFront(ctx, p, br, br2, hideHand = false) {
+  // 시범 손을 APNG 스프라이트가 대신 그리는 운동(편위): 스켈레톤은 건너뛰고 궤적만.
+  // 오버레이는 회전 밖 좌표계에서 그려지므로 손 없이도 그대로 성립한다.
+  if (hideHand) { if (p.__lag) drawFrontMotionGuide(ctx, p, p.__lag); return; }
+
   const dev = (p.devAngle ?? 0) + br * 0.6;   // -30 요측 ~ +30 척측
   const spread = clamp01((p.spread ?? 0.5) + br2 * 0.02);
   const pinch = 1 - clamp01(p.pinchGap ?? 1); // 0 벌림 ~ 1 붙음

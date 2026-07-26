@@ -868,13 +868,14 @@ async function initGuide() {
   const { GUIDES, getGuide } = await import('./guide/guideData.js');
   const { drawGuideHand } = await import('./guide/guideHand.js');
   const { createAnimPlayer } = await import('./guide/animPlayer.js');
+  const { createHandSprite } = await import('./guide/handSprite.js');
   const { createStepEngine } = await import('./guide/stepEngine.js');
   const { createWristTracker } = await import('./measurement.js');
 
   const $ = (id) => document.getElementById(id);
   const els = {
     list: $('guideList'), player: $('guidePlayer'), canvas: $('guideCanvas'),
-    stage: $('gpStage'), video: $('guideVideo'), cam: $('gpCam'),
+    stage: $('gpStage'), anim: $('gpAnim'), video: $('guideVideo'), cam: $('gpCam'),
     camIco: $('gpCamIco'), camTxt: $('gpCamTxt'), pip: $('gpPip'), lm: $('gpLm'),
     name: $('gpName'), step: $('gpStep'), count: $('gpCount'), countNum: $('gpCountNum'),
     priv: $('gpPriv'),
@@ -891,6 +892,8 @@ async function initGuide() {
   guide = {
     wired: true, tracking, mods: { drawGuideHand, createAnimPlayer, createStepEngine, createWristTracker, getGuide },
     els, ctx: els.canvas.getContext('2d'),
+    sprite: createHandSprite(els.anim), // 시범 손 APNG (굽힘·폄·편위) — 없는 운동은 스켈레톤 유지
+    spriteOn: false,                    // = drawGuideHand의 hideHand
     engine: null, tracker: null, anim: null, cur: null, running: false, neutralTimer: null,
     lastParams: null, poseBlend: null,
     routineMode: false, autoNextTimer: null, // 루틴 연속 재생 상태
@@ -996,6 +999,8 @@ async function startGuide(id, routineMode = false) {
   guide.cur = g;
   guide.lastParams = null;
   guide.poseBlend = null;
+  // 시범 손: 굽힘·폄·편위는 새 APNG 스프라이트(스켈레톤 숨김), 나머지 4개는 그대로 스켈레톤
+  guide.spriteOn = guide.sprite.show(g.id, stageLayout(els.canvas, g.view));
   els.list.hidden = true;
   els.player.hidden = false;
   els.done.hidden = true;
@@ -1028,6 +1033,9 @@ async function startGuide(id, routineMode = false) {
       guide.poseBlend = (!guide.anim && guide.lastParams)
         ? { from: guide.lastParams, start: null }
         : null;
+      // APNG는 앱 주기(6.0s/5.3s)와 같은 길이·같은 시작 위상으로 인코딩돼 있다 →
+      // follow 진입에 프레임 0으로 되감으면 호(arc)와 대략 같은 위상으로 함께 움직인다.
+      if (step.type === 'follow' && guide.spriteOn) guide.sprite.restart();
     },
     onCount: (count, reps) => { fillDots(count, reps); setCount(count, reps); if (count > 0) repFeedback(count); },
     // comp는 힌트를 덮지 않는다 — 감지만 집계(관대한 판정, 코칭 힌트는 추후)
@@ -1068,7 +1076,7 @@ async function startGuide(id, routineMode = false) {
       let params = guide.anim ? guide.anim.sample(now) : (guide.staticPose || {});
       if (!guide.anim && guide.poseBlend) params = blendPose(guide, params, now);
       guide.lastParams = params;
-      drawStage(ctx, guide.els.canvas, mods.drawGuideHand, params, g.view, now);
+      drawStage(ctx, guide.els.canvas, mods.drawGuideHand, params, g.view, now, guide.spriteOn);
       // 인식 가시화: 감지 칩(히스테리시스) + 관절점 오버레이
       updateHandStatus(!!hand);
       drawLandmarks(hand);
@@ -1186,18 +1194,27 @@ function repFeedback(count) {
   g.els.pip.classList.remove('flash'); void g.els.pip.offsetWidth; g.els.pip.classList.add('flash');
 }
 
-function drawStage(ctx, canvas, drawGuideHand, params, view, now) {
+/** 시범 손 스테이지 배치 — 캔버스 논리 크기 + 손 원점·배율.
+ *  밀도: 시범 손을 살짝 키우고(1.08), 뷰별로 세로 중심을 맞춰 빈 여백을 줄인다.
+ *  front는 소매가 아래로 길어 무게중심이 아래로 치우쳐, 원점을 살짝 위로 올려 균형.
+ *  캔버스 드로잉과 APNG 스프라이트가 같은 값을 써야 손목이 호 중심에 물린다. */
+function stageLayout(canvas, view) {
+  return {
+    w: canvas.width, h: canvas.height,
+    cx: canvas.width / 2,
+    cy: view === 'front' ? canvas.height / 2 - 26 : canvas.height / 2,
+    scale: 1.08,
+  };
+}
+
+function drawStage(ctx, canvas, drawGuideHand, params, view, now, hideHand = false) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  // 밀도: 시범 손을 살짝 키우고(1.08), 뷰별로 세로 중심을 맞춰 빈 여백을 줄인다.
-  // front는 소매가 아래로 길어 무게중심이 아래로 치우쳐, 원점을 살짝 위로 올려 균형.
-  const cx = canvas.width / 2;
-  const cy = view === 'front' ? canvas.height / 2 - 26 : canvas.height / 2;
-  const scale = 1.08;
+  const { cx, cy, scale } = stageLayout(canvas, view);
   ctx.save();
   ctx.fillStyle = 'rgba(160,140,255,.07)';
   ctx.beginPath(); ctx.arc(cx, cy, 120, 0, 7); ctx.fill();
   ctx.restore();
-  drawGuideHand(ctx, params, view, { cx, cy, scale, now });
+  drawGuideHand(ctx, params, view, { cx, cy, scale, now, hideHand });
 }
 
 function buildDots(reps) {
@@ -1356,6 +1373,8 @@ function stopGuideSession() {
   clearTimeout(guide.neutralTimer);
   clearTimeout(guide.autoNextTimer);
   guide.tracking.stopTracking(); // 로딩 중 이탈이라도 카메라를 확실히 끈다 (백그라운드 점등 방지)
+  guide.sprite?.hide();          // 시범 손 APNG 숨김·재생 중단 (안 보이는 동안 디코딩 낭비 방지)
+  guide.spriteOn = false;
   guide.running = false;
   guide.engine = null; guide.anim = null; guide.tracker = null;
   guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
