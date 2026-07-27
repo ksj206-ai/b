@@ -24,7 +24,7 @@ export const GUIDES = [
   {
     id: 'deviation', name: '손목 좌우 편위', view: 'front', emoji: '🖐️', cat: 'mobility', short: '좌우 편위',
     steps: [
-      { type: 'intro', text: '손바닥을 카메라로 향해 펴 주세요', dur: 3, pose: { devAngle: 0, spread: 0.5 } },
+      { type: 'intro', text: '손을 카메라 정면으로 향해 주세요', dur: 3, pose: { devAngle: 0, spread: 0.5 } },
       {
         type: 'follow', text: '엄지쪽·새끼쪽으로 번갈아 기울여요', reps: 5, detect: 'deviation',
         base: { spread: 0.5 },
