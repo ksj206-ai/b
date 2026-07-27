@@ -894,6 +894,7 @@ async function initGuide() {
     els, ctx: els.canvas.getContext('2d'),
     sprite: createHandSprite(els.anim), // 시범 손 APNG (굽힘·폄·편위) — 없는 운동은 스켈레톤 유지
     spriteOn: false,                    // = drawGuideHand의 hideHand
+    demoRaf: null, demoAnim: null,      // 시범 손 운동의 호 데모 루프 (카메라·스텝 무관, now 기반)
     engine: null, tracker: null, anim: null, cur: null, running: false, neutralTimer: null,
     lastParams: null, poseBlend: null,
     routineMode: false, autoNextTimer: null, // 루틴 연속 재생 상태
@@ -1001,6 +1002,11 @@ async function startGuide(id, routineMode = false) {
   guide.poseBlend = null;
   // 시범 손: 굽힘·폄·편위는 새 APNG 스프라이트(스켈레톤 숨김), 나머지 4개는 그대로 스켈레톤
   guide.spriteOn = guide.sprite.show(g.id, stageLayout(els.canvas, g.view));
+  // APNG는 브라우저 이미지 클럭으로 카메라·스텝과 무관하게 계속 재생된다. 호(arc)도 이를 맞춰
+  // 별도 rAF로 계속 그린다 → 카메라 권한이 없어(렌더 루프 미시작) follow에 못 가도 호가 뜬다.
+  // 감지·rep·스텝 진행은 아래 카메라 루프가 그대로 담당(이 루프는 순수 시각 데모).
+  stopArcDemo();
+  guide.demoAnim = guide.spriteOn ? startArcDemo(g) : null;
   els.list.hidden = true;
   els.player.hidden = false;
   els.done.hidden = true;
@@ -1035,7 +1041,8 @@ async function startGuide(id, routineMode = false) {
         : null;
       // APNG는 앱 주기(6.0s/5.3s)와 같은 길이·같은 시작 위상으로 인코딩돼 있다 →
       // follow 진입에 프레임 0으로 되감으면 호(arc)와 대략 같은 위상으로 함께 움직인다.
-      if (step.type === 'follow' && guide.spriteOn) guide.sprite.restart();
+      // 호 데모도 같은 순간에 위상을 0으로 리셋해 APNG와 어긋나지 않게 한다.
+      if (step.type === 'follow' && guide.spriteOn) { guide.sprite.restart(); guide.demoAnim?.reset(); }
     },
     onCount: (count, reps) => { fillDots(count, reps); setCount(count, reps); if (count > 0) repFeedback(count); },
     // comp는 힌트를 덮지 않는다 — 감지만 집계(관대한 판정, 코칭 힌트는 추후)
@@ -1076,7 +1083,9 @@ async function startGuide(id, routineMode = false) {
       let params = guide.anim ? guide.anim.sample(now) : (guide.staticPose || {});
       if (!guide.anim && guide.poseBlend) params = blendPose(guide, params, now);
       guide.lastParams = params;
-      drawStage(ctx, guide.els.canvas, mods.drawGuideHand, params, g.view, now, guide.spriteOn);
+      // 시범 손 운동(spriteOn)은 위 startArcDemo 루프가 캔버스(호)를 계속 그린다 →
+      // 여기서 또 그리면 두 루프가 위상 다른 호를 번갈아 그려 깜빡인다. 스켈레톤 운동만 그림.
+      if (!guide.spriteOn) drawStage(ctx, guide.els.canvas, mods.drawGuideHand, params, g.view, now);
       // 인식 가시화: 감지 칩(히스테리시스) + 관절점 오버레이
       updateHandStatus(!!hand);
       drawLandmarks(hand);
@@ -1215,6 +1224,30 @@ function drawStage(ctx, canvas, drawGuideHand, params, view, now, hideHand = fal
   ctx.beginPath(); ctx.arc(cx, cy, 120, 0, 7); ctx.fill();
   ctx.restore();
   drawGuideHand(ctx, params, view, { cx, cy, scale, now, hideHand });
+}
+
+/** 시범 손(APNG) 운동의 호(arc) 데모 루프. APNG는 브라우저가 알아서 계속 재생하지만
+ *  호는 JS가 캔버스에 그린다 — 그래서 카메라 렌더 루프에 얹으면 카메라 권한이 없을 때
+ *  호가 사라진다. 여기서 follow 애니(guideData의 follow 스텝 키프레임)를 now 기반으로
+ *  계속 샘플링해 호만(hideHand) 그리는 rAF를 따로 돌린다 → 카메라와 무관하게 호가 뜬다.
+ *  (스켈레톤은 안 그리므로 캔버스엔 배경 원+호만 남고, 손은 그 위 APNG가 담당.)
+ *  @returns {{sample,reset,duration}|null} 위상 리셋용 animPlayer (follow 진입 동기화에 사용) */
+function startArcDemo(g) {
+  const follow = g.steps.find((s) => s.type === 'follow');
+  if (!follow?.anim) return null;
+  const anim = guide.mods.createAnimPlayer(follow.anim, follow.base || {});
+  const tick = (now) => {
+    drawStage(guide.ctx, guide.els.canvas, guide.mods.drawGuideHand, anim.sample(now), g.view, now, true);
+    guide.demoRaf = requestAnimationFrame(tick);
+  };
+  guide.demoRaf = requestAnimationFrame(tick);
+  return anim;
+}
+
+/** 호 데모 루프 정지 (운동 종료·전환 시). */
+function stopArcDemo() {
+  if (guide.demoRaf != null) { cancelAnimationFrame(guide.demoRaf); guide.demoRaf = null; }
+  guide.demoAnim = null;
 }
 
 function buildDots(reps) {
@@ -1374,6 +1407,7 @@ function stopGuideSession() {
   clearTimeout(guide.autoNextTimer);
   guide.tracking.stopTracking(); // 로딩 중 이탈이라도 카메라를 확실히 끈다 (백그라운드 점등 방지)
   guide.sprite?.hide();          // 시범 손 APNG 숨김·재생 중단 (안 보이는 동안 디코딩 낭비 방지)
+  stopArcDemo();                 // 호 데모 rAF 정지
   guide.spriteOn = false;
   guide.running = false;
   guide.engine = null; guide.anim = null; guide.tracker = null;
