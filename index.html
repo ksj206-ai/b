@@ -446,6 +446,47 @@
       </div>
     </div>
 
+    <!-- 첫 실행 환영 오버레이 — 최초 진입 시 1회 자동, 스킵 가능. 감성 2장 캐러셀로
+         "무슨 앱인지 + 별자리 훅"만 짧게 보여주고 홈으로. 마스코트·밤하늘은 홈 자산 재활용.
+         reduced-motion은 전역 규칙(*{animation:none})이 애니메이션을 끈다. -->
+    <div id="welcomeModal" class="welcome-modal" hidden>
+      <div class="welcome-card" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+        <button class="welcome-x" id="welcomeClose" type="button" aria-label="건너뛰기">✕</button>
+
+        <!-- 카드1 — 감성 + 별자리 훅 -->
+        <div class="welcome-slide" data-slide="0">
+          <div class="welcome-visual">
+            <span class="welcome-star welcome-star--a" aria-hidden="true"></span>
+            <span class="welcome-star welcome-star--b" aria-hidden="true"></span>
+            <span class="welcome-star welcome-star--c" aria-hidden="true"></span>
+            <img class="welcome-cat" src="assets/cat-happy.png" alt="" aria-hidden="true">
+          </div>
+          <p class="welcome-title" id="welcomeTitle">🌟 오늘의 별자리</p>
+          <p class="welcome-body">하루 3분 손목을 돌보면, 밤하늘에 별이 하나씩 켜져요 🌙</p>
+          <p class="welcome-sub">오늘의 별자리를 모아볼까요?</p>
+        </div>
+
+        <!-- 카드2 — 가벼운 사용법 -->
+        <div class="welcome-slide" data-slide="1" hidden>
+          <div class="welcome-visual welcome-visual--soft">
+            <span class="welcome-star welcome-star--a" aria-hidden="true"></span>
+            <span class="welcome-star welcome-star--b" aria-hidden="true"></span>
+            <img class="welcome-cat" src="assets/cat-idle.png" alt="" aria-hidden="true">
+          </div>
+          <p class="welcome-title">천천히, 매일 조금씩</p>
+          <p class="welcome-body">매일 오늘의 루틴을 한 번, 가끔 손목 체크로 변화를 확인해요. 무리하지 말고 천천히 — 손목이 조금씩 편해질 거예요.</p>
+        </div>
+
+        <div class="welcome-foot">
+          <div class="welcome-dots" aria-hidden="true">
+            <i class="welcome-dot is-on"></i><i class="welcome-dot"></i>
+          </div>
+          <button class="btn" id="welcomeNext" type="button">다음 →</button>
+        </div>
+        <button class="welcome-skip" id="welcomeSkip" type="button">건너뛰기</button>
+      </div>
+    </div>
+
     <!-- ─── 면책 (의료법) ─── -->
     <footer class="app-disc">
       본 서비스는 의료기기가 아니며 질병의 진단·치료 목적이 아닙니다.

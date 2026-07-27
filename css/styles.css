@@ -947,6 +947,53 @@ body::after{
 .m-intro-cap b{ display:block; color:var(--ink); font-weight:400; margin-bottom:var(--sp-3xs); }
 .m-intro-common{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted); text-align:center; word-break:keep-all; margin:0; }
 
+/* ─── 첫 실행 환영 오버레이 (감성 2장) ─── 다른 모달(z-index:50)보다 위. 같은 스크림·글라스 톤.
+   twinkle·fadeIn 애니는 전역 @media(prefers-reduced-motion){*{animation:none}} 규칙이 알아서 끈다. */
+.welcome-modal{
+  position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+  background:var(--scrim); padding:var(--sp-xl); animation:fadeIn .2s ease;
+}
+.welcome-card{
+  position:relative; background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
+  padding:var(--sp-xl); box-shadow:var(--glass-shadow), var(--glass-rim);
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
+  width:min(360px,100%); max-height:90vh; overflow-y:auto; text-align:center;
+}
+.welcome-x{
+  position:absolute; top:var(--sp-sm); right:var(--sp-sm); width:32px; height:32px; z-index:1;
+  border:none; border-radius:var(--r-pill); background:var(--paper); color:var(--muted);
+  font-size:var(--fs-md); line-height:1; cursor:pointer;
+}
+.welcome-x:active{ transform:translateY(1px); }
+.welcome-slide{ display:flex; flex-direction:column; align-items:center; gap:var(--sp-xs); width:100%; }
+/* 밤하늘 비주얼 — 홈과 같은 인디고 그라데이션 + 반짝이는 별 + 마스코트 */
+.welcome-visual{
+  position:relative; width:100%; aspect-ratio:16/10; border-radius:var(--r-lg); overflow:hidden;
+  background:var(--grad-surface); display:flex; align-items:flex-end; justify-content:center;
+  margin-bottom:var(--sp-xs);
+}
+.welcome-visual--soft{ aspect-ratio:16/9; }
+.welcome-cat{ width:52%; max-width:150px; height:auto; object-fit:contain; filter:drop-shadow(0 6px 12px rgba(0,0,0,.35)); }
+.welcome-star{ position:absolute; width:4px; height:4px; border-radius:50%; background:#fff; box-shadow:0 0 6px 1px rgba(255,255,255,.7); }
+.welcome-star--a{ top:22%; left:24%; animation:welcomeTwinkle 2.4s ease-in-out infinite; }
+.welcome-star--b{ top:32%; right:22%; width:5px; height:5px; animation:welcomeTwinkle 3s ease-in-out .6s infinite; }
+.welcome-star--c{ top:16%; right:40%; width:3px; height:3px; animation:welcomeTwinkle 2s ease-in-out 1s infinite; }
+@keyframes welcomeTwinkle{ 0%,100%{ opacity:.45; } 50%{ opacity:1; } }
+.welcome-title{ font-family:"Black Han Sans",sans-serif; font-size:var(--fs-xl); color:var(--honey); margin:0; }
+.welcome-body{ font-family:"Jua",sans-serif; font-size:var(--fs-base); color:var(--ink-soft); line-height:var(--lh); word-break:keep-all; margin:0; }
+.welcome-sub{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted); margin:var(--sp-2xs) 0 0; }
+.welcome-foot{ display:flex; flex-direction:column; align-items:center; gap:var(--sp-md); width:100%; margin-top:var(--sp-2xs); }
+.welcome-dots{ display:flex; gap:var(--sp-xs); }
+.welcome-dot{ width:8px; height:8px; border-radius:50%; background:var(--white-a35); transition:background .2s, transform .2s; }
+.welcome-dot.is-on{ background:var(--honey); transform:scale(1.2); }
+.welcome-foot .btn{ width:100%; }
+.welcome-skip{
+  font-family:"Jua",sans-serif; font-size:var(--fs-2xs); color:var(--muted);
+  background:none; border:none; cursor:pointer; text-decoration:underline; text-underline-offset:2px;
+}
+
 /* 측정할 손 선택 (idle) + 측정 중 전환 칩 */
 .m-hand-sel{ display:flex; gap:var(--sp-sm); }
 .m-hand-btn{

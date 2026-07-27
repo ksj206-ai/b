@@ -367,12 +367,49 @@ function startRoutineDeep() {
   showScreen(SCREENS.GUIDE);
 }
 
+// ─── 첫 실행 환영 오버레이 ───
+// 앱 최초 진입 시 1회 자동. 감성 2장 캐러셀로 "무슨 앱인지 + 별자리 훅"만 짧게 보여준다.
+// seenMeasureIntro와 같은 패턴(top-level flag, 자동 1회, 스킵 쉬움) — 순수 UI, 다른 로직 무관.
+let welcomeEls = null;
+function wireWelcome() {
+  if (welcomeEls) return welcomeEls;
+  const $ = (id) => document.getElementById(id);
+  const slides = [...document.querySelectorAll('#welcomeModal .welcome-slide')];
+  const dots = [...document.querySelectorAll('#welcomeModal .welcome-dot')];
+  const els = { modal: $('welcomeModal'), close: $('welcomeClose'), skip: $('welcomeSkip'), next: $('welcomeNext') };
+  let i = 0;
+  const render = () => {
+    slides.forEach((s, k) => { s.hidden = k !== i; });
+    dots.forEach((d, k) => d.classList.toggle('is-on', k === i));
+    els.next.textContent = i < slides.length - 1 ? '다음 →' : '시작하기 🚀';
+  };
+  const hide = () => { els.modal.hidden = true; };
+  els.next.addEventListener('click', () => { if (i < slides.length - 1) { i++; render(); } else hide(); });
+  els.close.addEventListener('click', hide);   // ✕
+  els.skip.addEventListener('click', hide);    // 건너뛰기
+  els.modal.addEventListener('click', (e) => { if (e.target === els.modal) hide(); }); // 배경 탭 → 닫기
+  els.reset = () => { i = 0; render(); };
+  welcomeEls = els;
+  render();
+  return els;
+}
+
+/** 첫 실행 1회 자동 — 본 적 없으면 열고 플래그를 세운다(다음부턴 안 뜸). */
+function maybeAutoWelcome() {
+  if (load().seenWelcome) return;
+  update({ seenWelcome: true });
+  const els = wireWelcome();
+  els.reset();
+  els.modal.hidden = false;
+}
+
 function boot() {
   renderHome();
 
   document.getElementById('routineStart').addEventListener('click', startRoutineDeep);
 
   initUI();
+  maybeAutoWelcome(); // 홈 최초 렌더 위에 환영 오버레이 (첫 1회)
 
   onScreenChange((name) => {
     if (name !== SCREENS.MEASURE) stopMeasure();
