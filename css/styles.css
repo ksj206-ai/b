@@ -901,9 +901,51 @@ body::after{
 .m-prog{ position:absolute; left:14px; right:14px; bottom:10px; height:6px; border-radius:var(--r-pill); background:var(--white-a35); overflow:hidden; }
 .m-prog-bar{ height:100%; width:0; border-radius:var(--r-pill); background:var(--grad-bar); transition:width .1s linear; }
 
+/* 안내 문구 + 상시 "이렇게 재요 ?" 칩 (한 줄, 좁으면 줄바꿈) */
+.m-guide-row{ display:flex; align-items:center; justify-content:center; gap:var(--sp-sm); flex-wrap:wrap; }
 .m-guide{ font-family:"Jua",sans-serif; font-size:var(--fs-md); color:var(--ink); text-align:center; line-height:var(--lh); margin:0; word-break:keep-all; min-height:20px; }
+.m-how-chip{
+  flex:none; font-family:"Jua",sans-serif; font-size:var(--fs-2xs); color:var(--moss-dd);
+  background:var(--sage-soft); border:none; border-radius:var(--r-pill);
+  padding:var(--sp-2xs) var(--sp); cursor:pointer; white-space:nowrap;
+}
+.m-how-chip:active{ transform:translateY(1px); }
+.m-how-q{
+  display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px;
+  margin-left:var(--sp-3xs); border-radius:50%; background:var(--moss-dd); color:#fff; font-size:10px;
+}
 .m-panel{ display:flex; justify-content:center; }
 .m-panel-col{ flex-direction:column; align-items:center; gap:var(--sp-md); }
+
+/* 측정 방법 안내 팝업 — 앱 톤 그대로(밤하늘 scrim · 글라스 카드). sky-dex-modal과 같은 오버레이. */
+.m-intro-modal{
+  position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+  background:var(--scrim); padding:var(--sp-xl); animation:fadeIn .2s ease;
+}
+.m-intro-card{
+  position:relative; background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
+  padding:var(--sp-xl); box-shadow:var(--glass-shadow), var(--glass-rim);
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
+  width:min(380px,100%); max-height:88vh; overflow-y:auto;
+}
+.m-intro-x{
+  position:absolute; top:var(--sp-sm); right:var(--sp-sm); width:32px; height:32px;
+  border:none; border-radius:var(--r-pill); background:var(--paper); color:var(--muted);
+  font-size:var(--fs-md); line-height:1; cursor:pointer;
+}
+.m-intro-x:active{ transform:translateY(1px); }
+.m-intro-title{ font-family:"Black Han Sans",sans-serif; font-size:var(--fs-xl); color:var(--honey); margin:0; }
+.m-intro-poses{ display:flex; flex-direction:column; gap:var(--sp-md); width:100%; }
+.m-intro-pose{ display:flex; align-items:center; gap:var(--sp-md); margin:0; text-align:left; }
+.m-intro-img{
+  flex:none; width:96px; height:96px; object-fit:contain;
+  border-radius:var(--r-md); background:var(--paper);
+}
+.m-intro-cap{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft); line-height:var(--lh); word-break:keep-all; margin:0; }
+.m-intro-cap b{ display:block; color:var(--ink); font-weight:400; margin-bottom:var(--sp-3xs); }
+.m-intro-common{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted); text-align:center; word-break:keep-all; margin:0; }
 
 /* 측정할 손 선택 (idle) + 측정 중 전환 칩 */
 .m-hand-sel{ display:flex; gap:var(--sp-sm); }

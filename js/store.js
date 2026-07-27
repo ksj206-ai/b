@@ -63,6 +63,9 @@ function defaults() {
     //        v1 옛 기록엔 아예 없음(undefined). 읽는 쪽은 둘 다 "없음"으로 다뤄야 한다.
     measurements: [],
     lastMeasureHand: null, // 마지막으로 측정한 손 — 측정 화면의 기본 선택값
+    // UI 온보딩 플래그(가산 전용, 단일 primitive — routine/sky처럼 중첩 객체가 아니라
+    // 얕은 머지 함정이 없다). 옛 저장본엔 없으므로 load()의 defaults 병합이 false를 채운다.
+    seenMeasureIntro: false, // 측정 방법 팝업을 자동으로 한 번 띄웠는가 (이후엔 "?" 칩으로만)
     guideDone: [],        // 완료한 가이드 기록 (가이드 모듈 이후)
     // 오늘의 루틴 캐시 — 반드시 null 유지(부분 객체 금지: load()의 얕은
     // 머지가 내부 키를 보호하지 못함). 생성·갱신은 routine.js가 담당.

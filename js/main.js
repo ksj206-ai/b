@@ -5,7 +5,7 @@
 // ═══════════════════════════════════════════════════════════
 import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
 import {
-  load, save, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
+  load, save, update, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky,
   isTodayComplete, completeTodayConstellation, refreshFocus, freshComp,
   makeMeasurement, deviationProgress,
@@ -426,7 +426,47 @@ function cameraErrorMessage(e) {
   return '준비에 실패했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.';
 }
 
+// ─── 측정 방법 안내 팝업 (온보딩) ───
+// 첫 측정 진입 시 1회 자동, 이후엔 "이렇게 재요 ?" 칩으로만. 측정 캡처 흐름과 완전히 분리된
+// 순수 UI 오버레이 — 트래커·phase·저장 로직을 건드리지 않는다. 이미지는 가이드 손 애니를 재활용.
+let measureIntroEls = null;
+const MEASURE_RM_MQ = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+
+/** 팝업 DOM을 1회 배선 (sky-dex-modal과 같은 패턴: 닫기 버튼·배경 탭으로 닫힘). */
+function wireMeasureIntro() {
+  if (measureIntroEls) return measureIntroEls;
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    modal: $('measureIntroModal'), close: $('measureIntroClose'), start: $('measureIntroStart'),
+    imgFlex: $('measureIntroImgFlex'), imgDev: $('measureIntroImgDev'),
+  };
+  const hide = () => { els.modal.hidden = true; };
+  els.close.addEventListener('click', hide);   // ✕ (건너뛰기)
+  els.start.addEventListener('click', hide);   // 시작하기
+  els.modal.addEventListener('click', (e) => { if (e.target === els.modal) hide(); }); // 배경 탭 → 닫기
+  measureIntroEls = els;
+  return els;
+}
+
+/** 방법 팝업 열기 — reduced-motion이면 정지 프레임으로 이미지를 바꾼다.
+ *  플래그를 건드리지 않으므로 자동/수동("?" 칩) 어느 쪽이든 안전하게 재사용된다. */
+function openMeasureIntro() {
+  const els = wireMeasureIntro();
+  const rm = !!(MEASURE_RM_MQ && MEASURE_RM_MQ.matches);
+  els.imgFlex.src = rm ? 'assets/guide-flexext-static.png' : 'assets/guide-flexext.png';
+  els.imgDev.src = rm ? 'assets/guide-deviation-static.png' : 'assets/guide-deviation.png';
+  els.modal.hidden = false;
+}
+
+/** 첫 측정 진입 1회 자동 — 본 적 없으면 열고 플래그를 세운다(다음부턴 "?" 칩으로만). */
+function maybeAutoMeasureIntro() {
+  if (load().seenMeasureIntro) return;
+  update({ seenMeasureIntro: true });
+  openMeasureIntro();
+}
+
 async function initMeasure() {
+  maybeAutoMeasureIntro();   // 안내 팝업은 측정 배선과 독립 — 첫 진입 1회 즉시
   if (measure && measure.wired) { setMeasurePhase('idle'); return; }
   if (measureIniting) return;
   measureIniting = true;
@@ -446,7 +486,7 @@ async function wireMeasure() {
   const els = {
     camVideo: $('camVideo'), camBadge: $('camBadge'),
     mLive: $('mLive'), mLiveVal: $('mLiveVal'), mLiveCap: $('mLiveCap'),
-    mProg: $('mProg'), mProgBar: $('mProgBar'), mGuide: $('mGuide'),
+    mProg: $('mProg'), mProgBar: $('mProgBar'), mGuide: $('mGuide'), mHowChip: $('measureHowChip'),
     mIdle: $('mIdle'), mStart: $('mStart'),
     mCapture: $('mCapture'), capFlex: $('capFlex'), capFlexK: $('capFlexK'), capFlexV: $('capFlexV'),
     capExt: $('capExt'), capExtK: $('capExtK'), capExtV: $('capExtV'), mComp: $('mComp'),
@@ -486,6 +526,8 @@ async function wireMeasure() {
     b.addEventListener('click', () => setHand(b.dataset.hand));
   }
   els.mHandChip.addEventListener('click', () => setHand(measure.hand === 'right' ? 'left' : 'right'));
+  // 상시 "이렇게 재요 ?" — 언제든 방법 팝업을 다시 연다 (플래그 변경 없음)
+  els.mHowChip.addEventListener('click', openMeasureIntro);
 
   renderHandUI();
   setMeasurePhase('idle');

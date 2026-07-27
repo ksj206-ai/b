@@ -220,7 +220,11 @@
             <div id="mProg" class="m-prog" hidden><div id="mProgBar" class="m-prog-bar"></div></div>
           </div>
 
-          <p id="mGuide" class="m-guide">손목을 옆에서 보이게 하고, 체크를 시작하세요.</p>
+          <div class="m-guide-row">
+            <p id="mGuide" class="m-guide">손목을 옆에서 보이게 하고, 체크를 시작하세요.</p>
+            <!-- 상시 자세 안내 재생 — 누르면 방법 팝업(measureIntroModal)을 다시 연다 -->
+            <button type="button" id="measureHowChip" class="m-how-chip">이렇게 재요 <span class="m-how-q" aria-hidden="true">?</span></button>
+          </div>
 
           <!-- idle: 체크할 손 선택 + 시작 -->
           <div id="mIdle" class="m-panel m-panel-col">
@@ -417,6 +421,28 @@
         <!-- 미완성: 잠김 안내 -->
         <p id="skyDexModalLock" class="sky-dex-modal-lock" hidden>🔒 아직 만나지 못한 별자리예요</p>
         <button class="btn btn-back" id="skyDexModalClose">닫기</button>
+      </div>
+    </div>
+
+    <!-- 측정 방법 안내 팝업 — 첫 측정 진입 시 1회 자동, 이후엔 "이렇게 재요 ?" 칩으로 상시 재생.
+         두 자세 이미지는 가이드 손 애니(assets/guide-*.png)를 재활용한다.
+         reduced-motion이면 JS가 정지 프레임(assets/guide-*-static.png)으로 교체한다. -->
+    <div id="measureIntroModal" class="m-intro-modal" hidden>
+      <div class="m-intro-card" role="dialog" aria-modal="true" aria-labelledby="measureIntroTitle">
+        <button class="m-intro-x" id="measureIntroClose" type="button" aria-label="닫기">✕</button>
+        <p class="m-intro-title" id="measureIntroTitle">📏 이렇게 재요</p>
+        <div class="m-intro-poses">
+          <figure class="m-intro-pose">
+            <img id="measureIntroImgFlex" class="m-intro-img" alt="" src="assets/guide-flexext.png">
+            <figcaption class="m-intro-cap"><b>손목 굽힘·폄</b>손을 옆으로 세워 손날(새끼손가락 쪽)이 카메라를 보게 하고, 손목을 위·아래로 천천히 최대까지 움직여요.</figcaption>
+          </figure>
+          <figure class="m-intro-pose">
+            <img id="measureIntroImgDev" class="m-intro-img" alt="" src="assets/guide-deviation.png">
+            <figcaption class="m-intro-cap"><b>손목 좌우 편위</b>손바닥을 카메라로 향해 펴고, 좌우로 천천히 최대까지 기울여요.</figcaption>
+          </figure>
+        </div>
+        <p class="m-intro-common">💡 팔꿈치가 화면에 보이게 편히 앉아요</p>
+        <button class="btn" id="measureIntroStart" type="button">시작하기</button>
       </div>
     </div>
 
