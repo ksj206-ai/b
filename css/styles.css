@@ -749,7 +749,8 @@ body::after{
 /* ─── 가이드: 목록 ─── */
 .guide-list{ display:flex; flex-direction:column; gap:var(--sp-lg); }
 .guide-card{
-  display:flex; align-items:center; gap:var(--sp-lg); text-align:left;
+  /* wrap — 포커스 태그까지 함께 뜨는 좁은 화면에선 태그 묶음이 아랫줄로 흐른다(이름 잘림 방지) */
+  display:flex; align-items:center; flex-wrap:wrap; gap:var(--sp-lg); text-align:left;
   background:var(--glass-bg);
   -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
   border:var(--glass-border); border-radius:var(--r-card);
@@ -765,13 +766,23 @@ body::after{
   background:radial-gradient(circle at 38% 32%, #fff, var(--sage-soft));
   box-shadow:var(--shadow-emoji);
 }
-.gc-name{ font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-lg); color:var(--moss-dd); }
+.gc-name{ min-width:0; font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-lg); color:var(--moss-dd); }
+/* 카드 오른쪽 태그 묶음 — 포커스 태그와 상태 배지가 나란히. 두 배지가 함께 뜰 때
+   카드 gap(--sp-lg)만큼 벌어지지 않게 자체 gap을 쓴다. margin-left:auto는 여기 한 번만. */
+.gc-tags{ margin-left:auto; flex-shrink:0; display:flex; align-items:center; gap:var(--sp-xs); }
 .gc-badge{
-  margin-left:auto; flex-shrink:0; font-family:"Jua",sans-serif; font-size:var(--fs-xs);
+  flex-shrink:0; font-family:"Jua",sans-serif; font-size:var(--fs-xs);
   color:#fff; background:var(--moss-d); padding:var(--sp-2xs) var(--sp-md); border-radius:var(--r-pill);
   box-shadow:var(--shadow-badge);
 }
 .gc-badge--done{ background:var(--sage); box-shadow:none; }
+/* 오늘의 포커스 — 상태 배지(보라, 채움)보다 한 단계 조용한 금빛 아웃라인 칩.
+   "약함" 라벨이 아니라 권유라 위계를 낮춰 둔다(보이는_돌봄 §2③·§3 절제). */
+.gc-focus,.gp-focus{
+  flex-shrink:0; font-family:"Jua",sans-serif; font-size:var(--fs-xs); color:var(--honey);
+  background:var(--sun-soft); box-shadow:inset 0 0 0 1px rgba(var(--honey-rgb),.35);
+  padding:var(--sp-2xs) var(--sp-md); border-radius:var(--r-pill); white-space:nowrap;
+}
 
 /* ─── 가이드: 플레이어 ─── */
 .guide-player{
@@ -781,7 +792,9 @@ body::after{
   padding:var(--pad-card); box-shadow:var(--glass-shadow), var(--glass-rim);
   display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
 }
-.gp-top{ width:100%; display:flex; justify-content:space-between; align-items:center; }
+/* 포커스 태그는 이름에 붙이고 스텝 칩은 오른쪽 끝에 — 태그가 없을 땐 기존 2분할 그대로 */
+.gp-top{ width:100%; display:flex; justify-content:space-between; align-items:center; gap:var(--sp-sm); }
+.gp-focus{ margin-right:auto; }
 .gp-name{ font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-lg); color:var(--moss-dd); }
 .gp-step{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:#fff; background:var(--sage); padding:var(--sp-2xs) var(--sp-md); border-radius:var(--r-pill); }
 .gp-stage{
@@ -1059,6 +1072,13 @@ body::after{
 .m-func--sub{ font-size:var(--fs-sm); padding:var(--sp-xs) var(--sp-md); }
 .m-result-grid--sub b{ font-size:var(--fs-lg); }
 .m-result-grid--sub > div{ padding:var(--sp-sm) var(--sp-xs); }
+/* 선물 프레이밍 — 개선한 체크에만 뜨는 금빛 한 줄(사건성). 하락엔 아무것도 안 뜬다.
+   진척률 알약(.m-func, 보라)과 색으로 갈라 두어 "리포트"가 아니라 "선물"로 읽히게 한다. */
+.m-gift{
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--honey); margin:0;
+  text-align:center; word-break:keep-all; line-height:var(--lh);
+  background:var(--sun-soft); border-radius:var(--r-sm); padding:var(--sp-xs) var(--sp-md);
+}
 /* 서사 한 줄 — 이번 주 루틴 꾸준함 */
 .m-narr{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--moss-dd); margin:0; text-align:center; word-break:keep-all; line-height:var(--lh); }
 /* 다음 체크 안내 */

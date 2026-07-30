@@ -6,9 +6,9 @@
 import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
 import {
   load, save, update, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
-  assignTodayConstellation, syncStarsToProgress, getSky,
+  assignTodayConstellation, syncStarsToProgress, getSky, lightStars,
   isTodayComplete, completeTodayConstellation, refreshFocus, freshComp,
-  makeMeasurement, deviationProgress,
+  makeMeasurement, deviationProgress, isImproving, getAdapt,
 } from './store.js';
 import { renderSky } from './sky.js';
 import { CONSTELLATIONS } from './constellations.js';
@@ -529,7 +529,7 @@ async function wireMeasure() {
     capExt: $('capExt'), capExtK: $('capExtK'), capExtV: $('capExtV'), mComp: $('mComp'),
     mActions: $('mActions'), mReneutral: $('mReneutral'), mFinish: $('mFinish'),
     mResult: $('mResult'), rFlex: $('rFlex'), rExt: $('rExt'),
-    rDelta: $('rDelta'), rFunc: $('rFunc'), rNarr: $('rNarr'), mAgain: $('mAgain'),
+    rDelta: $('rDelta'), rFunc: $('rFunc'), rGift: $('rGift'), rNarr: $('rNarr'), mAgain: $('mAgain'),
     mHandSel: $('mHandSel'), mHandChip: $('mHandChip'),
     // 결과 화면의 좌우 편위 블록 (편위를 잰 체크에서만 노출)
     rDevBlock: $('rDevBlock'), rDevFunc: $('rDevFunc'), rDevGrid: $('rDevGrid'),
@@ -771,6 +771,11 @@ function finishMeasure() {
 
   renderDevResult(e, rec, prev);
 
+  // 선물 프레이밍 — 개선한 체크에만 한 줄(사건성). 하락·정체는 아무것도 노출하지 않는다.
+  const gift = grantGiftStar(s, prev, rec);
+  e.rGift.hidden = !gift;
+  if (gift) e.rGift.textContent = gift;
+
   // 서사 한 줄 — 이번 주(최근 7일) 루틴 완료 일수. 0회면 생략(질책 금지).
   const weekN = recentRoutineDays(s.routineLog || [], todayStr());
   e.rNarr.hidden = weekN < 1;
@@ -779,6 +784,37 @@ function finishMeasure() {
   }
 
   setMeasurePhase('result');
+}
+
+/**
+ * 측정 결과 = 선물 프레이밍 (보이는_돌봄 §2②) — "성적표"가 아니라 "응원"으로 읽히게.
+ *
+ * 개선한 체크에만 한 줄을 띄우고 **오늘의 별자리에 별 하나를 선물**한다. 하락·정체는
+ * 아무것도 노출하지 않는다(추세는 rDelta가 부호 없는 참고값으로만 보여 준다).
+ *
+ * · 개선 판정은 store.isImproving 하나로 통일 — 임계(riseDeg)와 "한 방향이라도 크게
+ *   하락하면 개선 아님" 대칭 가드를 여기서 다시 구현하지 않는다. 방금 push한 rec이
+ *   마지막 레코드라 곧바로 "이번 체크 vs 지난 체크"가 된다(true면 prev는 반드시 있음).
+ * · 별은 **하루 1회**(lastGiftStarAt) — 같은 날 여러 번 재서 별을 쌓는 것을 막는다.
+ *   이미 받은 날은 문구만 담백하게 두고 별을 또 켜지 않는다(문구가 거짓말하지 않게).
+ * · assignTodayConstellation을 먼저 부르는 이유: 홈을 한 번도 안 거치고 체크로 직행하면
+ *   sky.today가 없어 lightStars가 조용히 아무것도 안 한다. 같은 날 재호출은 멱등.
+ * · 선물 별은 syncStarsToProgress가 지우지 않는다 — 그 함수는 루틴 진행분까지 '부족분만'
+ *   채우는(target > cur) 구조라 덤으로 켜진 별은 그대로 남는다.
+ *
+ * @returns {string|null} 표시할 한 줄 (개선이 아니면 null — 이때 화면은 통째로 숨긴다)
+ */
+function grantGiftStar(s, prev, rec) {
+  if (!isImproving(s)) return null;
+  // 어느 방향이 늘었는지만 말한다(수치·판정 금지). 동률이면 굽힘 쪽으로.
+  const dir = (rec.flex - prev.flex) >= (rec.ext - prev.ext) ? '굽힘' : '폄';
+  const today = todayStr();
+  if (s.lastGiftStarAt === today) return `${dir}이 조금 늘었어요 ✨`;
+  assignTodayConstellation(s);
+  lightStars(s, 1);
+  s.lastGiftStarAt = today;
+  save(s);
+  return `${dir}이 조금 늘었어요 — 오늘의 별자리에 별 하나 선물 🎁`;
 }
 
 /** 편위 합 진척률 → 긍정 프레이밍 한 줄. 결과 화면·기록 추이 공용(문구 톤이 갈라지지
@@ -956,7 +992,8 @@ async function initGuide() {
     list: $('guideList'), player: $('guidePlayer'), canvas: $('guideCanvas'),
     stage: $('gpStage'), anim: $('gpAnim'), video: $('guideVideo'), cam: $('gpCam'),
     camIco: $('gpCamIco'), camTxt: $('gpCamTxt'), pip: $('gpPip'), lm: $('gpLm'),
-    name: $('gpName'), step: $('gpStep'), count: $('gpCount'), countNum: $('gpCountNum'),
+    name: $('gpName'), focus: $('gpFocus'), step: $('gpStep'),
+    count: $('gpCount'), countNum: $('gpCountNum'),
     priv: $('gpPriv'),
     text: $('gpText'), dots: $('gpDots'), hint: $('gpHint'), idle: $('gpIdle'),
     skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
@@ -992,7 +1029,8 @@ async function initGuide() {
     b.className = 'guide-card';
     b.dataset.guideId = g.id;
     b.innerHTML = `<span class="gc-emoji">${g.emoji}</span><span class="gc-name">${g.name}</span>` +
-                  `<span class="gc-badge" hidden></span>`;
+                  `<span class="gc-tags"><span class="gc-focus" hidden>🎯 오늘의 포커스</span>` +
+                  `<span class="gc-badge" hidden></span></span>`;
     b.addEventListener('click', () => startGuide(g.id, false));
     els.list.appendChild(b);
   }
@@ -1046,18 +1084,41 @@ function showGuideList() {
   guide.els.list.hidden = false;
 }
 
-/** 목록 카드에 "오늘의 루틴" / "완료 ✨" 배지 반영 */
+/**
+ * 오늘의 포커스 대상 운동 id (보이는_돌봄 §2③) — adapt.focus(약한 방향)의 매핑 운동.
+ * 없으면 null. 매핑은 config 한 곳(ROUTINE.adaptReps.focusGuide)에서만 읽어 dose 조정과
+ * 같은 운동을 가리키게 한다 — 태그가 붙은 운동과 reps가 늘어난 운동이 어긋나면 안 된다.
+ *
+ * ⚠ 순한 날(gentle)엔 태그를 띄우지 않는다. 그날은 앱이 "쉬어가요" 쪽으로 방향을 잡은
+ * 날이고(computeDose도 red면 focus 운동을 base로 클램프한다), 한마디 tier에서도 순한
+ * (gentleStiff/gentleRed)이 포커스보다 위다 — 같은 우선순위를 화면에서도 지킨다.
+ */
+function focusGuideId(routine = getTodayRoutine()) {
+  if (routine.gentle) return null;
+  const { focus } = getAdapt();
+  return focus ? (ROUTINE.adaptReps.focusGuide[focus] || null) : null;
+}
+
+/** 목록 카드에 "오늘의 루틴" / "완료 ✨" 배지 + "오늘의 포커스" 태그 반영 */
 function refreshGuideBadges() {
   const r = getTodayRoutine();
+  const focusId = focusGuideId(r);
   for (const card of guide.els.list.children) {
     const badge = card.querySelector('.gc-badge');
+    const focusTag = card.querySelector('.gc-focus');
     if (!badge) continue;
     const slot = r.ids.indexOf(card.dataset.guideId);
-    if (slot < 0) { badge.hidden = true; continue; }
+    if (slot < 0) {
+      badge.hidden = true;
+      if (focusTag) focusTag.hidden = true; // 오늘 코스에 없는 운동엔 태그도 안 붙인다
+      continue;
+    }
     const done = isSlotDone(r, slot);
     badge.textContent = done ? '완료 ✨' : '오늘의 루틴';
     badge.classList.toggle('gc-badge--done', done);
     badge.hidden = false;
+    // 끝낸 운동엔 숨긴다 — 태그는 "여기 신경 써봐요"라는 권유라 완료 후엔 소음이 된다
+    if (focusTag) focusTag.hidden = done || card.dataset.guideId !== focusId;
   }
 }
 
@@ -1072,6 +1133,9 @@ async function startGuide(id, routineMode = false) {
   guide.routineMode = routineMode;
   // 루틴 모드에선 그만두기 대신 [오늘은 여기까지] — 언제 끝내도 괜찮다는 신호
   els.quit.textContent = routineMode ? '오늘은 여기까지' : '그만두기';
+  // 오늘의 포커스 태그 — 루틴 모드에서만. 둘러보기는 dose 조정도 안 걸리므로(위 getRoutineGuide)
+  // 태그만 붙으면 화면과 실제 재생이 어긋난다.
+  els.focus.hidden = !(routineMode && id === focusGuideId());
   // 연속 진행(다음 운동): 카메라·스트림은 유지하고 감지 루프만 교체.
   // startLoop는 기존 rAF를 멈추지 않고 startCamera는 스트림을 누수하므로
   // 반드시 stopLoop 후 재시작하고 카메라 재호출은 건너뛴다.

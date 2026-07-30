@@ -63,6 +63,7 @@ function defaults() {
     //        v1 옛 기록엔 아예 없음(undefined). 읽는 쪽은 둘 다 "없음"으로 다뤄야 한다.
     measurements: [],
     lastMeasureHand: null, // 마지막으로 측정한 손 — 측정 화면의 기본 선택값
+    lastGiftStarAt: null,  // 개선 선물 별을 켠 날 (YYYY-MM-DD) — 하루 1회 제한(보이는_돌봄 §2②)
     // UI 온보딩 플래그(가산 전용, 단일 primitive — routine/sky처럼 중첩 객체가 아니라
     // 얕은 머지 함정이 없다). 옛 저장본엔 없으므로 load()의 defaults 병합이 false를 채운다.
     seenWelcome: false,      // 첫 실행 환영 오버레이를 자동으로 한 번 띄웠는가
