@@ -3,7 +3,7 @@
 // UI 초기화 → 홈 상태 반영. 측정 화면 진입 시 tracking/measurement를
 // 지연 로드해 라이브 인식 프리뷰를 구동(파이프라인 확인용).
 // ═══════════════════════════════════════════════════════════
-import { initUI, onScreenChange, getCurrentScreen, navigate } from './ui.js';
+import { initUI, onScreenChange, getCurrentScreen, navigate, pushView } from './ui.js';
 import {
   load, save, update, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky, lightStars,
@@ -13,7 +13,7 @@ import {
 import { renderSky } from './sky.js';
 import { CONSTELLATIONS } from './constellations.js';
 import {
-  SCREENS, ROUTINE, HAND_LM, DEBUG_GUIDE, DEBUG_MEASURE, FUNCTIONAL_ROM, DEV_LABEL,
+  SCREENS, VIEWS, ROUTINE, HAND_LM, DEBUG_GUIDE, DEBUG_MEASURE, FUNCTIONAL_ROM, DEV_LABEL,
 } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
@@ -411,12 +411,12 @@ function boot() {
   initUI();
   maybeAutoWelcome(); // 홈 최초 렌더 위에 환영 오버레이 (첫 1회)
 
-  onScreenChange((name) => {
+  onScreenChange((name, view) => {
     if (name !== SCREENS.MEASURE) stopMeasure();
     if (name !== SCREENS.GUIDE) stopGuide();
     if (name === SCREENS.HOME) renderHome();
     if (name === SCREENS.MEASURE) initMeasure();
-    if (name === SCREENS.GUIDE) initGuide();
+    if (name === SCREENS.GUIDE) enterGuide(view);
     if (name === SCREENS.RECORDS) renderRecords();
     if (name === SCREENS.SKY) renderSkyDex();
   });
@@ -996,7 +996,7 @@ async function initGuide() {
     count: $('gpCount'), countNum: $('gpCountNum'),
     priv: $('gpPriv'),
     text: $('gpText'), dots: $('gpDots'), hint: $('gpHint'), idle: $('gpIdle'),
-    skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
+    prev: $('gpPrev'), skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
     retry: $('gpRetry'), proceed: $('gpProceed'),
     doneEmoji: $('gpDoneEmoji'), doneText: $('gpDoneText'), rest: $('gpRest'),
     routineProg: $('gpRoutineProg'), next: $('gpNext'), measureGo: $('gpMeasureGo'),
@@ -1031,7 +1031,7 @@ async function initGuide() {
     b.innerHTML = `<span class="gc-emoji">${g.emoji}</span><span class="gc-name">${g.name}</span>` +
                   `<span class="gc-tags"><span class="gc-focus" hidden>🎯 오늘의 포커스</span>` +
                   `<span class="gc-badge" hidden></span></span>`;
-    b.addEventListener('click', () => startGuide(g.id, false));
+    b.addEventListener('click', () => openPlayer(g.id, false));
     els.list.appendChild(b);
   }
 
@@ -1039,9 +1039,13 @@ async function initGuide() {
   els.quit.addEventListener('click', () => {
     // 루틴 모드: [오늘은 여기까지] — 중간에 끝내도 그날 완료로 인정 (관대함)
     if (guide.routineMode) endRoutineToday();
-    else showGuideList();
+    else history.back(); // 플레이어 엔트리를 벗는다 = 목록 (기기 뒤로와 같은 경로)
   });
-  els.toList.addEventListener('click', () => showGuideList());
+  els.toList.addEventListener('click', () => history.back());
+  // 이전 운동 — 오늘의 루틴 순서 기준. 운동 전환이라 history는 건드리지 않는다.
+  els.prev.addEventListener('click', () => {
+    if (guide.prevId) startGuide(guide.prevId, guide.routineMode);
+  });
   els.skip.addEventListener('click', () => { if (guide.engine) guide.engine.skip(performance.now()); });
   els.proceed.addEventListener('click', () => { if (guide.engine) guide.engine.skip(performance.now()); });
   els.retry.addEventListener('click', () => { guide.els.idle.hidden = true; });
@@ -1068,11 +1072,34 @@ async function initGuide() {
   consumeAutoStart();
 }
 
+/**
+ * 가이드 화면 진입/복원 — history state의 view가 목록/플레이어를 정한다.
+ * 화면 "← 뒤로"(history.back)도 기기 뒤로도 결국 popstate → applyScreen → 여기로 모이므로,
+ * 목록 복귀 시 카메라·트래킹 정리(showGuideList → stopGuideSession)가 한 경로에서만 걸린다
+ * (버튼 핸들러에 흩어두면 기기 뒤로가 정리를 건너뛴다).
+ */
+function enterGuide(view) {
+  // 플레이어 복원(뒤로/앞으로) — 현재 운동은 가이드 모듈이 들고 있으므로 그대로 재개.
+  // 이미 떠 있는 엔트리로 돌아온 것이라 push는 하지 않는다.
+  if (view === VIEWS.PLAYER && guide?.wired && guide.cur) {
+    startGuide(guide.cur.id, guide.routineMode);
+    return;
+  }
+  initGuide(); // 최초 배선(+홈 원탭 딥스타트 소비) 또는 목록 복귀
+}
+
+/** 목록 → 플레이어 '진입' — 이때만 history에 1회 얹는다(운동 전환은 push 없음).
+ *  플레이어가 목록 위에 얹힌 상태가 되어, 재생 중 뒤로가 어느 쪽이든 목록으로 떨어진다. */
+function openPlayer(id, routineMode = false) {
+  pushView(VIEWS.PLAYER);
+  startGuide(id, routineMode);
+}
+
 /** 홈 딥스타트 소비 — 로딩 중 홈 복귀 시 오발화 방지(화면 재확인) */
 function consumeAutoStart() {
   const id = pendingGuideId;
   pendingGuideId = null;
-  if (id && getCurrentScreen() === SCREENS.GUIDE) startGuide(id, true); // 홈 원탭 = 루틴 모드
+  if (id && getCurrentScreen() === SCREENS.GUIDE) openPlayer(id, true); // 홈 원탭 = 루틴 모드
   else showGuideList();
 }
 
@@ -1136,6 +1163,12 @@ async function startGuide(id, routineMode = false) {
   // 오늘의 포커스 태그 — 루틴 모드에서만. 둘러보기는 dose 조정도 안 걸리므로(위 getRoutineGuide)
   // 태그만 붙으면 화면과 실제 재생이 어긋난다.
   els.focus.hidden = !(routineMode && id === focusGuideId());
+  // 이전 운동 — 오늘의 루틴(코스) 순서에서 한 칸 앞. 첫 운동이거나 코스 밖 운동(둘러보기)이면 숨김.
+  // "다음"(gpNext)이 코스 순서를 따르므로 뒤로 갔다 와도 순서가 이어진다.
+  const courseIds = getTodayRoutine().ids;
+  const slot = courseIds.indexOf(id);
+  guide.prevId = slot > 0 ? courseIds[slot - 1] : null;
+  els.prev.hidden = !guide.prevId;
   // 연속 진행(다음 운동): 카메라·스트림은 유지하고 감지 루프만 교체.
   // startLoop는 기존 rAF를 멈추지 않고 startCamera는 스트림을 누수하므로
   // 반드시 stopLoop 후 재시작하고 카메라 재호출은 건너뛴다.

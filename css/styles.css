@@ -858,7 +858,8 @@ body::after{
 .gp-hint.warn{ color:var(--terra); }
 .gp-idle{ background:var(--sun-soft); border-radius:var(--r-md); padding:var(--sp-md) var(--sp-lg); text-align:center; font-size:var(--fs-sm); color:var(--ink); display:flex; flex-direction:column; gap:var(--sp-sm); width:100%; }
 .gp-idle-btns{ display:flex; gap:var(--sp-sm); justify-content:center; flex-wrap:wrap; }
-.gp-btns{ display:flex; gap:var(--sp-sm); margin-top:var(--sp-2xs); }
+/* 이전 운동·그만두기·건너뛰기 — 좁은 화면에선 줄바꿈해 넘치지 않게 */
+.gp-btns{ display:flex; gap:var(--sp-sm); margin-top:var(--sp-2xs); flex-wrap:wrap; justify-content:center; }
 .gp-done{ text-align:center; display:flex; flex-direction:column; align-items:center; gap:var(--sp-sm); padding:var(--sp-sm) 0 var(--sp-2xs); }
 .gp-done-emoji{ font-size:var(--fs-emoji-lg); margin:0; animation:bob 2.6s ease-in-out infinite; }
 .gp-done-text{ font-family:"Jua",sans-serif; font-size:var(--fs-base); color:var(--ink); margin:0; }

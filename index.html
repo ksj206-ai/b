@@ -169,7 +169,10 @@
             </div>
           </div>
 
+          <!-- 재생 중 조작. "이전 운동"은 오늘의 루틴 순서에서 한 칸 앞 — 첫 운동이거나
+               코스 밖 운동이면 main.js가 숨긴다(운동 전환일 뿐 history는 안 쌓는다). -->
           <div class="gp-btns">
+            <button class="btn btn-back" id="gpPrev" hidden>← 이전 운동</button>
             <button class="btn btn-back" id="gpQuit">그만두기</button>
             <button class="btn btn-back" id="gpSkip">건너뛰기</button>
           </div>

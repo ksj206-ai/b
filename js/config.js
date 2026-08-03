@@ -21,6 +21,13 @@ export const SCREENS = {
 };
 export const DEFAULT_SCREEN = SCREENS.HOME;
 
+// ─── 화면 안의 서브뷰 ───
+// history state는 {screen, view} 한 쌍이다. view는 "화면 위에 얹힌 상태" —
+// 뒤로 한 번이면 원래 뷰로 돌아온다(가이드 플레이어 → 목록). 지금은 하나뿐.
+export const VIEWS = {
+  PLAYER: 'player',  // 가이드: 목록 위에 얹힌 재생 화면
+};
+
 // ─── 스테이지 좌표계 (원본 L368) ───
 export const STAGE = {
   W: 960,
