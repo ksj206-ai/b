@@ -3,7 +3,7 @@
 // UI 초기화 → 홈 상태 반영. 측정 화면 진입 시 tracking/measurement를
 // 지연 로드해 라이브 인식 프리뷰를 구동(파이프라인 확인용).
 // ═══════════════════════════════════════════════════════════
-import { initUI, onScreenChange, getCurrentScreen, showScreen } from './ui.js';
+import { initUI, onScreenChange, getCurrentScreen, navigate } from './ui.js';
 import {
   load, save, update, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky, lightStars,
@@ -364,7 +364,7 @@ function renderRemindEntry() {
 function startRoutineDeep() {
   const r = getTodayRoutine();
   pendingGuideId = nextRoutineExercise(r) || r.ids[0]; // 완주 후 "한 번 더"는 처음부터
-  showScreen(SCREENS.GUIDE);
+  navigate(SCREENS.GUIDE);
 }
 
 // ─── 첫 실행 환영 오버레이 ───
@@ -1492,7 +1492,7 @@ function onGuideComplete(g) {
 /** [오늘은 여기까지] — 중간에 끝내도 그날 완료. 한 것이 없으면 조용히 홈으로 */
 function endRoutineToday() {
   const r = getTodayRoutine();
-  if (routineProgress(r).done === 0) { showScreen(SCREENS.HOME); return; }
+  if (routineProgress(r).done === 0) { navigate(SCREENS.HOME); return; }
   askCondition(r);
 }
 

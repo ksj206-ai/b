@@ -90,7 +90,7 @@ node js/tracking.test.mjs     # delegate GPU→CPU 폴백
 ├── js/
 │   ├── main.js               # 진입점: 홈·측정·가이드·기록·도감 컨트롤러 (화면별 지연 로드)
 │   ├── config.js             # 전역 상수 단일 출처 (MediaPipe·스무딩·ROM·적응형·문구·DEBUG 플래그)
-│   ├── ui.js                 # 화면 전환 라우터 ([data-nav])
+│   ├── ui.js                 # 화면 전환 라우터 ([data-nav] 이동 · [data-back] 뒤로 = 브라우저 History)
 │   ├── store.js              # localStorage 저장/조회 + 스트릭 + 별자리 상태 + 적응형 판정
 │   ├── routine.js            # 오늘의 루틴 구성·진행 + dose 조정 + 오늘의 한마디
 │   ├── reminder.js           # 손목 리마인더 알림 (Notification — 탭 켜짐 필요)

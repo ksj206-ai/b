@@ -201,6 +201,13 @@ body::after{
   display:flex; align-items:center; justify-content:center; gap:var(--sp-sm);
   text-shadow:0 0 18px rgba(var(--glow),.45);
 }
+/* 타이틀 = 홈으로 가는 버튼. 생김새는 그대로 두고 정렬(flex·gap)만 옮겨받는다. */
+.app-title-btn{
+  font:inherit; color:inherit; letter-spacing:inherit; text-shadow:inherit;
+  background:none; border:0; padding:0; cursor:pointer;
+  display:flex; align-items:center; gap:var(--sp-sm);
+}
+.app-title-btn:active{ transform:translateY(1px); }
 .app-logo{ font-size:var(--fs-emoji); display:inline-block; animation:sway 3.4s ease-in-out infinite; }
 @keyframes sway{ 0%,100%{ transform:rotate(-7deg); } 50%{ transform:rotate(7deg); } }
 .app-tag{ color:var(--muted); font-size:var(--fs-sm); margin:var(--sp-xs) 0 0; font-weight:500; }

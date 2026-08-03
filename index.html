@@ -11,7 +11,11 @@
   <div class="app">
     <!-- ─── 헤더 ─── -->
     <header class="app-header">
-      <h1 class="app-title"><span class="app-logo">🌟</span> 오늘의 별자리</h1>
+      <!-- 타이틀 탭 = 홈(루트)으로. 홈엔 뒤로 버튼이 없으므로(루트에서 뒤로=앱 종료)
+           어느 화면에서든 한 번에 홈으로 가는 길은 여기다. -->
+      <h1 class="app-title">
+        <button type="button" class="app-title-btn" data-nav="home"><span class="app-logo">🌟</span> 오늘의 별자리</button>
+      </h1>
       <p class="app-tag">짧게 · 쉽게 · 재미있게 — 매일 돌보는 내 손목</p>
       <div id="streak" class="streak" hidden>🔥 <b id="streakDays">0</b>일 연속</div>
     </header>
@@ -117,7 +121,8 @@
       <!-- 가이드 -->
       <section id="screen-guide" class="screen" data-screen="guide">
         <div class="screen-head">
-          <button class="btn btn-back" id="guideBack" data-nav="home">← 홈</button>
+          <!-- [data-back] = history.back() (ui.js). 직전 화면으로 — 늘 홈이 아니다. -->
+          <button class="btn btn-back" id="guideBack" data-back>← 뒤로</button>
           <h2 class="screen-title">🎬 오늘의 루틴</h2>
         </div>
 
@@ -203,7 +208,7 @@
       <!-- 측정 -->
       <section id="screen-measure" class="screen" data-screen="measure">
         <div class="screen-head">
-          <button class="btn btn-back" data-nav="home">← 홈</button>
+          <button class="btn btn-back" data-back>← 뒤로</button>
           <h2 class="screen-title">📏 손목 체크</h2>
         </div>
 
@@ -292,7 +297,7 @@
       <!-- 게임 (후속 단계) -->
       <section id="screen-game" class="screen" data-screen="game">
         <div class="screen-head">
-          <button class="btn btn-back" data-nav="home">← 홈</button>
+          <button class="btn btn-back" data-back>← 뒤로</button>
           <h2 class="screen-title">🎮 미니게임</h2>
         </div>
         <div class="placeholder">
@@ -305,7 +310,7 @@
       <!-- 기록 -->
       <section id="screen-records" class="screen" data-screen="records">
         <div class="screen-head">
-          <button class="btn btn-back" data-nav="home">← 홈</button>
+          <button class="btn btn-back" data-back>← 뒤로</button>
           <h2 class="screen-title">📈 내 손목 기록</h2>
         </div>
 
@@ -397,7 +402,7 @@
         <!-- 상단 바 — 밤하늘 위에 떠 있음(스크림으로 가독성만 살짝). 뒤로가기·N/16만 유지 -->
         <div class="sky-dex-top">
           <div class="screen-head">
-            <button class="btn btn-back" data-nav="home">← 홈</button>
+            <button class="btn btn-back" data-back>← 뒤로</button>
             <h2 class="screen-title">🌌 밤하늘 도감</h2>
             <span class="sky-dex-progress" id="skyDexProgress">0/16</span>
           </div>
