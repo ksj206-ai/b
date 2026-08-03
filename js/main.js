@@ -524,7 +524,7 @@ async function wireMeasure() {
     camVideo: $('camVideo'), camBadge: $('camBadge'),
     mLive: $('mLive'), mLiveVal: $('mLiveVal'), mLiveCap: $('mLiveCap'),
     mProg: $('mProg'), mProgBar: $('mProgBar'), mGuide: $('mGuide'), mHowChip: $('measureHowChip'),
-    mIdle: $('mIdle'), mStart: $('mStart'),
+    mIdle: $('mIdle'), mStart: $('mStart'), mCancel: $('mCancel'),
     mCapture: $('mCapture'), capFlex: $('capFlex'), capFlexK: $('capFlexK'), capFlexV: $('capFlexV'),
     capExt: $('capExt'), capExtK: $('capExtK'), capExtV: $('capExtV'), mComp: $('mComp'),
     mActions: $('mActions'), mReneutral: $('mReneutral'), mFinish: $('mFinish'),
@@ -549,6 +549,10 @@ async function wireMeasure() {
   };
 
   els.mStart.addEventListener('click', () => startMeasure());
+  // 그만두기 — 카메라를 끄고 이 자리에서 처음(idle)부터. 화면 이동이 아니라 화면 안의
+  // 단계 되돌리기라 History는 건드리지 않는다(홈으로 나가기는 좌상단 뒤로 버튼).
+  // 확인 팝업 없이 바로 — 진행 중 캡처는 버려지지만 다시 시작이 싸다.
+  els.mCancel.addEventListener('click', () => stopMeasure());
   // "중립 다시"는 지금 단계의 중립만 다시 잡는다 — 편위 단계에서 눌러도 이미 캡처한 굽힘·폄은 유지
   els.mReneutral.addEventListener('click', () => {
     if (!measure.running) return;
@@ -891,6 +895,7 @@ function setMeasurePhase(phase) {
   show(e.mLive, live);
   show(e.mProg, live);
   show(e.mHandChip, live);
+  show(e.mCancel, live); // 진행 중에만 — idle·result에선 자동으로 사라진다
   show(e.mComp, false);
 
   // 캡처 칩 라벨 — 옆모습(굽힘·폄) / 정면(엄지쪽·새끼쪽). 값 칸(capFlexV/capExtV)은

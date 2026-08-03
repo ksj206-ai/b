@@ -236,6 +236,12 @@
             <button type="button" id="measureHowChip" class="m-how-chip">이렇게 재요 <span class="m-how-q" aria-hidden="true">?</span></button>
           </div>
 
+          <!-- 진행 중 그만두기 — 측정 단계만 idle로 되돌린다(화면은 measure에 머물고 History는
+               안 건드린다). 홈으로 나가는 건 좌상단 뒤로 버튼의 몫.
+               ⚠ mActions 안에 두지 말 것 — 그쪽은 캡처 단계에만 보이는데 이 버튼은
+               중립 단계에도 보여야 한다. 카메라 위에 겹치지 않게 안내 문구 아래 별도 줄. -->
+          <button class="btn btn-back" id="mCancel" hidden>그만두기</button>
+
           <!-- idle: 체크할 손 선택 + 시작 -->
           <div id="mIdle" class="m-panel m-panel-col">
             <div id="mHandSel" class="m-hand-sel" role="group" aria-label="체크할 손 선택">
