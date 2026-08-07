@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════
-// handSprite.js — 시범 손 APNG 스프라이트 (굽힘·폄 / 좌우 편위)
-// 이 두 운동은 스켈레톤 손(guideHand.js) 대신 미리 렌더된 우주복 손 애니를 쓴다.
+// handSprite.js — 시범 손 APNG 스프라이트
+// 여기 등록된 운동은 스켈레톤 손(guideHand.js) 대신 미리 렌더된 손 애니를 쓴다.
+// 등록되지 않은 id는 show()가 false를 돌려주고 스켈레톤으로 폴백한다.
 // 호(arc)·화살표는 지금처럼 캔버스가 그리므로, 여기서 책임지는 건 딱 하나 —
 //   "이미지 안 손목이 캔버스 위 호의 중심에 정확히 물리게 얹는 것".
 //
@@ -11,24 +12,64 @@
 //   이미지좌표(px) --k--> 손 로컬 단위 --scale--> 캔버스 px
 //   pivot(이미지 안 손목)이 (cx,cy) + WRIST[view] * scale 에 오도록 좌상단을 역산.
 //
-// pivot 값은 눈대중이 아니라 APNG 프레임에서 잰 값이다: 손은 손목을 축으로 도는
-// 강체라 손 영역 무게중심이 원을 그리고, 그 원의 중심이 곧 회전축(잔차 0.1px 미만).
-// k는 손끝이 호 안쪽에 살짝 들어오도록 맞췄다(스켈레톤 손끝과 같은 반경대).
+// pivot 값은 눈대중이 아니라 APNG 프레임에서 잰 값이다(운동 종류별 기준은 SPRITES 위 주석).
+// k는 손끝이 호 안쪽에 살짝 들어오도록, 손가락 운동은 손이 무대를 꽉 채우도록 맞췄다.
+//
+// ⚠ 에셋을 새로 뽑으면 w/h/pivot/k를 반드시 다시 잰다 — 프레임 크기가 달라지면
+//   w·h가 배치 계산(폭 = w*k*scale)에 그대로 들어가 손이 어긋나고 크기도 틀어진다.
 // ═══════════════════════════════════════════════════════════
 
 // 손 로컬 좌표의 손목 = 회전 중심 — guideHand.js drawSide(wx,wy)·drawFront(0,70)와 같은 점
 const WRIST = { side: { x: 4, y: 14 }, front: { x: 0, y: 70 } };
 
+// ─── 손목이 도는 sweep 운동 — pivot = 실측 회전축 ───
+// 프레임을 겹치면 팔뚝은 겹치고 손만 부채꼴로 벌어진다. 그 수렴점이 회전축이고,
+// 호(arc)가 이 점을 중심으로 그려지므로 pivot은 여기서 눈대중이 아니라 실측값이다.
+//
+// ─── 손가락 운동(핀치·악력·벌리기·힘줄활주) — pivot = 손목 배치 기준점 ───
+// 손목은 고정이고 손가락만 움직여 "회전축"이 없다. 호도 띄우지 않으므로(main.js
+// ARC_GUIDES) pivot은 순수 배치 기준 — 프레임 전체에서 잰 손목 목(최소 단면)의
+// 중심을 쓴다. x는 팔뚝 중심(측정 표준편차 0.25px 미만), y는 네 에셋 공통 178.
+// 넷이 같은 값을 쓰므로 운동이 이어져 재생돼도 손목이 제자리에 머문다.
+// ─── 에셋 버전 ───
+// 같은 파일명으로 그림만 갈아끼우면 브라우저 디스크 캐시가 옛 그림을 계속 내준다.
+// 특히 정지 프레임은 JS가 나중에 <img>.src로 붙이는 이미지라 하드 리로드(Ctrl+Shift+R)로도
+// 갱신되지 않는다 — 실제로 굽힘·폄이 intro/outro에선 옛 손, follow에선 새 손으로 갈렸다.
+// 게다가 프레임 크기가 바뀌면 아래 w/h 배치까지 어긋난다.
+// ⚠ 에셋을 새로 뽑을 때마다 이 숫자를 올린다 (고정 쿼리라 캐시는 정상 동작 — 매번 재요청 아님).
+const ASSET_V = 2;
+const asset = (name) => `assets/${name}.png?v=${ASSET_V}`;
+
 const SPRITES = {
   flex_ext: {
     view: 'side',
-    anim: 'assets/guide-flexext.png', still: 'assets/guide-flexext-static.png',
-    w: 566, h: 294, pivot: { x: 250.7, y: 154.3 }, k: 0.63,
+    anim: asset('guide-flexext'), still: asset('guide-flexext-static'),
+    w: 480, h: 270, pivot: { x: 252, y: 138 }, k: 0.90,
   },
   deviation: {
     view: 'front',
-    anim: 'assets/guide-deviation.png', still: 'assets/guide-deviation-static.png',
+    anim: asset('guide-deviation'), still: asset('guide-deviation-static'),
     w: 317, h: 568, pivot: { x: 171.0, y: 309.5 }, k: 0.60,
+  },
+  pinch_hold: {
+    view: 'front',
+    anim: asset('guide-pinch'), still: asset('guide-pinch-static'),
+    w: 480, h: 270, pivot: { x: 240.4, y: 178 }, k: 0.99,
+  },
+  grip_hold: {
+    view: 'front',
+    anim: asset('guide-grip'), still: asset('guide-grip-static'),
+    w: 480, h: 270, pivot: { x: 240.1, y: 178 }, k: 0.99,
+  },
+  finger_spread: {
+    view: 'front',
+    anim: asset('guide-spread'), still: asset('guide-spread-static'),
+    w: 480, h: 270, pivot: { x: 240.3, y: 178 }, k: 0.99,
+  },
+  tendon_glide: {
+    view: 'front',
+    anim: asset('guide-tendon'), still: asset('guide-tendon-static'),
+    w: 480, h: 270, pivot: { x: 241.0, y: 178 }, k: 0.99,
   },
 };
 
@@ -93,6 +134,11 @@ export function createHandSprite(img) {
       node.hidden = false;
       return true;
     },
+
+    /** 현재 운동의 정지 프레임 URL (intro·outro 표시용) — 없으면 null.
+     *  호출부가 <img>.src를 문자열로 주물러 만들지 않게 여기서 준다
+     *  (버전 쿼리가 붙으면 ".png로 끝난다"는 가정이 깨진다). */
+    still() { return cur ? cur.still : null; },
 
     hide() {
       cur = null;

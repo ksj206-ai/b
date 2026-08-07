@@ -1013,7 +1013,7 @@ async function initGuide() {
   guide = {
     wired: true, tracking, mods: { drawGuideHand, createAnimPlayer, createStepEngine, createWristTracker, getGuide },
     els, ctx: els.canvas.getContext('2d'),
-    sprite: createHandSprite(els.anim), // 시범 손 APNG (굽힘·폄·편위) — 없는 운동은 스켈레톤 유지
+    sprite: createHandSprite(els.anim), // 시범 손 APNG — 맵에 없는 운동은 스켈레톤 유지
     spriteOn: false,                    // = drawGuideHand의 hideHand
     demoRaf: null, demoAnim: null,      // 시범 손 운동의 호 데모 루프 (follow 스텝, 카메라 무관, now 기반)
     spriteStill: null,                  // 시범 손 정지 프레임 경로 (intro/outro 표시용)
@@ -1182,14 +1182,14 @@ async function startGuide(id, routineMode = false) {
   guide.cur = g;
   guide.lastParams = null;
   guide.poseBlend = null;
-  // 시범 손: 굽힘·폄·편위는 새 APNG 스프라이트(스켈레톤 숨김), 나머지 4개는 그대로 스켈레톤
+  // 시범 손: handSprite에 등록된 운동은 APNG 스프라이트(스켈레톤 숨김), 없으면 스켈레톤 폴백
   guide.spriteOn = guide.sprite.show(g.id, stageLayout(els.canvas, g.view));
   // 스프라이트 리듬은 원래 스켈레톤과 같다: intro·outro는 정지 프레임(호 없음), follow만
   // 애니 APNG+호. 시작(=intro)은 정지 프레임으로 두고, 애니↔호는 onEnterStep에서 스텝별로 켠다.
-  // (show()가 방금 넣은 애니 경로에서 정지 프레임 경로를 만든다 — handSprite의 still 규칙과 동일.)
+  // 정지 프레임 경로는 handSprite가 직접 준다 — src 문자열을 여기서 변형하지 않는다.
   stopArcDemo();
   if (guide.spriteOn) {
-    guide.spriteStill = (els.anim.getAttribute('src') || '').replace(/(-static)?\.png$/, '-static.png');
+    guide.spriteStill = guide.sprite.still();
     els.anim.src = guide.spriteStill;
   }
   els.list.hidden = true;
@@ -1225,12 +1225,14 @@ async function startGuide(id, routineMode = false) {
         ? { from: guide.lastParams, start: null }
         : null;
       // 스프라이트 운동의 표시 전환 — 원래 스켈레톤 리듬 복원:
-      //  · follow: 애니 APNG로 되감아(sprite.restart, 프레임 0=앱 주기와 같은 시작 위상) 재생 +
-      //    카메라 독립 데모 rAF로 호+화살표. 호는 이 스텝에서만 뜬다.
+      //  · follow: 애니 APNG로 되감아(sprite.restart, 프레임 0=앱 주기와 같은 시작 위상) 재생.
+      //    호+화살표는 sweep 운동(ARC_GUIDES)만 — 카메라 독립 데모 rAF로, 이 스텝에서만.
       //  · intro·outro: 정지 프레임(호 없음). 데모 루프 정지 + 캔버스 클리어(호 잔상 제거).
       if (guide.spriteOn) {
-        if (step.type === 'follow') { guide.sprite.restart(); guide.demoAnim = startArcDemo(g); }
-        else { stopArcDemo(); els.anim.src = guide.spriteStill; }
+        if (step.type === 'follow') {
+          guide.sprite.restart();
+          if (ARC_GUIDES.has(g.id)) guide.demoAnim = startArcDemo(g);
+        } else { stopArcDemo(); els.anim.src = guide.spriteStill; }
       }
     },
     onCount: (count, reps) => { fillDots(count, reps); setCount(count, reps); if (count > 0) repFeedback(count); },
@@ -1414,6 +1416,14 @@ function drawStage(ctx, canvas, drawGuideHand, params, view, now, hideHand = fal
   ctx.restore();
   drawGuideHand(ctx, params, view, { cx, cy, scale, now, hideHand });
 }
+
+/** 호(arc)·화살표 오버레이를 얹는 운동 — 손목이 돌아가는 sweep 동작만.
+ *  손가락 운동(핀치·악력·벌리기·힘줄활주)을 뺀 이유 두 가지:
+ *   ① drawFrontMotionGuide의 손가락 화살표 좌표가 스켈레톤 손 기준 하드코딩이라
+ *      APNG 손 위에서는 어긋난 자리에 뜬다.
+ *   ② APNG가 이미 동작을 다 보여줘 중복이다.
+ *  여기 없는 id는 startArcDemo를 아예 안 켠다 → 캔버스는 비어 있고 APNG만 남는다. */
+const ARC_GUIDES = new Set(['flex_ext', 'deviation']);
 
 /** 시범 손(APNG) 운동의 호(arc) 데모 루프 — follow 스텝에서만 돈다. APNG는 브라우저가
  *  알아서 재생하지만 호는 JS가 캔버스에 그린다 — 카메라 렌더 루프에 얹으면 카메라 권한이
