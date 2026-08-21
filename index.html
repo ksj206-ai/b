@@ -17,34 +17,35 @@
         <button type="button" class="app-title-btn" data-nav="home"><span class="app-logo">🌟</span> 오늘의 별자리</button>
       </h1>
       <p class="app-tag">짧게 · 쉽게 · 재미있게 — 매일 돌보는 내 손목</p>
-      <div id="streak" class="streak" hidden>🔥 <b id="streakDays">0</b>일 연속</div>
+      <div id="streak" class="streak" hidden>⭐ <b id="streakDays">0</b>일 연속</div>
     </header>
 
     <!-- ─── 화면 컨테이너 ─── -->
     <main id="screens" class="screens">
 
-      <!-- 홈 — 데스크톱: 왼쪽 밤하늘 히어로 패널 + 오른쪽 기능 카드 열.
-           좁은 화면(<960px)에서는 두 영역이 그대로 세로로 쌓인다. -->
+      <!-- 홈 — 세로 3층: 위="오늘의 하늘" 전시창 / 가운데=경계 없는 본문 / 아래=언덕 위 고양이.
+           데스크톱(≥960px)에서는 전시창(42) + 본문(58)이 한 줄로 나란히 서고
+           언덕은 두 열 아래를 가로지른다(styles.css의 #screen-home.is-active). -->
       <section id="screen-home" class="screen is-active" data-screen="home">
-        <!-- ─── 왼쪽: 밤하늘 히어로 (마스코트 + 오늘의 별자리) ─── -->
+        <!-- ─── 위: 금빛 "오늘의 하늘" 전시창 ───
+             홈에서 프레임(금빛 2겹 테두리 + 걸친 라벨 칩)을 두르는 유일한 패널이다.
+             다른 블록에는 이 프레임을 쓰지 않는다 — 위계가 무너진다.
+             상단 칩("✦ 오늘의 하늘")과 안쪽 이중선은 .home-hero의 ::before/::after다. -->
         <div class="home-hero">
-          <div class="mascot-wrap">
-            <div class="speech" id="mascotSpeech">오늘도 만나서 반가워요! 🐾</div>
-            <!-- 마스코트: 우주비행사 고양이 (상태별 이미지 — assets/cat-{idle|happy|sad}.png).
-                 main.js renderHome()가 오늘 상태에 따라 src를 바꾼다. -->
-            <img class="mascot" id="mascotImg" src="assets/cat-idle.png" data-mood="idle" alt="" aria-hidden="true">
-          </div>
-          <!-- 오늘의 별자리 — 마스코트 아래 전용 영역. 운동을 완료할수록 별이
-               그리는 순서대로 켜진다(렌더·점등은 sky.js / main.js renderHome). -->
-          <p class="home-hero-label sky-label">오늘의 별자리 · <b id="skyName">밤하늘</b></p>
+          <!-- 오늘의 별자리 — 운동을 완료할수록 별이 그리는 순서대로 켜진다
+               (렌더·점등은 sky.js / main.js renderHome). -->
           <div class="sky-stage-wrap">
             <div id="skyStage" class="sky-stage" role="img" aria-label="오늘의 별자리"></div>
             <!-- 완성 순간 1회 축하 (main.js celebrateSky). 평소엔 hidden. -->
             <p id="skyCelebrate" class="sky-celebrate" hidden>오늘의 별자리 완성! ✨<b></b></p>
           </div>
+          <!-- 별자리 이름 = 전시창의 캡션. "오늘의 별자리 ·" 접두는 상단 칩과 겹쳐 뺐다. -->
+          <p class="home-hero-label sky-label"><b id="skyName">밤하늘</b></p>
         </div>
 
-        <!-- ─── 오른쪽: 기능 카드 열 (루틴 → 체크·도감 → 알림) ─── -->
+        <!-- ─── 가운데: 본문 (루틴 → 체크·도감 → 알림) ───
+             카드 크롬(배경·테두리·그림자)은 전부 CSS에서 걷어냈다. 경계를 갖는 것은
+             위 전시창 하나뿐이고, 여기서 칸을 가르는 것은 얇은 구분선 한 줄이다. -->
         <div class="home-side">
           <!-- ① 오늘의 루틴 — 홈의 주인공. 카드 머리(🎬 오늘의 루틴)는 가이드 목록으로,
                시작하기는 오늘 루틴으로 바로 들어간다.
@@ -114,6 +115,19 @@
               <button class="btn btn-back" id="remindOff" hidden>알림 끄기</button>
               <button class="btn btn-back" id="remindSkip">건너뛰기</button>
             </div>
+          </div>
+        </div>
+
+        <!-- ─── 아래: 언덕 위 마스코트 ───
+             언덕(지면)은 .home-ground 자신의 배경이고, 고양이 발밑 접지 그림자는
+             .mascot-wrap::after가 그린다. 말풍선은 CSS order로 고양이 아래에 놓인다
+             (DOM은 말풍선이 먼저 — 스크린리더가 한마디를 먼저 읽게). -->
+        <div class="home-ground">
+          <div class="mascot-wrap">
+            <div class="speech" id="mascotSpeech">오늘도 만나서 반가워요! 🐾</div>
+            <!-- 마스코트: 우주비행사 고양이 (상태별 이미지 — assets/cat-{idle|happy|sad}.png).
+                 main.js renderHome()가 오늘 상태에 따라 src를 바꾼다. -->
+            <img class="mascot" id="mascotImg" src="assets/cat-idle.png" data-mood="idle" alt="" aria-hidden="true">
           </div>
         </div>
       </section>

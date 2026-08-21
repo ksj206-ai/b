@@ -5,6 +5,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap');
 
 :root{
+  /* 이 앱은 밤하늘 다크 톤 하나로 설계됐다(prefers-color-scheme 분기 없음).
+     color-scheme을 다크로 고정해야 브라우저가 그리는 것들 — <input type="time">,
+     스크롤바, 자동완성 배경 — 이 라이트 강제 설정에서도 함께 어두워진다. */
+  color-scheme:dark;
+
   /* ═══ 디자인 토큰 (단일 출처) — 값은 여기서만 바꾸면 전 화면에 반영 ═══ */
 
   /* ── 색: 잉크/텍스트 (어두운 배경용 밝은 텍스트) ── */
@@ -17,7 +22,6 @@
   /* ── 색: 강조(별·골드·경고) ── */
   --sun:#ffd36b; --sun-soft:rgba(240,190,90,.15); --honey:#ffcf87;
   --peach:#ffd9c2; --terra:#f0a878; --rose:#f6b3c2; --water:#8fcef0; --water-d:#5ab0e8;
-  --peach-soft:#fdeee2;                                     /* 따뜻한 오브 틴트 (이모지) */
   --warm-glow:255,214,150; --peach-rgb:255,217,194; --honey-rgb:255,207,135; /* 금빛/복숭아 알파 조합 → rgba(var(--warm-glow),a) */
   --cream-ink:255,246,232;                                  /* 크림 하이라이트(림·오브) */
   /* ── 색: 표면/스크림/글로우 ── */
@@ -29,18 +33,10 @@
   --glow:160,140,255;                                       /* 보라 글로우 → rgba(var(--glow),a) */
   --moss-rgb:157,143,242; --moss-dd-rgb:109,92,224;         /* 알파 조합용 rgb 트리플렛 */
   --water-soft:rgba(90,176,232,.15); --water-ink:#8fd0f5;   /* 프리즈(파랑) */
-  --white-a85:rgba(255,255,255,.09); --white-a60:rgba(255,255,255,.055); --white-a35:rgba(255,255,255,.22); /* 반투명 유리 패널 */
-  --bg-page:                                                /* 페이지 배경(밤하늘 — 미드나잇 네이비 바탕 + 보라·청록 성운) */
-    radial-gradient(720px 540px at 80% 15%, rgba(138,92,208,.26), transparent 70%),  /* 보라 성운 (우상단) */
-    radial-gradient(660px 520px at 14% 26%, rgba(56,104,206,.24), transparent 72%),  /* 블루 성운 (좌상단) */
-    radial-gradient(600px 480px at 28% 60%, rgba(34,152,168,.17), transparent 72%),  /* 청록(틸) 성운 한 줄 — 보라와 어우러짐, 좌측 여백에 걸침 */
-    radial-gradient(520px 440px at 90% 54%, rgba(84,74,190,.14), transparent 74%),   /* 옅은 보라 잔향 (우측) */
-    radial-gradient(720px 520px at 18% 100%, rgba(20,84,98,.20), transparent 66%),   /* 딥 틸 (좌하단 — 마젠타 대체) */
-    radial-gradient(620px 470px at 84% 100%, rgba(12,40,70,.18), transparent 66%),   /* 딥 네이비 (우하단) */
-    /* 따뜻한 발광 pool — 남색 밤하늘 안에 온기 몇 군데. 알파가 낮아 색이 아니라 빛으로 읽힌다 */
-    radial-gradient(480px 380px at 88% 8%,  rgba(255,206,140,.10), transparent 68%), /* 달 근처 금빛 번짐 (우상단) */
-    radial-gradient(560px 420px at 6% 74%,  rgba(255,190,150,.07), transparent 70%), /* 옅은 복숭아 (좌하단) */
-    radial-gradient(150% 125% at 50% -10%, #11213f 0%, #0b1730 46%, #050a18 100%);   /* 바탕: 네이비, 아래로 깊어짐 */
+  --white-a60:rgba(255,255,255,.055); --white-a35:rgba(255,255,255,.22); /* 반투명 유리 패널 */
+  /* 페이지 배경(밤하늘) — 위는 밝은 인디고, 아래로 깊어진다.
+     성운·별은 별도 레이어(body::before / body::after)라 이 값은 '바탕' 하나뿐이다. */
+  --bg-page:radial-gradient(135% 78% at 50% -14%, #28305f 0%, #161834 48%, #0b0c1e 100%);
   /* ── 선 ── */
   --line:#34385e;
 
@@ -73,7 +69,6 @@
   --btn-lift:6px; --btn-lift-sm:5px;                        /* 3D 버튼 두께(주/보조) */
   --ring-white:inset 0 0 0 2px #fff;                        /* 카메라/이모지 흰 링 */
   --ring-accent:inset 0 0 0 2px var(--sage);                /* 강조 상태 링(선택·오늘) */
-  --shadow-badge-terra:0 3px 8px rgba(240,168,120,.3);      /* 배지(살구/골드 변형) */
   --btn-pad:14px 28px; --btn-pad-sm:12px 20px; --btn-pad-hero:20px 52px; /* 버튼 패딩(주/보조/히어로) */
   --pop:0 6px 0; /* 구 호환 */
 
@@ -97,18 +92,42 @@
     radial-gradient(124% 88% at 50% -8%, rgba(var(--warm-glow),.075), transparent 62%),
     radial-gradient(96% 72% at 50% 110%, rgba(var(--peach-rgb),.055), transparent 68%);
   --glass-bg-cozy:var(--glass-warm), var(--glass-bg);
-  /* 히어로 전용 밤하늘 패널 — 성운 글로우 2개(보라·쪽빛) + 남색→보라→쪽빛 세로 그라데이션.
-     오른쪽 유리 카드보다 짙어서 '창밖의 하늘' 처럼 읽힌다. */
-  --grad-night-panel:
-    radial-gradient(120% 62% at 78% 6%, rgba(138,104,214,.22), transparent 68%),
-    radial-gradient(110% 58% at 12% 82%, rgba(44,104,178,.18), transparent 70%),
-    linear-gradient(180deg, #1b2350 0%, #232a5e 34%, #1d2a5a 68%, #15224a 100%);
   --glass-bg-cozy-strong:var(--glass-warm), var(--glass-bg-strong);
   --glass-border-warm:1px solid rgba(var(--cream-ink),.18);   /* 살짝 따뜻한 테두리 */
   /* 유리 림: 위쪽 크림빛 하이라이트 + 아래쪽 옅은 반사광 → 평평한 면이 두께를 갖는다 */
   --glass-rim-warm:inset 0 1px 0 rgba(var(--cream-ink),.30), inset 0 -1px 0 rgba(var(--glow),.14);
   --glow-warm-soft:0 0 26px rgba(var(--warm-glow),.10);       /* 카드 주변 은은한 금빛 번짐 */
-  --ring-warm:inset 0 0 0 2px rgba(var(--honey-rgb),.30);     /* 주 카드 강조 링(골드) */
+
+  /* ── 홈 톤 D: 금빛 프레임 히어로 + 경계 없는 본문 + 언덕 ──
+     구성은 위(전시창) · 가운데(본문) · 아래(언덕 위 고양이) 세 층이다.
+     ⚠ --frame-* 은 "오늘의 하늘" 전시창 하나에만 쓴다. 카드마다 두르면 위계가 사라져
+       화면이 다시 '설정 목록'으로 읽힌다(styletest 실험에서 확인한 실패 모드). */
+  --gold-rgb:255,210,63;                                      /* 프레임·칩·별자리 금색 단일 출처 */
+  --frame-bg:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
+  --frame-border:1px solid rgba(var(--gold-rgb),.30);
+  --frame-line:1px solid rgba(var(--gold-rgb),.12);           /* 안쪽 이중선 */
+  --frame-shadow:                                             /* 금빛 안쪽 링 + 떠 있는 그림자 + 위쪽 림 */
+    0 0 0 1px rgba(var(--gold-rgb),.10) inset,
+    0 14px 34px rgba(0,0,0,.4),
+    0 1px 0 rgba(255,255,255,.14) inset;
+  --r-frame:18px; --r-frame-in:13px;                          /* 바깥/안쪽 반경 (5px 차 = inset과 같음) */
+
+  /* 배경 레이어 — 성운(블러) · 언덕(지면) */
+  --nebula:
+    radial-gradient(40% 30% at 80% 12%, rgba(139,128,201,.28), transparent 70%),
+    radial-gradient(44% 34% at 12% 40%, rgba(143,206,240,.13), transparent 72%);
+  --ground:radial-gradient(115% 150% at 50% 118%, #343a70 0%, #232752 46%, rgba(20,22,52,0) 74%);
+
+  /* 본문 — 카드 크롬 없이 구분선·CTA·오브만 */
+  --hairline:1px solid rgba(255,255,255,.08);                 /* 2칸 사이 얇은 구분선 */
+  --cta-grad:linear-gradient(135deg,#7a6fc0,#a596e8);
+  --cta-shadow:0 10px 28px rgba(130,110,220,.5);
+  /* 진행 점등색 — 전시창에서 '켜진 별' 도트가 홈의 진행 표시다(.sky-core).
+     루틴 블록의 진행점은 오늘 진행도(done/6)를 렌더할 요소가 아직 없어 붙이지 않았다. */
+  --dot-on:#ffcf87;
+  --orb-routine:radial-gradient(circle at 38% 34%,#d9d0ff,#7a6fc0); /* 이모지 대신 그라데이션 원 */
+  --orb-check:radial-gradient(circle at 38% 34%,#bfe6ff,#5aa6e0);
+  --orb-dex:radial-gradient(circle at 38% 34%,#ffe6a8,#f0a93c);
 }
 
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -116,82 +135,86 @@
 [hidden]{ display:none !important; }
 
 body{
-  margin:0; min-height:100vh; color:var(--ink);
+  /* overflow-x:hidden — 언덕(.home-ground)이 100vw 풀블리드라 세로 스크롤바 폭만큼
+     가로가 넘친다. 가로로 스크롤할 화면이 하나도 없으므로 잘라내는 편이 안전하다. */
+  margin:0; min-height:100vh; overflow-x:hidden; color:var(--ink);
   background:var(--bg-page);
   font-family:"Pretendard",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   display:flex; flex-direction:column; align-items:center;
   padding:var(--sp-xl) var(--sp-md) 44px;
 }
 
-/* ─── 밤하늘: 별밭 (배경 레이어 — 카드·글자 뒤, fixed라 flex 레이아웃에 영향 없음) ─── */
-body::before, body::after{
-  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
-  background-repeat:repeat;
-}
-/* 정적 별: 크고 작은 별을 밝기 다르게 흩뿌림 (깜빡임 없음 — 대부분의 별) */
-body::before{
-  background-image:
-    radial-gradient(1px 1px at 34px 42px, rgba(255,255,255,.85), transparent),        /* 흰 별 */
-    radial-gradient(1px 1px at 138px 96px, rgba(196,214,255,.5), transparent),        /* 옅은 블루 별 */
-    radial-gradient(1.5px 1.5px at 210px 168px, rgba(224,230,255,.75), transparent),  /* 블루-화이트 */
-    radial-gradient(1px 1px at 320px 58px, rgba(255,255,255,.45), transparent),       /* 흰 별 */
-    radial-gradient(1px 1px at 90px 244px, rgba(178,205,255,.58), transparent),       /* 옅은 블루 별 */
-    radial-gradient(1.5px 1.5px at 286px 286px, rgba(255,246,232,.5), transparent),   /* 아주 옅은 웜 별 하나 */
-    radial-gradient(1px 1px at 176px 20px, rgba(255,255,255,.55), transparent),       /* 흰 별 */
-    radial-gradient(1px 1px at 250px 210px, rgba(196,214,255,.5), transparent),       /* 옅은 블루 별 */
-    radial-gradient(1px 1px at 40px 330px, rgba(216,226,255,.6), transparent);        /* 블루-화이트 */
-  background-size:390px 390px;
-}
-/* 반짝이는 별: 밝고 큰 소수 별만 천천히 은은하게 (opacity=GPU 합성, reduced-motion에서 자동 정지) */
-body::after{
-  background-image:
-    radial-gradient(2px 2px at 80px 120px, rgba(255,255,255,.95), transparent),       /* 흰 별 (밝음) */
-    radial-gradient(2.5px 2.5px at 320px 250px, rgba(188,210,255,.9), transparent),   /* 푸른 별 (밝음) */
-    radial-gradient(2px 2px at 200px 430px, rgba(255,255,255,.85), transparent),      /* 흰 별 */
-    radial-gradient(2px 2px at 470px 80px, rgba(206,222,255,.82), transparent),       /* 블루-화이트 */
-    radial-gradient(2.5px 2.5px at 410px 360px, rgba(255,255,255,.9), transparent);   /* 흰 별 */
-  background-size:540px 500px;
-  animation:star-twinkle 5.5s ease-in-out infinite;
-}
-@keyframes star-twinkle{ 0%,100%{ opacity:.42; } 50%{ opacity:.88; } }  /* 배경 별빛은 한 톤 낮춰 — 히어로의 달·별자리가 주인공 */
+/* ─── 밤하늘 배경 레이어 ───────────────────────────────────────────────
+   뒤에서 앞으로: body 바탕(--bg-page) → body::before 성운 → body::after 별밭
+   → .app::before 반짝이는 밝은 별. 넷 다 position:fixed라 flex 아이템이 되지 않고
+   레이아웃에 영향을 주지 않는다. z-index:-1 로 콘텐츠 뒤에 고정한다. */
 
-.app{ width:min(560px,95vw); display:flex; flex-direction:column; gap:var(--sp-xl); }
-/* 우주 배경 데코 — 작은 파스텔 행성 4개 + 고운 잔별.
-   가장자리(좌우 8~16%)에만 두어 가운데 카드·문구 뒤는 비운다. 알파 .12~.22라
-   유리 카드(블러+반투명) 뒤로 들어가면 사실상 안 보인다 → 가독성 영향 없음.
-   position:fixed라 flex 아이템이 되어도 레이아웃에 영향 없음(별밭 레이어와 같은 규칙). */
+/* ① 성운 — 보라(우상단) + 쪽빛(좌측). filter:blur로 경계를 완전히 풀어
+   '색'이 아니라 '빛의 번짐'으로 읽히게 한다.
+   ⚠ inset은 음수여야 한다: blur는 상자 가장자리까지 흐리므로 inset:0이면 화면
+     테두리에 흐려진 경계선이 보인다. 24px 밖으로 넘겨 그 경계를 화면 밖에 둔다. */
+body::before{
+  content:''; position:fixed; inset:-24px; z-index:-1; pointer-events:none;
+  background-image:var(--nebula);
+  background-repeat:no-repeat;
+  filter:blur(8px);
+}
+
+/* ② 별밭 — 크기 0.5~2px, 투명도 .12~.95를 섞어 흩뿌린다. 대부분의 별은 여기 있고
+   깜빡이지 않는다(전부 함께 깜빡이면 배경이 '점멸'로 읽힌다). */
+body::after{
+  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-repeat:repeat; background-size:400px 400px;
+  background-image:
+    radial-gradient(1px 1px     at 34px 42px,   rgba(255,255,255,.85), transparent),
+    radial-gradient(0.5px 0.5px at 138px 96px,  rgba(196,214,255,.30), transparent),
+    radial-gradient(1.5px 1.5px at 210px 168px, rgba(224,230,255,.72), transparent),
+    radial-gradient(1px 1px     at 320px 58px,  rgba(255,255,255,.42), transparent),
+    radial-gradient(0.5px 0.5px at 90px 244px,  rgba(178,205,255,.18), transparent),
+    radial-gradient(2px 2px     at 286px 286px, rgba(255,246,232,.55), transparent),
+    radial-gradient(1px 1px     at 176px 20px,  rgba(255,255,255,.52), transparent),
+    radial-gradient(0.5px 0.5px at 250px 210px, rgba(196,214,255,.12), transparent),
+    radial-gradient(1px 1px     at 40px 330px,  rgba(216,226,255,.60), transparent),
+    radial-gradient(1.5px 1.5px at 366px 132px, rgba(255,255,255,.66), transparent),
+    radial-gradient(0.5px 0.5px at 118px 356px, rgba(206,220,255,.22), transparent),
+    radial-gradient(1px 1px     at 296px 390px, rgba(255,242,220,.38), transparent),
+    radial-gradient(0.5px 0.5px at 62px 152px,  rgba(222,232,255,.16), transparent),
+    radial-gradient(1px 1px     at 232px 74px,  rgba(255,255,255,.34), transparent);
+}
+
+/* ③ 반짝이는 별 — 밝고 큰 소수만 천천히. opacity 애니라 GPU 합성이고,
+   prefers-reduced-motion에서는 전역 규칙(*{animation:none}) 으로 밝기 고정된 채 멈춘다. */
 .app::before{
   content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
+  background-repeat:repeat; background-size:620px 580px;
   background-image:
-    /* 파스텔 행성 — 왼쪽 위에서 빛을 받은 듯 밝은 쪽을 34% 26%에 둔다 */
-    radial-gradient(circle 54px at 7% 24%,  rgba(196,214,255,.22), rgba(150,166,224,.11) 58%, transparent 74%),
-    radial-gradient(circle 30px at 93% 61%, rgba(255,208,170,.20), rgba(214,158,124,.09) 58%, transparent 74%),
-    radial-gradient(circle 22px at 15% 79%, rgba(190,236,226,.18), rgba(132,186,178,.08) 58%, transparent 74%),
-    radial-gradient(circle 38px at 88% 13%, rgba(216,192,255,.17), rgba(160,136,214,.08) 58%, transparent 74%),
-    /* 고운 잔별 — 기존 별밭보다 촘촘하고 어둡게 한 겹 */
-    radial-gradient(1px 1px at 46px 22px,  rgba(255,255,255,.30), transparent),
-    radial-gradient(1px 1px at 118px 88px, rgba(206,220,255,.24), transparent),
-    radial-gradient(1px 1px at 22px 132px, rgba(255,242,220,.22), transparent),
-    radial-gradient(1px 1px at 152px 158px,rgba(222,232,255,.26), transparent);
-  background-repeat:no-repeat, no-repeat, no-repeat, no-repeat, repeat, repeat, repeat, repeat;
-  background-size:auto, auto, auto, auto, 178px 182px, 178px 182px, 178px 182px, 178px 182px;
+    radial-gradient(2px 2px     at 80px 120px,  rgba(255,255,255,.95), transparent),
+    radial-gradient(2px 2px     at 380px 250px, rgba(188,210,255,.90), transparent),
+    radial-gradient(1.5px 1.5px at 200px 430px, rgba(255,255,255,.82), transparent),
+    radial-gradient(2px 2px     at 540px 80px,  rgba(206,222,255,.86), transparent),
+    radial-gradient(1.5px 1.5px at 470px 500px, rgba(255,240,214,.78), transparent);
+  /* opacity 기본값을 애니 구간 한가운데로 둔다 — prefers-reduced-motion에서 전역
+     *{animation:none} 으로 애니가 사라져도 별밭이 최대 밝기(1)로 굳지 않는다. */
+  opacity:.68;
+  animation:star-twinkle 5.5s ease-in-out infinite;
 }
-/* 금빛 별 한 겹 — 푸른 별밭 위에 아주 드문드문(타일이 커서 화면당 2~3개), 더 느린 주기로.
-   각 별은 '작은 코어 + 넓은 금빛 헤일로' 2겹이라 점이 아니라 온기로 읽힌다.
-   position:fixed라 flex 아이템이 되어도 레이아웃에 영향 없음(별밭 body::before/after와 동일 규칙). */
-.app::after{
-  content:''; position:fixed; inset:0; z-index:-1; pointer-events:none;
-  background-repeat:repeat; background-size:760px 700px;
-  background-image:
-    radial-gradient(9px 9px at 150px 210px, rgba(var(--warm-glow),.10), transparent 70%),
-    radial-gradient(2px 2px at 150px 210px, rgba(255,238,206,.90), transparent),
-    radial-gradient(8px 8px at 612px 128px, rgba(var(--warm-glow),.09), transparent 70%),
-    radial-gradient(1.5px 1.5px at 612px 128px, rgba(255,234,198,.82), transparent),
-    radial-gradient(8px 8px at 428px 560px, rgba(var(--warm-glow),.08), transparent 70%),
-    radial-gradient(2px 2px at 428px 560px, rgba(255,240,214,.78), transparent);
-  animation:star-twinkle-warm 9s ease-in-out infinite;
+@keyframes star-twinkle{ 0%,100%{ opacity:.45; } 50%{ opacity:.92; } }
+
+.app{ position:relative; width:min(560px,95vw); display:flex; flex-direction:column; gap:var(--sp-xl); }
+
+/* ─── 홈에서만: 언덕이 곧 페이지의 바닥이 되게 한다 ───
+   ① 앱·화면이 남는 세로 높이를 전부 먹어 언덕(margin-top:auto)이 바닥에 앉고
+   ② body 하단 여백을 없애고 ③ 면책을 흐름에서 빼 언덕 위에 얹는다.
+   → 언덕 상자의 아랫변(색이 뚝 끊기는 하드 라인)이 화면 밖으로 나가 보이지 않는다.
+   ⚠ 전부 :has로 홈에 한정한다. 무조건 flex:1을 주면 다른 화면에서도 면책이
+     화면 맨 아래로 밀려 내용과 뚝 떨어진다.
+   :has 미지원 브라우저에서는 면책이 예전처럼 언덕 아래에 놓일 뿐 깨지지는 않는다. */
+body:has(#screen-home.is-active) .app{ flex:1; }
+body:has(#screen-home.is-active) .screens{ flex:1; }
+body:has(#screen-home.is-active){ padding-bottom:0; }
+.app:has(#screen-home.is-active) > .app-disc{
+  position:absolute; left:0; right:0; bottom:var(--sp-lg); margin:0;
 }
-@keyframes star-twinkle-warm{ 0%,100%{ opacity:.45; } 50%{ opacity:.95; } }
 
 /* ─── 헤더 ─── */
 .app-header{ text-align:center; }
@@ -211,113 +234,100 @@ body::after{
 .app-logo{ font-size:var(--fs-emoji); display:inline-block; animation:sway 3.4s ease-in-out infinite; }
 @keyframes sway{ 0%,100%{ transform:rotate(-7deg); } 50%{ transform:rotate(7deg); } }
 .app-tag{ color:var(--muted); font-size:var(--fs-sm); margin:var(--sp-xs) 0 0; font-weight:500; }
+/* 스트릭 배지 — "⭐ N일 연속". 금빛 알약(테두리만) — 채우면 헤더가 카드처럼 무거워진다. */
 .streak{
   display:inline-block; margin-top:var(--sp); font-family:"Jua",sans-serif; font-size:var(--fs-sm);
-  color:var(--terra); background:var(--sun-soft); padding:var(--sp-xs) var(--sp-lg); border-radius:var(--r-pill);
-  box-shadow:var(--shadow-sm);
+  color:rgba(var(--gold-rgb),.92);
+  background:rgba(var(--gold-rgb),.10); border:1px solid rgba(var(--gold-rgb),.22);
+  padding:var(--sp-xs) var(--sp-lg); border-radius:var(--r-pill); box-shadow:none;
 }
-.streak b{ color:var(--honey); }
+.streak b{ color:#fff; }
 
 /* ─── 화면 전환 ─── */
-.screens{ position:relative; }
+/* flex 컬럼인 이유: 홈이 남는 세로 높이를 먹어야 언덕(.home-ground)이 화면 바닥에 앉는다.
+   한 번에 한 화면만 display:block 이므로 다른 화면에는 영향이 없다.
+   (남는 높이를 실제로 먹는 flex:1은 위 :has 규칙에서 홈일 때만 켠다) */
+.screens{ position:relative; display:flex; flex-direction:column; }
 .screen{ display:none; animation:fadeIn .28s cubic-bezier(.34,1.4,.5,1); }
 .screen.is-active{ display:block; }
 @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px) scale(.98); } to{ opacity:1; transform:none; } }
 
-/* ─── 홈: 히어로 + 마스코트 ─── */
-/* 구도 = "위=하늘의 별자리 / 아래=언덕 위 고양이".
-   flex order로 라벨·별자리를 위로, 마스코트를 맨 아래로 재배치한다(DOM 순서는 그대로).
-   흐름 안에서 상하로 나뉘므로 별자리와 고양이는 겹칠 수 없다. */
+/* ─── 홈 톤 D: 위=전시창 · 가운데=본문 · 아래=언덕 위 고양이 ───
+   세 층은 흐름 안에서 위아래로 나뉘므로 절대 겹치지 않는다.
+   프레임(금빛 2겹 테두리 + 걸친 칩)은 전시창 하나만 두른다. */
 #screen-home{
-  --mascot-size:clamp(190px, 50vw, 232px);
-  --hill-w:calc(var(--mascot-size) * 1.5);           /* 고양이가 올라선 언덕 폭 */
-  --hill-h:calc(var(--mascot-size) * 0.46);          /* 언덕 높이(발밑 곡면) */
+  --mascot-size:88px;                                /* 언덕 위 고양이 — 값 하나로 조절 */
+  --hill-h:150px;                                    /* 지면(언덕) 최소 높이 */
+  --ground-foot:56px;                                /* 언덕 아래쪽, 면책 한 줄이 얹히는 자리 */
 }
-/* 히어로 = 밤하늘 패널. 레이어(뒤 → 앞): ::before 하늘(달+잔별) → ::after 패널 바닥
-   지평선 → 본문(z:1) → 마스코트(z:3, 발밑 언덕은 ::before로 함께).
-   ⚠ overflow는 visible — 고양이가 패널 왼쪽 아래 경계를 살짝 넘어 서므로 hidden이면 잘린다. */
+/* 홈은 남는 세로 높이를 전부 먹고, 언덕은 그 바닥에 붙는다 */
+#screen-home.is-active{ display:flex; flex-direction:column; flex:1; }
+#screen-home > .home-ground{ margin-top:auto; }
+
+/* ═══ 위: "오늘의 하늘" 전시창 ═══
+   레이어: 표면(--frame-bg) → ::after 안쪽 이중선 → 본문(z:1) → ::before 상단 칩(z:2).
+   ⚠ overflow는 visible이어야 한다 — 상단 칩이 위 테두리에 걸터앉으므로 hidden이면 잘린다. */
 .home-hero{
   position:relative; overflow:visible;
-  display:flex; flex-direction:column;        /* 데스크톱에서 별자리 무대가 남는 높이를 먹도록 */
-  /* 오른쪽 유리 카드와 대비되는 '짙은 밤하늘 패널' — 남색 → 보라 → 쪽빛 세로 그라데이션
-     위에 코지 워밍 레이어를 얹는다(가장 위 레이어부터 나열). */
-  background:var(--glass-warm), var(--grad-night-panel);
-  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
-  border:var(--glass-border-warm); border-radius:var(--r-hero);
-  padding:var(--sp-lg) var(--sp-2xl) var(--sp-md); text-align:center;
-  box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft);
-}
-/* flex 재배치: 라벨(1) → 별자리 무대(2, 남는 높이를 먹음) → 고양이(3, 맨 아래) */
-.home-hero > .sky-label{ order:1; }
-.home-hero > .sky-stage-wrap{ order:2; }
-.home-hero > .mascot-wrap{ order:3; }
-/* ── 하늘: 발광하는 달 + 잔별 ──
-   달은 '본체 → 가까운 번짐 → 넓은 헤일로'를 한 겹의 원형 그라디언트로 그린다.
-   카드 오른쪽 위(고양이·말풍선 바깥)에 두어 텍스트를 가리지 않는다.
-   아래로 갈수록 마스크로 사라져 제목·요약·CTA 구간은 깨끗한 표면 그대로. */
-.home-hero::before{
-  content:''; position:absolute; z-index:0; inset:0 0 auto 0; height:80%;
-  pointer-events:none; border-radius:inherit;
-  background-image:
-    radial-gradient(circle 190px at 85% 64px,
-      rgba(255,250,236,.97) 0 20px,          /* 달 본체 — 크림빛 화이트 */
-      rgba(255,242,214,.86) 20px 24px,       /* 가장자리(살짝 금빛으로 식음) */
-      rgba(255,231,182,.34) 26px,            /* 가까운 번짐 */
-      rgba(255,222,162,.16) 34%,             /* 안쪽 헤일로 */
-      rgba(255,210,140,.07) 58%,             /* 바깥 헤일로 */
-      transparent 82%),
-    radial-gradient(1.2px 1.2px at 24px 30px, rgba(255,255,255,.44), transparent),
-    radial-gradient(1px 1px at 96px 74px, rgba(198,214,255,.34), transparent),
-    radial-gradient(1.6px 1.6px at 150px 22px, rgba(255,241,214,.32), transparent),
-    radial-gradient(1px 1px at 58px 128px, rgba(224,230,255,.36), transparent),
-    radial-gradient(1.4px 1.4px at 176px 150px, rgba(255,236,206,.28), transparent),
-    radial-gradient(1px 1px at 122px 186px, rgba(210,222,255,.30), transparent);
-  background-repeat:no-repeat, repeat, repeat, repeat, repeat, repeat, repeat;
-  background-size:auto, 208px 214px, 208px 214px, 208px 214px, 208px 214px, 208px 214px, 208px 214px;
-  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 58%,transparent 100%);
-          mask-image:linear-gradient(180deg,#000 0%,#000 58%,transparent 100%);
-  animation:hero-sky-drift 12s ease-in-out infinite;
-}
-@keyframes hero-sky-drift{ 0%,100%{ opacity:.84; } 50%{ opacity:1; } }
-/* ── 패널 바닥 지평선 ── 고양이가 선 언덕이 '땅'에서 솟은 것으로 읽히게, 패널 바닥
-   전체를 아주 옅게 어둡혀 지면을 만든다(고양이의 발밑 언덕은 .mascot-wrap::before). */
-.home-hero::after{
-  content:''; position:absolute; z-index:0; left:0; right:0; bottom:0; height:58px;
-  pointer-events:none;
-  border-radius:0 0 var(--r-hero) var(--r-hero);
-  background:linear-gradient(180deg, transparent 0%, rgba(20,24,54,.32) 100%);
-}
-/* 본문은 하늘·언덕 위로 (마스코트는 z-index:3을 따로 쓴다) */
-.home-hero > *{ position:relative; z-index:1; }
-/* 마스코트 자리 — 패널 왼쪽 아래 코너. 발밑 언덕(::before) 위에 서고, 왼쪽으로 살짝
-   붙되(패널 안쪽 여백만큼) 페이지 밖으로는 넘치지 않는다. 말풍선(한마디)은 고양이 위에
-   그대로 쌓여 어떤 길이든 겹치지 않는다. */
-.mascot-wrap{
-  position:relative; z-index:3;
   display:flex; flex-direction:column; align-items:center;
-  gap:var(--sp-md);   /* 말풍선 꼬리(5px)까지 감안한 여유 */
-  align-self:flex-start;                            /* 패널 왼쪽으로 */
-  margin-left:calc(-1 * var(--sp-lg));              /* 살짝만 왼쪽으로(패널 여백 안, 페이지 오버플로 없음) */
-  margin-top:var(--sp-md);                          /* 별자리 무대와의 간격 */
-  padding-bottom:calc(var(--hill-h) * 0.24);        /* 발밑 언덕이 아래로 드러날 자리 */
+  margin-top:var(--sp-md);                           /* 칩이 위로 걸치는 자리 */
+  padding:var(--sp-2xl) var(--sp-xl) var(--sp-lg); text-align:center;
+  background:var(--frame-bg);
+  border:var(--frame-border); border-radius:var(--r-frame);
+  box-shadow:var(--frame-shadow);
 }
-/* 발밑 언덕 — 밤하늘 톤의 곡면(형광 초록 X). 크레스트는 발밑에, 몸통은 아래로 이어져
-   '언덕 위에 선' 형태. 위쪽 가장자리에 달빛 림. */
-.mascot-wrap::before{
-  content:''; position:absolute; z-index:-1; left:50%;
-  bottom:calc(var(--hill-h) * -0.16); transform:translateX(-50%);
-  width:var(--hill-w); height:var(--hill-h);
-  border-radius:50%; pointer-events:none;
-  background:radial-gradient(58% 84% at 42% 24%,
-    rgba(220,210,255,.30) 0%, rgba(126,114,202,.26) 40%,
-    rgba(58,56,116,.30) 70%, rgba(32,32,72,.34) 100%);
-  box-shadow:inset 0 3px 1px rgba(var(--warm-glow),.32),             /* 달빛 받은 크레스트 */
-             0 0 32px rgba(var(--warm-glow),.10);                    /* 은은한 번짐 */
+/* 별자리가 주인공 — 무대가 위, 이름은 그 아래 캡션 (DOM 순서 그대로라 order 불필요) */
+.home-hero > .sky-stage-wrap{ width:100%; }
+
+/* 상단 라벨 칩 — 프레임 위 테두리에 걸터앉는 금빛 알약 */
+.home-hero::before{
+  content:'✦ 오늘의 하늘';
+  position:absolute; z-index:2; top:0; left:50%; transform:translate(-50%,-50%);
+  font-family:"Jua",sans-serif; font-size:var(--fs-xs); line-height:1; white-space:nowrap;
+  color:rgba(var(--gold-rgb),.92);
+  background:#1a1c3a;                                /* 테두리를 덮어야 '걸친' 것으로 읽힌다 — 반투명이면 선이 비쳐 지나간다 */
+  border:1px solid rgba(var(--gold-rgb),.34);
+  border-radius:var(--r-pill); padding:var(--sp-xs) var(--sp-md);
+  box-shadow:0 0 14px rgba(var(--gold-rgb),.14);
 }
-/* 접지 그림자 — 고양이가 언덕 위에 '딛고 선' 무게감. */
+/* 안쪽 이중선 — 바깥 테두리와 5px 띄워 '전시창 유리' 두께를 만든다 */
+.home-hero::after{
+  content:''; position:absolute; inset:5px; pointer-events:none;
+  border:var(--frame-line); border-radius:var(--r-frame-in);
+}
+/* 본문은 안쪽 이중선 위로 */
+.home-hero > *{ position:relative; z-index:1; }
+
+/* ═══ 아래: 언덕 위 마스코트 ═══ */
+/* 지면 — 화면 아래에서 솟은 완만한 언덕.
+   ① 풀블리드: margin-inline 음수로 부모 폭을 넘어 화면 좌우 끝까지 편다. 안 그러면
+      좌우에 세로 절단선이 생겨 '언덕'이 아니라 '박스'로 읽힌다.
+   ② 페이지의 바닥: 이 상자가 문서의 마지막이라 아랫변이 화면 밖으로 나간다
+      (면책은 아래 :has 규칙으로 흐름에서 빠져 언덕 위에 얹힌다). 상자를 아래로
+      흘려보내는 방식은 쓰지 않는다 — 음수 margin으로 되돌려도 문서 높이가 늘어
+      할 일 없는 세로 스크롤이 생긴다.
+   ③ 위 모서리만 넓고 낮은 곡선(가로 50%·세로 72px) — 둥근 상자가 아니라 지평선. */
+.home-ground{
+  position:relative;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  margin-inline:calc(50% - 50vw); padding-inline:calc(50vw - 50%);
+  padding-top:var(--sp-xl); padding-bottom:var(--ground-foot);
+  min-height:var(--hill-h);
+  background:var(--ground);
+  border-top-left-radius:50% 72px; border-top-right-radius:50% 72px;
+}
+/* 마스코트 자리 — 언덕 가운데. 말풍선은 order로 고양이 아래에 놓는다. */
+.mascot-wrap{
+  position:relative; z-index:1;
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-sm);
+}
+.mascot-wrap > .mascot{ order:1; }
+.mascot-wrap > .speech{ order:2; }
+/* 접지 그림자 — 고양이가 언덕에 '딛고 앉은' 무게감. 고양이와 말풍선 사이에 깔린다. */
 .mascot-wrap::after{
-  content:''; position:absolute; z-index:-1; left:50%; bottom:calc(var(--hill-h) * 0.10); transform:translateX(-50%);
-  width:calc(var(--mascot-size) * 0.44); height:calc(var(--mascot-size) * 0.08);
+  content:''; position:absolute; z-index:-1; left:50%; transform:translateX(-50%);
+  top:calc(var(--mascot-size) - 6px);
+  width:calc(var(--mascot-size) * 0.52); height:calc(var(--mascot-size) * 0.10);
   border-radius:50%; pointer-events:none;
   background:radial-gradient(50% 50% at 50% 50%, rgba(var(--shade-rgb),.42), transparent 72%);
   animation:shadow-breathe 5.4s ease-in-out infinite;
@@ -337,33 +347,25 @@ body::after{
   0%,100%{ transform:translateY(0) scale(1); }
   50%{ transform:translateY(-5px) scale(1.012); }
 }
-/* 별빛 웅덩이·바닥 그림자의 잔잔한 호흡 (시선을 끌지 않을 만큼만) */
-@keyframes pool-breathe{ 0%,100%{ opacity:.72; transform:translateX(-50%) scale(.97); } 50%{ opacity:1; transform:translateX(-50%) scale(1.03); } }
 @keyframes shadow-breathe{ 0%,100%{ opacity:.9; transform:translateX(-50%) scale(1); } 50%{ opacity:.6; transform:translateX(-50%) scale(.9); } }
 /* bob: 이모지 장식(placeholder·완료·빈 상태)에서 계속 사용 */
 @keyframes bob{ 0%,100%{ transform:translateY(0) rotate(-1.5deg); } 50%{ transform:translateY(-8px) rotate(1.5deg); } }
 @keyframes wiggle{ 0%,100%{ transform:rotate(0); } 25%{ transform:rotate(-9deg); } 75%{ transform:rotate(9deg); } }
-/* 말풍선 — 흐름 안(고양이 위)에 놓여 어떤 길이의 한마디도 고양이·칩과 겹치지 않는다.
-   nowrap을 풀고 폭을 제한해 좁은 화면에서 2줄로 접힌다(문구는 그대로). */
+/* 말풍선 — 배경·꼬리 없는 맨 텍스트. 장면(언덕·하늘) 위에 한마디만 얹힌다. */
 .speech{
-  position:relative; max-width:min(100%, 320px);
-  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--moss-dd);
-  background:var(--paper); padding:var(--sp-sm) var(--sp-lg); border-radius:var(--r-lg);
-  text-align:center; line-height:1.45; word-break:keep-all;
-  box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(var(--cream-ink),.14);
+  position:relative; max-width:min(100%, 340px);
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft);
+  background:none; padding:0; border-radius:0; box-shadow:none;
+  text-align:center; line-height:1.5; word-break:keep-all;
   animation:pop-in .5s cubic-bezier(.3,1.5,.5,1);
-}
-.speech::after{
-  content:''; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%) rotate(45deg);
-  width:12px; height:12px; background:var(--paper); border-radius:var(--r-xs);
 }
 @keyframes pop-in{ from{ opacity:0; transform:translateY(6px) scale(.85); } to{ opacity:1; transform:none; } }
 
+/* 전시창 캡션 = 별자리 이름. 알약 배경 없이 글자만(프레임이 이미 경계를 준다). */
 .home-hero-label{
-  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--moss-dd);
-  background:var(--white-a85); display:inline-block; padding:var(--sp-xs) var(--sp-lg);
-  border-radius:var(--r-pill); margin:0;
-  box-shadow:var(--shadow-sm), inset 0 1px 0 rgba(var(--cream-ink),.16);
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted);
+  background:none; box-shadow:none; display:block; padding:0;
+  margin:var(--sp-sm) 0 0;
 }
 .home-hero-title{
   font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-xl);
@@ -372,7 +374,7 @@ body::after{
 
 /* ─── 홈: 오늘의 별자리 (히어로 전용 영역) ─── */
 /* 별자리 이름 라벨 — 이름만 골드로 강조 (앱의 주인공) */
-.sky-label b{ font-weight:400; color:var(--honey); }
+.sky-label b{ font-weight:400; color:rgba(var(--gold-rgb),.92); }
 /* 별자리 무대: 마스코트 아래 넉넉한 영역. 배경은 투명 —
    히어로 카드의 밤하늘 표면 위에 별자리가 그대로 뜬 느낌. */
 /* 무대 폭을 장면 폭으로 제한한다. SVG는 preserveAspectRatio="meet"이라 세로로 긴
@@ -390,10 +392,11 @@ body::after{
 /* 연결선 — 안 켜진 선은 별 사이에 걸린 실처럼 거의 안 보이게(차분),
    양 끝 별이 켜지면 금빛 그라디언트(#skyLinkGrad)를 머금은 luminous line이 된다. */
 .sky-link{ stroke:rgba(255,232,196,.10); stroke-linecap:round; fill:none; }
+/* 켜진 선 — 프레임·칩과 같은 금색(--gold-rgb) 단색. 단색으로 두는 이유는 전시창 안에서
+   선·별·테두리가 한 가지 금색으로 묶여야 '한 벌'로 읽히기 때문이다(그라디언트는 톤이 흔들린다). */
 .sky-link.is-on{
-  /* 두 번째 값은 SVG paint 폴백 — 그라디언트를 못 찾아도 선이 사라지지 않고 금빛 단색으로 */
-  stroke:url(#skyLinkGrad) #ffcf6b; stroke-opacity:.72;
-  filter:drop-shadow(0 0 1.6px rgba(255,207,107,.75));
+  stroke:rgba(var(--gold-rgb),.55);
+  filter:drop-shadow(0 0 1.6px rgba(var(--gold-rgb),.6));
 }
 /* 완성 payoff — 라인이 한 번 은은하게 밝아졌다 돌아온다.
    기존 1회 플래그(.sky-stage.celebrate, main.js celebrateSky)에 그대로 물린다. */
@@ -418,7 +421,8 @@ body::after{
          drop-shadow(0 0 5.2px rgba(255,207,107,.58));   /* 넓고 옅은 금빛 헤일로 */
 }
 .sky-halo{ fill:url(#skyHaloGrad); animation:halo-breathe 6.2s ease-in-out infinite; }
-.sky-core{ fill:#fff6df; filter:drop-shadow(0 0 3px rgba(255,211,107,.9)); }
+/* 켜진 별 도트 — 금빛 코어 + 넓은 금빛 발광 */
+.sky-core{ fill:var(--dot-on); filter:drop-shadow(0 0 5px rgba(var(--gold-rgb),.85)); }
 /* 켜진 별의 아주 잔잔한 숨 — 헤일로만(코어는 고정) 살짝 넓어졌다 좁아진다 */
 @keyframes halo-breathe{ 0%,100%{ opacity:.78; } 50%{ opacity:1; } }
 
@@ -440,8 +444,9 @@ body::after{
 .sky-stage-wrap::before{
   content:''; position:absolute; z-index:0; left:50%; top:48%; transform:translate(-50%,-50%);
   width:min(74%, 340px); height:82%; border-radius:50%; pointer-events:none;
+  /* 전시창 안이라 금빛이 우세해야 한다 — 보라가 세면 프레임·별자리와 계열이 갈린다 */
   background:radial-gradient(50% 50% at 50% 50%,
-    rgba(var(--glow),.15), rgba(var(--warm-glow),.08) 46%, transparent 74%);
+    rgba(var(--gold-rgb),.09), rgba(var(--glow),.07) 48%, transparent 74%);
   animation:nebula-breathe 9.6s ease-in-out infinite;
 }
 @keyframes nebula-breathe{
@@ -579,14 +584,12 @@ body::after{
 
 /* ─── 홈: 알림 입구 (부차 기능 — 접힌 한 줄 카드, 탭하면 아래 패널이 펼쳐짐) ─── */
 .remind-entry-chip{
-  display:block; width:100%; margin-top:var(--sp-lg); cursor:pointer; text-align:center;
-  background:var(--glass-bg-cozy);
-  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
-  border:var(--glass-border-warm); border-radius:var(--r-card);
-  color:var(--ink-soft); font-family:"Jua",sans-serif; font-size:var(--fs-base);
-  padding:var(--sp-md) var(--sp-lg); box-shadow:var(--glass-shadow), var(--glass-rim-warm);
-  transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted);
+  background:none; border:1px solid rgba(255,255,255,.10); border-radius:var(--r-pill);
+  padding:var(--sp-sm) var(--sp-lg); cursor:pointer; align-self:center;
+  box-shadow:none; transition:color .2s, border-color .2s;
 }
+.remind-entry-chip:hover{ color:var(--ink); border-color:rgba(255,255,255,.22); }
 .remind-entry-chip:hover{ transform:translateY(-2px); box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft); }
 .remind-entry-chip:active{ transform:translateY(1px) scale(.99); }
 /* 펼침/접힘 표시 쉐브론 — 펼치면 위로 뒤집혀(▴) 다시 탭하면 접힌다는 신호 */
@@ -650,41 +653,38 @@ body::after{
 /* ─── 홈: 기능 카드 그리드 (주인공은 오늘의 루틴 카드) ───
    가로 목록(flex row)이면 카드마다 폭이 같아 '설정 목록'처럼 읽혔다 → 2열 그리드로
    바꾸고 매일 쓰는 '오늘의 루틴'만 한 줄을 다 차지하게 해 위계를 준다. */
-.sections{ display:grid; grid-template-columns:1fr 1fr; gap:var(--sp); margin-top:var(--sp-lg); }
+/* 카드 크롬(배경·테두리·그림자·블러)을 전부 걷어낸다 — 홈에서 경계를 갖는 것은
+   "오늘의 하늘" 전시창 하나뿐이다. 두 칸을 가르는 것은 얇은 구분선 한 줄이다.
+   gap을 0으로 두는 이유: gap이 있으면 구분선이 칸 사이 한가운데가 아니라
+   오른쪽 칸의 왼쪽 끝에 붙어 보인다. */
+.sections{ display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:var(--sp-lg); }
 .section-card{
+  /* justify-content:flex-start — 두 칸의 보조 줄 수가 달라(체크 2줄 / 도감 1줄)
+     가운데 정렬하면 오브 높이가 서로 어긋난다. 위로 맞춰야 아이콘 줄이 한 선에 선다. */
   position:relative; flex:1; display:flex; flex-direction:column;
-  /* 그리드에서 같은 행의 카드는 높이가 맞춰진다 — 내용이 적은 카드(도감)가 위로
-     쏠리지 않게 세로 가운데 정렬 */
-  align-items:center; justify-content:center; gap:var(--sp-xs); text-align:center;
-  background:var(--glass-bg-cozy);
-  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
-  border:var(--glass-border-warm); border-radius:var(--r-card);
-  padding:var(--pad-card-sm) var(--sp-sm) var(--sp-md); cursor:pointer;
-  box-shadow:var(--glass-shadow), var(--glass-rim-warm);
-  transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
+  align-items:center; justify-content:flex-start; gap:var(--sp-xs); text-align:center;
+  background:none; border:0; border-radius:0; box-shadow:none;
+  padding:var(--sp-lg) var(--sp-sm); cursor:pointer;
+  transition:transform .12s cubic-bezier(.34,1.5,.5,1), opacity .2s;
   font-family:inherit; color:inherit;
 }
-/* 호버: 들리면서 금빛이 살짝 번진다 (설정 목록이 아니라 '눌러보고 싶은 카드'로) */
-.section-card:hover{
-  transform:translateY(-3px);
-  box-shadow:var(--glass-shadow), var(--glass-rim-warm), var(--glow-warm-soft);
-}
+/* 칸 사이 구분선 — 인접 형제의 왼쪽에만. 바깥 테두리는 만들지 않는다. */
+.sections > .section-card + .section-card{ border-left:var(--hairline); }
+/* 호버: 카드가 없으니 '들림'이 약하다 — 오브·글자가 함께 살짝 밝아진다 */
+.section-card:hover{ transform:translateY(-2px); }
 .section-card:active{ transform:translateY(1px) scale(.99); }
-.section-card.is-main{
-  background:var(--glass-bg-cozy-strong);
-  box-shadow:var(--glass-shadow), var(--ring-warm), var(--glass-rim-warm), var(--glow-warm-soft);
-}
 
-/* ─── 홈: 오른쪽 카드 열 ─── */
+/* ─── 홈: 가운데 본문 (카드 경계 없이 중앙 정렬) ─── */
 .home-side{ display:flex; flex-direction:column; gap:var(--sp-md); margin-top:var(--sp-lg); }
 .home-side > .sections,
 .home-side > .remind-entry-chip,
 .home-side > .remind-panel{ margin-top:0; }   /* 세로 간격은 열의 gap이 담당 */
 
-/* ① 오늘의 루틴 — 홈의 주인공 카드. 오늘 할 일 문구 + 주 CTA를 품는다. */
+/* ① 오늘의 루틴 — 본문의 주인공. 카드가 아니라 '가운데 정렬된 한 덩어리'다.
+   .section-card가 이미 크롬 없이 중앙 정렬이므로 여기서는 여백만 잡는다. */
 .routine-card{
-  cursor:default; gap:var(--sp-sm);
-  padding:var(--pad-card) var(--sp-xl) var(--sp-xl);
+  cursor:default; gap:var(--sp-sm); justify-content:center;
+  padding:var(--sp-xl) var(--sp-md) var(--sp-lg);
 }
 .routine-card:hover{ transform:none; }   /* 카드 자체는 버튼이 아니다 — 안의 두 버튼만 눌린다 */
 /* 카드 머리(🎬 오늘의 루틴) — 가이드 목록으로 가는 버튼 */
@@ -700,35 +700,50 @@ body::after{
 .routine-card .section-name{ font-size:var(--fs-md); }
 .routine-card .home-hero-title{ margin:var(--sp-2xs) 0 0; }
 .routine-card .rp-text{ margin:0; }
-.routine-card .btn-hero{ margin-top:var(--sp-xs); }
+/* 주 CTA — 본문에서 유일하게 '면'을 가진 요소. 3D 밑동 대신 넓게 퍼지는 보라 글로우로
+   띄운다(경계 없는 본문에서 밑동 그림자는 카드처럼 읽힌다). */
+.routine-card .btn-hero{
+  margin:var(--sp-xs) auto 0; width:100%; max-width:250px;
+  background:var(--cta-grad); color:#fff;
+  box-shadow:var(--cta-shadow);
+}
+.routine-card .btn-hero:active{ transform:translateY(2px); box-shadow:0 4px 14px rgba(130,110,220,.45); }
+/* 완주 상태(.btn-done)는 눌린 CTA가 아니라 '끝난 표시' — 글로우를 끈다 */
+.routine-card .btn-hero.btn-done{ background:var(--sage-soft); color:var(--moss-dd); box-shadow:none; }
+/* 아이콘 = 이모지가 아니라 그라데이션 오브(왼쪽 위에서 빛을 받은 작은 구).
+   마크업의 이모지 글리프는 font-size:0으로 지운다 — 마크업을 건드리지 않고 오브만 남긴다
+   (지우지 않고 두면 오브 위에 이모지가 겹쳐 보인다). */
 .section-emoji{
-  width:46px; height:46px; border-radius:50%;
-  display:flex; align-items:center; justify-content:center; font-size:var(--fs-num);
-  background:radial-gradient(circle at 38% 30%, #fff8ec, var(--sage-soft));
-  /* 순백 링 → 크림 링 + 옅은 금빛 번짐 (차가운 하이라이트 제거) */
-  box-shadow:inset 0 0 0 2px rgba(var(--cream-ink),.92),
-             0 4px 12px rgba(var(--shade-rgb),.22),
-             0 0 14px rgba(var(--warm-glow),.16);
+  width:46px; height:46px; border-radius:50%; font-size:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--orb-routine);
+  box-shadow:0 4px 12px rgba(var(--shade-rgb),.30),
+             inset 0 -2px 6px rgba(var(--shade-rgb),.22),
+             inset 0 2px 4px rgba(255,255,255,.28);
 }
 /* 오브 톤은 카드가 가는 화면으로 구분 — nth-child는 루틴 카드가 nav 밖으로 나가며 어긋난다 */
-.section-card[data-nav="measure"] .section-emoji{ background:radial-gradient(circle at 38% 30%,#fff8ec,var(--water-soft)); }
-.section-card[data-nav="sky"] .section-emoji{ background:radial-gradient(circle at 38% 30%,#fff8ec,var(--peach-soft)); }
+.section-card[data-nav="measure"] .section-emoji{ background:var(--orb-check); }
+.section-card[data-nav="sky"] .section-emoji{ background:var(--orb-dex); }
 .section-name{
   font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-base);
   color:var(--moss-dd);
 }
 .section-desc{ display:none; } /* 홈은 루틴 카드가 주인공 — 개별 진입은 이름만 */
+/* 배지 — 카드가 사라졌으니 모서리 절대배치도 사라진다(기댈 모서리가 없어 허공에 뜬다).
+   흐름 안에서 이름 아래에 놓이는 조용한 테두리 칩. */
 .section-badge{
-  position:absolute; top:10px; right:13px; font-family:"Jua",sans-serif;   /* 카드 반경 확대(24→30)에 맞춰 안쪽으로 */
-  font-size:var(--fs-2xs); color:#fff; background:var(--moss-d);
-  padding:var(--sp-2xs) var(--sp-sm); border-radius:var(--r-pill); box-shadow:var(--shadow-badge);
+  position:static; font-family:"Jua",sans-serif; align-self:center;
+  font-size:var(--fs-2xs); color:var(--muted);
+  background:none; border:1px solid rgba(255,255,255,.14);
+  padding:var(--sp-3xs) var(--sp-sm); border-radius:var(--r-pill); box-shadow:none;
 }
-.section-badge--sub{ background:var(--terra); color:#2a1830; box-shadow:var(--shadow-badge-terra); }
+.section-badge--sub{ background:none; color:var(--muted); }
+/* 보조 한 줄 — 면(배경) 없이 글자만. 주의를 끌어야 하는 "체크 전이에요"만 금빛으로. */
 .section-chip{
-  font-family:"Jua",sans-serif; font-size:var(--fs-2xs); padding:var(--sp-2xs) var(--sp);
-  border-radius:var(--r-pill); background:var(--sage-soft); color:var(--moss-dd);
+  font-family:"Jua",sans-serif; font-size:var(--fs-2xs); padding:var(--sp-3xs) 0;
+  background:none; color:var(--ink-soft);
 }
-.section-chip.is-need{ background:var(--sun-soft); color:var(--terra); }
+.section-chip.is-need{ background:none; color:rgba(var(--gold-rgb),.88); }
 .section-link{
   font-family:"Jua",sans-serif; font-size:var(--fs-xs); color:var(--muted);
   text-decoration:underline; text-underline-offset:2px; padding:var(--sp-3xs) var(--sp-xs);
@@ -1216,10 +1231,13 @@ body::after{
 }
 
 /* ─── 면책 ─── */
+/* 면책 — 홈에서는 언덕 위에 얹힌다. 상자(테두리·배경)를 두면 지면 위에 카드가 하나 더
+   놓인 꼴이라 톤이 무너진다 → 글자만 남긴다. position:relative는 언덕보다 위로 올리기 위함. */
 .app-disc{
+  position:relative; z-index:1;
   font-size:var(--fs-xs); color:var(--muted); line-height:var(--lh); text-align:center;
-  background:var(--white-a60); border:2px solid var(--line); border-radius:var(--r-lg);
-  padding:var(--sp-lg) var(--pad-card); margin-top:var(--sp-2xs);
+  background:none; border:0; border-radius:0;
+  padding:0 var(--pad-card); margin-top:var(--sp-2xs);
 }
 
 /* ─── 데스크톱 와이드 레이아웃 (모바일 세로형은 그대로) ─── */
@@ -1232,18 +1250,19 @@ body::after{
        · 왼쪽 → 별자리 무대(.sky-stage-wrap flex:1)가 먹는다
        · 오른쪽 → 주 카드(.routine-card flex:1)가 먹는다
      어느 쪽이 더 길어져도 반대쪽에 빈 띠가 남지 않는다. */
+  /* 홈: 전시창(좌 42) + 본문(우 58)을 나란히 두고, 언덕·고양이는 두 열 아래를
+     가로질러 깐다 — 세로 3층 구성이 가로에서도 "하늘 / 할 일 / 지면"으로 유지된다. */
   #screen-home.is-active{
-    display:grid; grid-template-columns:42fr 58fr; gap:var(--sp-xl); align-items:stretch;
+    display:grid; grid-template-columns:42fr 58fr; gap:0 var(--sp-xl);
+    align-items:stretch;
   }
-  #screen-home > .home-side{ margin-top:0; }
-  /* 패널의 주인공은 별자리 — 마스코트를 한 단계 줄여 그만큼을 무대에 넘긴다.
-     (세로로 긴 별자리는 preserveAspectRatio="meet"이라 '무대 높이'가 곧 별자리 크기다) */
-  #screen-home.is-active{ --mascot-size:clamp(168px, 17vw, 196px); }
-  /* 별자리 무대는 라벨과 고양이 사이의 남는 높이를 먹되, 위쪽(하늘)에 자리하도록
-     제 공간의 상단으로 붙인다 — 아래쪽은 고양이·언덕의 몫. */
-  .home-hero .sky-stage-wrap{ flex:1; display:flex; align-items:flex-start; }
+  #screen-home > .home-hero{ grid-column:1; grid-row:1; }
+  #screen-home > .home-side{ grid-column:2; grid-row:1; margin-top:0; justify-content:center; }
+  /* 언덕은 두 열 전체 폭 — 지면이 화면을 가로질러야 '땅'으로 읽힌다 */
+  #screen-home > .home-ground{ grid-column:1 / -1; grid-row:2; }
+  /* 별자리 무대는 전시창이 열 높이만큼 늘어난 만큼을 먹는다(이름 캡션은 아래에 붙어 있음) */
+  .home-hero .sky-stage-wrap{ flex:1; display:flex; align-items:center; }
   .home-hero .sky-stage{ height:auto; max-height:none; min-height:232px; aspect-ratio:auto; }
-  .routine-card{ flex:1; justify-content:center; }
 
   /* 기록: 추이 카드 전체 폭 + 나머지 2단 */
   #screen-records.is-active{
@@ -1293,9 +1312,9 @@ body::after{
   }
   body{ padding:var(--pad-card-sm) var(--sp-sm) 36px; }
   .app{ width:100%; }
-  .home-hero{ padding:var(--sp-md) var(--pad-card-sm) var(--sp-2xl); }
+  .home-hero{ padding:var(--sp-xl) var(--pad-card-sm) var(--sp-md); }
   .home-hero-title{ font-size:var(--fs-lg); }
-  .section-card{ padding:var(--sp-lg); }
+  .section-card{ padding:var(--sp-md) var(--sp-xs); }
   .btn-hero{ font-size:var(--fs-base); }
 }
 
