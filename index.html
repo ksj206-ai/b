@@ -23,9 +23,9 @@
     <!-- ─── 화면 컨테이너 ─── -->
     <main id="screens" class="screens">
 
-      <!-- 홈 — 세로 3층: 위="오늘의 하늘" 전시창 / 가운데=경계 없는 본문 / 아래=언덕 위 고양이.
-           데스크톱(≥960px)에서는 전시창(42) + 본문(58)이 한 줄로 나란히 서고
-           언덕은 두 열 아래를 가로지른다(styles.css의 #screen-home.is-active). -->
+      <!-- 홈 — 세로 2층: 위="오늘의 하늘" 전시창(능선 위 고양이 포함) / 아래=경계 없는 본문.
+           데스크톱(≥960px)에서는 전시창(42) + 본문(58)이 한 줄로 나란히 선다
+           (styles.css의 #screen-home.is-active). -->
       <section id="screen-home" class="screen is-active" data-screen="home">
         <!-- ─── 위: 금빛 "오늘의 하늘" 전시창 ───
              홈에서 프레임(금빛 2겹 테두리 + 걸친 라벨 칩)을 두르는 유일한 패널이다.
@@ -41,6 +41,18 @@
           </div>
           <!-- 별자리 이름 = 전시창의 캡션. "오늘의 별자리 ·" 접두는 상단 칩과 겹쳐 뺐다. -->
           <p class="home-hero-label sky-label"><b id="skyName">밤하늘</b></p>
+
+          <!-- ─── 전시창 안 능선 위 마스코트 ───
+               프레임 안쪽 이중선 안으로 살짝 들어와 좌·우·아래 끝까지 편 작은 지면.
+               루틴 완주 시(main.js celebrateSky) is-stargaze가 붙어 고양이가 밤하늘을 올려다본다. -->
+          <div class="hero-ridge">
+            <div class="mascot-wrap" id="mascotWrap">
+              <div class="speech" id="mascotSpeech">오늘도 만나서 반가워요! 🐾</div>
+              <!-- 마스코트: 우주비행사 고양이 (상태별 이미지 — assets/cat-{idle|happy|sad}.png).
+                   main.js renderHome()가 오늘 상태에 따라 src를 바꾼다. -->
+              <img class="mascot" id="mascotImg" src="assets/cat-idle.png" data-mood="idle" alt="" aria-hidden="true">
+            </div>
+          </div>
         </div>
 
         <!-- ─── 가운데: 본문 (루틴 → 체크·도감 → 알림) ───
@@ -115,19 +127,6 @@
               <button class="btn btn-back" id="remindOff" hidden>알림 끄기</button>
               <button class="btn btn-back" id="remindSkip">건너뛰기</button>
             </div>
-          </div>
-        </div>
-
-        <!-- ─── 아래: 언덕 위 마스코트 ───
-             언덕(지면)은 .home-ground 자신의 배경이고, 고양이 발밑 접지 그림자는
-             .mascot-wrap::after가 그린다. 말풍선은 CSS order로 고양이 아래에 놓인다
-             (DOM은 말풍선이 먼저 — 스크린리더가 한마디를 먼저 읽게). -->
-        <div class="home-ground">
-          <div class="mascot-wrap">
-            <div class="speech" id="mascotSpeech">오늘도 만나서 반가워요! 🐾</div>
-            <!-- 마스코트: 우주비행사 고양이 (상태별 이미지 — assets/cat-{idle|happy|sad}.png).
-                 main.js renderHome()가 오늘 상태에 따라 src를 바꾼다. -->
-            <img class="mascot" id="mascotImg" src="assets/cat-idle.png" data-mood="idle" alt="" aria-hidden="true">
           </div>
         </div>
       </section>

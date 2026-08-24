@@ -151,11 +151,13 @@ function renderHome() {
 // 렌더는 sky.js renderSky를 그대로 재사용한다(도감 별·크게보기 모두).
 // ═══════════════════════════════════════════════════════════
 
-/** 오늘의 별자리 완성 축하 — 별자리 은은한 샤인 + 완성 메시지 페이드. 조용하게, 한 번만. */
+/** 오늘의 별자리 완성 축하 — 별자리 은은한 샤인 + 완성 메시지 페이드 + 고양이가 밤하늘을
+ *  올려다보는 연출(is-stargaze). 조용하게, 한 번만. */
 let skyCelebrateTimer = null;
 function celebrateSky(con) {
   const stage = document.getElementById('skyStage');
   const banner = document.getElementById('skyCelebrate');
+  const wrap = document.getElementById('mascotWrap');
   if (!stage || !con) return;
   stage.classList.remove('celebrate'); void stage.offsetWidth; stage.classList.add('celebrate');
   if (banner) {
@@ -164,10 +166,12 @@ function celebrateSky(con) {
     banner.hidden = false;
     banner.classList.remove('show'); void banner.offsetWidth; banner.classList.add('show');
   }
+  if (wrap) { wrap.classList.remove('is-stargaze'); void wrap.offsetWidth; wrap.classList.add('is-stargaze'); }
   clearTimeout(skyCelebrateTimer);
   skyCelebrateTimer = setTimeout(() => {
     stage.classList.remove('celebrate');
     if (banner) { banner.classList.remove('show'); banner.hidden = true; }
+    if (wrap) wrap.classList.remove('is-stargaze');
   }, 3200);
 }
 
