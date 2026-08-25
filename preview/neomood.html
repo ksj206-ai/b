@@ -96,34 +96,43 @@ html[data-palette="lavender"][data-theme="dark"]{
 }
 
 *{box-sizing:border-box;}
-html,body{margin:0;padding:0;}
+html,body{margin:0;padding:0;height:100%;}
+/* ─── 한 화면 셸 ───
+   페이지는 스크롤하지 않는다. 창이 화면 높이를 꽉 채우고, 넘치는 건 3단 컬럼이
+   각자 안에서 처리한다(아래 .grid > *). 그래서 액자·배너·탭·푸터는 항상 보인다.
+   좁거나 낮은 화면에서는 이 규칙을 버리고 평범한 문서 스크롤로 되돌린다(맨 아래 미디어쿼리). */
 body{
   background:var(--page);
   background-image:radial-gradient(var(--page-dot) 1px,transparent 1px);
   background-size:12px 12px;
   color:var(--ink);
-  font:15px/1.55 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
-  padding:14px 14px 40px;
+  font:14px/1.5 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;
+  height:100dvh;padding:8px 10px;overflow:hidden;
+  display:flex;flex-direction:column;gap:6px;
 }
 /* 레트로 캡션용 — 픽셀 폰트가 있으면 쓰고 없으면 고정폭으로 자연스럽게 떨어진다 */
 .mono{font-family:"Galmuri11","DungGeunMo",ui-monospace,"D2Coding",Consolas,monospace;}
 
 /* ─── 미리보기 배너(창 밖) — 실제 앱이 아님을 계속 알린다 ─── */
 .skinbar{
-  max-width:1200px;margin:0 auto 12px;
-  font-size:.78rem;color:var(--dim);letter-spacing:.02em;
+  flex:none;max-width:1200px;width:100%;margin:0 auto;
+  font-size:.72rem;color:var(--dim);letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 
 /* ─── 창(win) — 시안9의 지배적 장치: 페이지 전체가 하나의 액자다 ─── */
 .win{
-  max-width:1200px;margin:0 auto;background:var(--win);
+  flex:1 1 auto;min-height:0;
+  max-width:1200px;width:100%;margin:0 auto;background:var(--win);
   border:3px solid var(--frame);border-radius:14px;overflow:hidden;
   box-shadow:0 14px 44px rgba(40,20,80,.22), 0 0 0 3px var(--frame-2) inset;
+  display:flex;flex-direction:column;
 }
 .win-top{
+  flex:none;
   display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;
-  background:var(--frame);color:#fff;font-size:.72rem;padding:4px 12px;letter-spacing:.02em;
+  background:var(--frame);color:#fff;font-size:.7rem;padding:3px 12px;letter-spacing:.02em;
 }
 .win-top .right{display:flex;align-items:center;gap:10px;}
 .win-top .sep{opacity:.45;}
@@ -161,30 +170,32 @@ body{
 html[data-theme="dark"] .tt-knob{transform:translateX(16px);background:#ffe9a8;}
 @media (prefers-reduced-motion:reduce){ .tt-knob{transition:none;} }
 .win-foot{
-  background:var(--frame);color:#fff;font-size:.7rem;padding:8px 12px;text-align:center;line-height:1.6;
+  flex:none;
+  background:var(--frame);color:#fff;font-size:.66rem;padding:5px 12px;text-align:center;line-height:1.5;
 }
 
 /* ─── 배너 ─── 왼쪽 고양이 / 가운데 워드마크 / 오른쪽 오늘의 한마디 */
 .banner{
+  flex:none;
   position:relative;background:var(--sky);color:var(--sky-ink);
-  display:grid;grid-template-columns:200px 1fr 220px;align-items:center;gap:14px;
-  padding:18px 20px;border-bottom:2px solid var(--frame);overflow:hidden;
+  display:grid;grid-template-columns:150px 1fr 210px;align-items:center;gap:14px;
+  padding:10px 18px;border-bottom:2px solid var(--frame);overflow:hidden;
 }
 .banner-note{
   background:var(--note);border:2px solid var(--frame);border-radius:8px;
-  padding:9px 11px;font-size:.76rem;line-height:1.5;color:var(--ink);
+  padding:7px 9px;font-size:.72rem;line-height:1.45;color:var(--ink);
   box-shadow:2px 2px 0 var(--frame-2);
 }
 .banner-note b{display:block;font-size:.72rem;color:var(--accent);margin-bottom:3px;}
 .banner-mark{text-align:center;}
 .banner-mark h1{
-  margin:0;font-size:2.5rem;line-height:1.15;letter-spacing:.02em;
+  margin:0;font-size:1.95rem;line-height:1.15;letter-spacing:.02em;
   text-shadow:2px 2px 0 rgba(255,255,255,.45), 0 6px 18px rgba(60,30,110,.25);
 }
 html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.22);}
-.banner-mark p{margin:6px 0 0;font-size:.8rem;opacity:.85;}
-.banner-cat{width:100%;max-width:170px;display:block;margin-right:auto;
-  filter:drop-shadow(0 8px 14px rgba(40,20,80,.3));}
+.banner-mark p{margin:4px 0 0;font-size:.74rem;opacity:.85;}
+.banner-cat{width:100%;max-width:120px;display:block;margin-right:auto;
+  filter:drop-shadow(0 6px 12px rgba(40,20,80,.3));}
 /* 배너 별 데코 */
 .banner .deco{position:absolute;color:var(--star);pointer-events:none;font-size:.8rem;opacity:.9;}
 .banner .d1{top:12px;left:38%;} .banner .d2{top:44px;left:30%;font-size:1.1rem;}
@@ -197,9 +208,9 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 }
 
 /* ─── 탭 내비 ─── */
-.tabs{display:flex;flex-wrap:wrap;background:var(--panel);border-bottom:2px solid var(--frame);}
+.tabs{flex:none;display:flex;flex-wrap:wrap;background:var(--panel);border-bottom:2px solid var(--frame);}
 .tabs a{
-  display:flex;align-items:center;gap:5px;padding:9px 15px;font-size:.8rem;
+  display:flex;align-items:center;gap:5px;padding:7px 14px;font-size:.76rem;
   color:var(--ink);text-decoration:none;border-right:1px solid var(--line);
   border-top:3px solid transparent;
 }
@@ -207,36 +218,43 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 .tabs a.on{background:var(--chip);border-top-color:var(--accent);color:var(--accent);font-weight:700;}
 .tabs a.off{opacity:.4;}
 
-/* ─── 3단 컬럼 ─── */
-.grid{display:grid;grid-template-columns:210px minmax(0,1fr) 236px;gap:12px;padding:12px;}
+/* ─── 3단 컬럼 ─── 남은 높이를 전부 차지하고, 넘치는 칸만 그 안에서 스크롤한다 */
+.grid{
+  flex:1 1 auto;min-height:0;overflow:hidden;
+  display:grid;grid-template-columns:206px minmax(0,1fr) 230px;gap:10px;padding:10px;
+}
+.grid > *{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--frame-2) transparent;}
+.grid > *::-webkit-scrollbar{width:7px;}
+.grid > *::-webkit-scrollbar-thumb{background:var(--frame-2);border-radius:999px;}
+.grid > *::-webkit-scrollbar-track{background:transparent;}
 
 /* ─── 박스 패널(시안9의 기본 단위) ─── */
 .box{
   background:var(--panel);border:2px solid var(--frame-2);border-radius:8px;
-  overflow:hidden;margin-bottom:12px;
+  overflow:hidden;margin-bottom:8px;
 }
 .box:last-child{margin-bottom:0;}
 .box-head{
   margin:0;background:var(--head);color:var(--head-ink);
-  font-size:.76rem;font-weight:700;padding:6px 10px;
+  font-size:.74rem;font-weight:700;padding:4px 9px;
   border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;
 }
 .box-head .more{margin-left:auto;font-weight:400;font-size:.7rem;opacity:.75;}
-.box-body{padding:10px;font-size:.8rem;}
+.box-body{padding:8px 9px;font-size:.78rem;}
 .box-body p{margin:0 0 8px;}
 .box-body p:last-child{margin-bottom:0;}
 
 /* ─── 좌: 환영 박스 ─── */
 .welcome{text-align:center;}
-.welcome img{width:64px;display:block;margin:0 auto 6px;}
+.welcome img{width:54px;display:block;margin:0 auto 5px;}
 .welcome .hi{font-size:.82rem;font-weight:700;margin-bottom:4px;}
 .welcome .sub{font-size:.74rem;color:var(--dim);line-height:1.5;}
 .streak{
-  display:inline-block;margin:8px 0 2px;padding:3px 10px;border-radius:999px;
+  display:inline-block;margin:6px 0 2px;padding:3px 10px;border-radius:999px;
   background:var(--chip);border:2px solid var(--frame-2);font-size:.74rem;font-weight:700;
 }
 .btn{
-  display:block;width:100%;margin-top:9px;padding:9px 10px;cursor:pointer;
+  display:block;width:100%;margin-top:8px;padding:8px 10px;cursor:pointer;
   font:inherit;font-size:.82rem;font-weight:700;
   background:var(--accent);color:var(--accent-ink);
   border:2px solid var(--frame);border-radius:8px;box-shadow:2px 2px 0 var(--frame-2);
@@ -247,17 +265,17 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 /* ─── 좌: 메뉴 목록 ─── */
 .menu{list-style:none;margin:0;padding:0;}
 .menu li a{
-  display:flex;gap:7px;padding:6px 4px;font-size:.79rem;color:var(--ink);
+  display:flex;gap:7px;padding:5px 4px;font-size:.77rem;color:var(--ink);
   text-decoration:none;border-bottom:1px dashed var(--line);
 }
 .menu li:last-child a{border-bottom:0;}
 .menu li a:hover{background:var(--chip);}
 
 /* ─── 중앙: 오늘의 루틴 ─── */
-.rt{list-style:none;margin:0 0 10px;padding:0;}
+.rt{list-style:none;margin:0 0 8px;padding:0;}
 .rt li{
   display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;
-  padding:7px 4px;border-bottom:1px dashed var(--line);font-size:.81rem;
+  padding:5px 4px;border-bottom:1px dashed var(--line);font-size:.79rem;
 }
 .rt li:last-child{border-bottom:0;}
 .rt .n{font-size:1rem;text-align:center;}
@@ -265,25 +283,25 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 .rt li.done .name{color:var(--dim);text-decoration:line-through;}
 .rt li.done .rep{color:var(--ok);font-weight:700;text-decoration:none;}
 .bar{
-  height:14px;border:2px solid var(--frame-2);border-radius:999px;
+  height:12px;border:2px solid var(--frame-2);border-radius:999px;
   background:var(--chip);overflow:hidden;margin-bottom:6px;
 }
 .bar i{
   display:block;height:100%;width:66%;
   background:repeating-linear-gradient(45deg,var(--accent) 0 7px,var(--accent-2) 7px 14px);
 }
-.bar-label{display:flex;justify-content:space-between;font-size:.74rem;color:var(--dim);margin-bottom:10px;}
+.bar-label{display:flex;justify-content:space-between;font-size:.72rem;color:var(--dim);margin-bottom:7px;}
 
 /* ─── 중앙: 표 ─── */
 table{width:100%;border-collapse:collapse;}
-th,td{padding:6px 7px;text-align:left;font-size:.78rem;}
+th,td{padding:5px 7px;text-align:left;font-size:.76rem;}
 th{background:var(--chip);color:var(--dim);font-size:.72rem;font-weight:700;border-bottom:2px solid var(--line);}
 td{border-bottom:1px dashed var(--line);}
 tr:last-child td{border-bottom:0;}
 td.num{text-align:right;font-variant-numeric:tabular-nums;}
 
 /* ─── 중앙: 도감 갤러리 ─── */
-.gal{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.gal{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
 .gal figure{margin:0;text-align:center;}
 .gal .th{
   aspect-ratio:1;border:2px solid var(--frame-2);border-radius:6px;background:var(--thumb);
@@ -300,21 +318,21 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   background:var(--skypanel);
   border:1px solid var(--frame-2);border-radius:6px;padding:6px;
 }
-.metric{display:flex;justify-content:space-between;font-size:.78rem;padding:4px 0;border-bottom:1px dashed var(--line);}
+.metric{display:flex;justify-content:space-between;font-size:.76rem;padding:3px 0;border-bottom:1px dashed var(--line);}
 .metric:last-of-type{border-bottom:0;}
 .metric b{font-variant-numeric:tabular-nums;}
 .gift{
-  margin-top:8px;background:var(--warm);border:2px solid var(--frame-2);border-radius:6px;
-  padding:7px 9px;font-size:.75rem;line-height:1.5;
+  margin-top:7px;background:var(--warm);border:2px solid var(--frame-2);border-radius:6px;
+  padding:6px 8px;font-size:.73rem;line-height:1.45;
 }
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:.68rem;}
-.cal span{padding:3px 0;border-radius:4px;color:var(--dim);}
+.cal span{padding:1px 0;border-radius:4px;color:var(--dim);}
 .cal .h{font-weight:700;color:var(--accent);}
 .cal .on{background:var(--chip);color:var(--ink);font-weight:700;}
 .cal .today{outline:2px solid var(--accent);}
 .radio{display:flex;align-items:center;gap:8px;font-size:.76rem;}
 .radio .knob{
-  width:34px;height:34px;border-radius:50%;border:2px solid var(--frame);
+  width:30px;height:30px;border-radius:50%;border:2px solid var(--frame);
   background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;
 }
 .aff{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
@@ -323,10 +341,20 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   font-size:.64rem;text-align:center;padding:8px 2px;color:var(--dim);
 }
 
+/* ─── 한 화면 셸을 포기하는 조건 ───
+   칸을 세로로 쌓아야 하거나(좁은 화면) 높이가 모자라면(낮은 창), 억지로 우겨넣는 대신
+   평범한 문서 스크롤로 되돌린다. 한 화면에 넣는 건 넓은 화면에서의 이득이지 규칙이 아니다. */
+@media (max-width:980px), (max-height:620px){
+  body{height:auto;overflow:visible;display:block;padding:12px 12px 32px;}
+  .skinbar{white-space:normal;margin-bottom:10px;}
+  .win{display:block;}
+  .grid{overflow:visible;}
+  .grid > *{overflow:visible;}
+}
 @media (max-width:980px){
   .grid{grid-template-columns:1fr;}
   .banner{grid-template-columns:1fr;text-align:center;}
-  .banner-cat{margin:0 auto;max-width:130px;}
+  .banner-cat{margin:0 auto;max-width:120px;}
   .gal{grid-template-columns:repeat(3,1fr);}
 }
 </style>
@@ -504,7 +532,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
         <h2 class="box-head">✦ 오늘의 하늘</h2>
         <div class="box-body">
           <div class="sky-box">
-            <svg viewBox="0 0 200 130" width="100%" height="120" role="img" aria-label="오늘의 별자리 백조자리">
+            <svg viewBox="0 0 200 130" width="100%" height="88" role="img" aria-label="오늘의 별자리 백조자리">
               <g stroke="var(--star)" stroke-width="1.4" opacity=".55">
                 <line x1="100" y1="18" x2="100" y2="66"/><line x1="100" y1="66" x2="100" y2="108"/>
                 <line x1="42" y1="60" x2="100" y2="66"/><line x1="100" y1="66" x2="158" y2="58"/>
@@ -518,7 +546,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
               </g>
             </svg>
           </div>
-          <p style="text-align:center;margin-top:7px;font-weight:700;">백조자리</p>
+          <p style="text-align:center;margin-top:5px;font-weight:700;">백조자리</p>
           <p style="text-align:center;font-size:.72rem;color:var(--dim);">4 / 6 점등 · 2개만 더!</p>
         </div>
       </section>
@@ -526,7 +554,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
       <section class="box">
         <h2 class="box-head">📊 손목 체크 <span class="more">추이 ▸</span></h2>
         <div class="box-body">
-          <svg viewBox="0 0 200 70" width="100%" height="62" role="img" aria-label="굽힘 추이">
+          <svg viewBox="0 0 200 70" width="100%" height="48" role="img" aria-label="굽힘 추이">
             <polyline points="6,52 44,48 82,44 120,38 158,34 194,28" fill="none"
                       stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
             <g fill="var(--accent)">
@@ -565,7 +593,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
               <div style="font-size:.72rem;color:var(--dim);">다음 알림 · 오후 4:00</div>
             </div>
           </div>
-          <button class="btn ghost" style="margin-top:9px;">알림 끄기</button>
+          <button class="btn ghost" style="margin-top:7px;padding:6px 10px;">알림 끄기</button>
         </div>
       </section>
     </aside>
