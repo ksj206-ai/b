@@ -145,6 +145,8 @@ function renderHome() {
   chip.classList.toggle('is-need', need);
 
   // 포털 홈의 나머지 칸 — 전부 읽기 전용 렌더라 순서가 상태에 영향을 주지 않는다
+  const stars = $('rpStars');
+  if (stars) stars.textContent = done ? `✦`.repeat(done) + ` 별 ${done}개 점등` : '';
   renderHomeRoutine(r);
   renderHomeFocus();
   renderHomeHistory();
@@ -184,7 +186,7 @@ function renderHomeRoutine(r) {
     if (!g) return;
     const isDone = r.doneIds.includes(id);
     const li = document.createElement('li');
-    li.className = isDone ? 'is-done' : (id === nextId ? 'is-next' : '');
+    li.className = isDone ? 'done' : (id === nextId ? 'is-next' : '');   // 미리보기의 .rt li.done 규칙을 탄다
     li.innerHTML = `<span class="n">${g.emoji || '✋'}</span>`
       + `<span class="name">${g.short || g.name}</span>`
       + `<span class="rep">${isDone ? '완료 ✓' : (id === nextId ? '다음 →' : '')}</span>`;

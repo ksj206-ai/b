@@ -252,11 +252,8 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
   display:inline-block;margin:6px 0 2px;padding:3px 10px;border-radius:999px;
   background:var(--chip);border:2px solid var(--frame-2);font-size:.8rem;font-weight:700;
 }
-/* 미리보기에선 버튼이 항상 박스 안 가로말뚝이였지만, 앱에선 화면 머리·줄 안에도
-   섞인다. 기본을 inline으로 두고 "판을 채우는 자리"에서만 블록으로 만든다. */
 .btn{
-  display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  width:auto;margin-top:0;padding:9px 16px;cursor:pointer;
+  display:block;width:100%;margin-top:9px;padding:11px 10px;cursor:pointer;
   font:inherit;font-size:.98rem;font-weight:700;
   background:var(--accent);color:var(--accent-ink);
   border:2px solid var(--frame);border-radius:8px;box-shadow:2px 2px 0 var(--frame-2);
@@ -605,10 +602,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   background:none; border:0; padding:0; cursor:pointer; color:inherit;
   font:inherit; font-size:inherit; font-weight:inherit; letter-spacing:inherit;
 }
-.win-top .streak{
-  display:inline; background:none; border:0; padding:0; margin:0;
-  color:inherit; font-size:inherit; box-shadow:none; animation:none;
-}
+
 /* 배너 마스코트 — 미리보기의 banner-cat 자리 */
 .banner .mascot-wrap{ position:static; width:auto; }
 .banner .mascot{ width:100%; max-width:108px; display:block; margin-right:auto; position:static; }
@@ -637,7 +631,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .focus-sub{ margin:0; color:var(--dim); font-size:.78rem; }
 .welcome-cat-sm{ width:64px; display:block; margin:0 auto 5px; }
 .welcome-box{ text-align:center; }
-.welcome-box .hi{ margin:0 0 8px; font-size:.88rem; font-weight:700; color:var(--ink); }
+.welcome-box .hi{ margin:0 0 8px; font-weight:700; color:var(--ink); }
 .btn.ghost{ background:transparent; color:var(--ink); }
 
 /* 메뉴는 <a>가 아니라 <button>이다(라우터가 [data-nav]를 위임으로 받는다) */
@@ -697,7 +691,15 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 }
 
 /* 판을 채우는 자리 — 박스 본문의 직계 버튼, 나란한 두 버튼, 환영 칸 */
-.box-body > .btn, .row-btn .btn, .welcome-box .btn, .hand button{ display:flex; width:100%; }
-.box-body > .btn{ margin-top:9px; }
+/* 줄 안에 섞이는 버튼만 예외 — 미리보기엔 없던 자리들(화면 머리, 재생 조작줄 등) */
+.screen-head .btn, .gp-btns .btn, .gp-idle-btns .btn, .gp-done-btns .btn,
+.m-actions .btn, .remind-btns .btn, .remind-custom .btn, .row-btn .btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  width:auto; margin-top:0; padding:8px 14px; font-size:.88rem;
+}
+.row-btn .btn{ width:100%; }
 .row-btn{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .screen-head .btn{ padding:6px 12px; font-size:.84rem; }
+
+/* 반가워요 칸 — 미리보기와 같은 크기 */
+.hi{ font-size:.92rem; }

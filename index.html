@@ -15,17 +15,16 @@
     <!-- ─── ① 상태 띠 ───
          스트릭·도감 진척 같은 "메타"와 테마 컨트롤만 둔다. 기능은 아래 탭이 맡는다. -->
     <div class="win-top">
-      <span>✦ 오늘의 별자리에 오신 걸 환영해요</span>
+      <span class="mono">✦ 오늘의 별자리에 오신 걸 환영해요</span>
       <span class="right">
-        <div id="streak" class="streak" hidden>⭐ <b id="streakDays">0</b>일 연속</div>
         <span class="sep">|</span>
         <!-- 색 테마 — 점 두 개. 저장·전환은 js/theme.js -->
         <span class="pal" role="group" aria-label="색 테마">
-          <button type="button" class="sw-lavender" data-palette="lavender" aria-pressed="false" title="라벤더">
-            <span class="sr-only">라벤더 테마</span>
-          </button>
           <button type="button" class="sw-sky" data-palette="sky" aria-pressed="false" title="하늘">
             <span class="sr-only">하늘 테마</span>
+          </button>
+          <button type="button" class="sw-lavender" data-palette="lavender" aria-pressed="false" title="라벤더">
+            <span class="sr-only">라벤더 테마</span>
           </button>
         </span>
         <button type="button" class="theme-toggle" id="themeToggle" role="switch" aria-checked="false">
@@ -47,7 +46,7 @@
         <h1>
           <button type="button" class="wordmark" data-nav="home">오늘의 별자리</button>
         </h1>
-        <p>✿ 하루 1분 손목 웰니스 · 별 모으기 ✿</p>
+        <p class="mono">✿ 하루 1분 손목 웰니스 · 별 모으기 ✿</p>
       </div>
       <!-- 오늘의 한마디 — 적응형 상태를 긍정으로 번역한 한 줄(routine.js dailyStarMessage) -->
       <div class="banner-note">
@@ -85,6 +84,7 @@
               <div class="box-body welcome-box">
                 <img class="welcome-cat-sm" src="assets/cat-idle.png" alt="" aria-hidden="true">
                 <p class="hi" id="homeGreet">오늘도 만나서 반가워요!</p>
+                <div id="streak" class="streak" hidden>🔥 <b id="streakDays">0</b>일 연속</div>
                 <button type="button" class="btn ghost" data-nav="guide">운동 목록 보기 ▸</button>
               </div>
             </section>
@@ -129,7 +129,7 @@
               <div class="box-body">
                 <p class="home-hero-title" id="todayRoutine">1분, 손목 굽힘·폄부터 시작해요</p>
                 <div class="bar"><i id="homeBar"></i></div>
-                <p id="rpText" class="rp-text"></p>
+                <div class="bar-label"><span id="rpText"></span><span id="rpStars"></span></div>
                 <ul class="rt" id="homeRoutineList"></ul>
                 <button class="btn btn-primary btn-hero" id="routineStart">시작하기 🚀</button>
               </div>
@@ -664,8 +664,8 @@
 
     <!-- ─── 면책 (의료법) ─── -->
     <footer class="win-foot">
-      본 서비스는 의료기기가 아니며 질병의 진단·치료 목적이 아닙니다.
-      통증이 있거나 질환이 의심되면 의사와 상담하세요.
+      ⚠ 본 서비스는 의료기기가 아니며 질병의 진단·치료 목적이 아닙니다 · 통증이 있거나 질환이 의심되면 의사와 상담하세요
+      <span class="mono">· 영상은 저장하지 않아요, 좌표·수치만 내 브라우저에 남습니다</span>
     </footer>
   </div>
 
