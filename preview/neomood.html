@@ -50,7 +50,8 @@ html[data-palette="sky"]{
   --sky-ink:#3d447e; --star:#fff4d2; --note:rgba(255,255,255,.85);
   --thumb:linear-gradient(160deg,#a3b0e6,#d3dff4);
   --skypanel:linear-gradient(160deg,#2c3468,#4b5497);   /* 별자리 판 — 두 모드 공통 */
-  --warm:#e5d3c4;                                        /* 노을 크림 — 선물 칩 */
+  --warm:#e5d3c4;
+  --deco:#bccbe8; --deco-2:#98a9dd;      /* 창 밖 배경의 잔별·별자리 */                                        /* 노을 크림 — 선물 칩 */
 }
 html[data-palette="sky"][data-theme="dark"]{
   --page:#11152c;  --page-dot:#1e2444;
@@ -63,6 +64,7 @@ html[data-palette="sky"][data-theme="dark"]{
   --sky:linear-gradient(160deg,#1d2450 0%,#39407f 50%,#4a4f92 100%);
   --sky-ink:#eef1ff; --star:#ffeec2; --note:rgba(17,21,44,.78);
   --thumb:linear-gradient(160deg,#2b3364,#4b5296);
+  --deco:#232a52; --deco-2:#3b4585;
   --warm:#4d4340;   /* 노을 크림의 다크 대응 — 차가운 판 위 유일한 따뜻한 자리 */
 }
 
@@ -80,6 +82,7 @@ html[data-palette="lavender"]{
   --thumb:linear-gradient(160deg,#b9a4e8,#e6cff0);
   --skypanel:linear-gradient(160deg,#241c56,#453079);
   --warm:#f6e2cf;
+  --deco:#d6c8ef; --deco-2:#bba6e4;
 }
 html[data-palette="lavender"][data-theme="dark"]{
   --page:#0b0a1c;  --page-dot:#181637;
@@ -92,6 +95,7 @@ html[data-palette="lavender"][data-theme="dark"]{
   --sky:linear-gradient(160deg,#1c1646 0%,#2a2060 50%,#3d2a68 100%);
   --sky-ink:#f2ecff; --star:#ffe9a8; --note:rgba(16,13,42,.78);
   --thumb:linear-gradient(160deg,#2a2160,#4a3480);
+  --deco:#1e1a42; --deco-2:#382f6d;
   --warm:#4a3c22;
 }
 
@@ -102,21 +106,35 @@ html,body{margin:0;padding:0;height:100%;}
    각자 안에서 처리한다(아래 .grid > *). 그래서 액자·배너·탭·푸터는 항상 보인다.
    좁거나 낮은 화면에서는 이 규칙을 버리고 평범한 문서 스크롤로 되돌린다(맨 아래 미디어쿼리). */
 body{
-  background:var(--page);
-  background-image:radial-gradient(var(--page-dot) 1px,transparent 1px);
-  background-size:12px 12px;
+  background-color:var(--page);
+  /* 창 밖 여백 = 밤하늘. 격자 점 위에 크기 다른 잔별 두 겹을 서로 어긋난 주기로 얹어
+     규칙적인 격자처럼 보이지 않게 한다(주기가 서로 나누어떨어지지 않게 잡았다). */
+  background-image:
+    radial-gradient(var(--deco-2) 1.7px, transparent 1.8px),
+    radial-gradient(var(--deco) 1.1px, transparent 1.2px),
+    radial-gradient(var(--page-dot) 1px, transparent 1px);
+  background-size:317px 251px, 131px 173px, 12px 12px;
+  background-position:47px 23px, 13px 61px, 0 0;
   color:var(--ink);
   font:14px/1.5 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   -webkit-font-smoothing:antialiased;
   height:100dvh;padding:8px 10px;overflow:hidden;
   display:flex;flex-direction:column;gap:6px;
 }
+/* ─── 창 밖 별자리 장식 ─── 창 뒤(z-index:-1)에 깔린다. 여백이 좁아지면 창이
+   덮어 저절로 잘리므로 화면 폭을 따로 재지 않는다. 도감에 실제로 있는 두 별자리다. */
+.bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
+.bg-const{position:absolute;width:210px;height:250px;color:var(--deco-2);}
+.bg-l{left:clamp(6px,1.4vw,22px);top:19%;}
+.bg-r{right:clamp(6px,1.4vw,22px);bottom:13%;}
+.bg-const text{font-size:11px;letter-spacing:.08em;fill:currentColor;opacity:.5;}
+
 /* 레트로 캡션용 — 픽셀 폰트가 있으면 쓰고 없으면 고정폭으로 자연스럽게 떨어진다 */
 .mono{font-family:"Galmuri11","DungGeunMo",ui-monospace,"D2Coding",Consolas,monospace;}
 
 /* ─── 미리보기 배너(창 밖) — 실제 앱이 아님을 계속 알린다 ─── */
 .skinbar{
-  flex:none;max-width:1200px;width:100%;margin:0 auto;
+  flex:none;max-width:1700px;width:100%;margin:0 auto;
   font-size:.72rem;color:var(--dim);letter-spacing:.02em;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
@@ -124,7 +142,7 @@ body{
 /* ─── 창(win) — 시안9의 지배적 장치: 페이지 전체가 하나의 액자다 ─── */
 .win{
   flex:1 1 auto;min-height:0;
-  max-width:1200px;width:100%;margin:0 auto;background:var(--win);
+  max-width:1700px;width:100%;margin:0 auto;background:var(--win);
   border:3px solid var(--frame);border-radius:14px;overflow:hidden;
   box-shadow:0 14px 44px rgba(40,20,80,.22), 0 0 0 3px var(--frame-2) inset;
   display:flex;flex-direction:column;
@@ -178,8 +196,8 @@ html[data-theme="dark"] .tt-knob{transform:translateX(16px);background:#ffe9a8;}
 .banner{
   flex:none;
   position:relative;background:var(--sky);color:var(--sky-ink);
-  display:grid;grid-template-columns:150px 1fr 210px;align-items:center;gap:14px;
-  padding:10px 18px;border-bottom:2px solid var(--frame);overflow:hidden;
+  display:grid;grid-template-columns:190px 1fr 260px;align-items:center;gap:20px;
+  padding:7px 26px;border-bottom:2px solid var(--frame);overflow:hidden;
 }
 .banner-note{
   background:var(--note);border:2px solid var(--frame);border-radius:8px;
@@ -189,12 +207,12 @@ html[data-theme="dark"] .tt-knob{transform:translateX(16px);background:#ffe9a8;}
 .banner-note b{display:block;font-size:.72rem;color:var(--accent);margin-bottom:3px;}
 .banner-mark{text-align:center;}
 .banner-mark h1{
-  margin:0;font-size:1.95rem;line-height:1.15;letter-spacing:.02em;
+  margin:0;font-size:2.2rem;line-height:1.15;letter-spacing:.02em;
   text-shadow:2px 2px 0 rgba(255,255,255,.45), 0 6px 18px rgba(60,30,110,.25);
 }
 html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.22);}
 .banner-mark p{margin:4px 0 0;font-size:.74rem;opacity:.85;}
-.banner-cat{width:100%;max-width:120px;display:block;margin-right:auto;
+.banner-cat{width:100%;max-width:140px;display:block;margin-right:auto;
   filter:drop-shadow(0 6px 12px rgba(40,20,80,.3));}
 /* 배너 별 데코 */
 .banner .deco{position:absolute;color:var(--star);pointer-events:none;font-size:.8rem;opacity:.9;}
@@ -221,7 +239,7 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 /* ─── 3단 컬럼 ─── 남은 높이를 전부 차지하고, 넘치는 칸만 그 안에서 스크롤한다 */
 .grid{
   flex:1 1 auto;min-height:0;overflow:hidden;
-  display:grid;grid-template-columns:206px minmax(0,1fr) 230px;gap:10px;padding:10px;
+  display:grid;grid-template-columns:240px minmax(0,1fr) 268px;gap:12px;padding:12px;
 }
 .grid > *{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--frame-2) transparent;}
 .grid > *::-webkit-scrollbar{width:7px;}
@@ -301,7 +319,7 @@ tr:last-child td{border-bottom:0;}
 td.num{text-align:right;font-variant-numeric:tabular-nums;}
 
 /* ─── 중앙: 도감 갤러리 ─── */
-.gal{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+.gal{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;}
 .gal figure{margin:0;text-align:center;}
 .gal .th{
   aspect-ratio:1;border:2px solid var(--frame-2);border-radius:6px;background:var(--thumb);
@@ -370,6 +388,32 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 </script>
 </head>
 <body>
+
+<div class="bg" aria-hidden="true">
+  <!-- 큰곰자리(북두칠성) — 물통 4 + 손잡이 3 -->
+  <svg class="bg-l bg-const" viewBox="0 0 210 250" fill="none">
+    <g stroke="currentColor" stroke-width="1.2" opacity=".45">
+      <path d="M26 92 L64 76 L78 118 L38 134 Z"/>
+      <path d="M64 76 L106 58 L146 48 L182 66"/>
+    </g>
+    <g fill="currentColor" opacity=".8">
+      <circle cx="26" cy="92" r="3"/><circle cx="64" cy="76" r="3.6"/>
+      <circle cx="78" cy="118" r="2.6"/><circle cx="38" cy="134" r="2.6"/>
+      <circle cx="106" cy="58" r="3"/><circle cx="146" cy="48" r="2.4"/>
+      <circle cx="182" cy="66" r="3.2"/>
+    </g>
+    <text x="26" y="164">URSA MAJOR</text>
+  </svg>
+  <!-- 카시오페이아 — 뚜렷한 W -->
+  <svg class="bg-r bg-const" viewBox="0 0 210 250" fill="none">
+    <path d="M24 70 L68 122 L112 74 L156 126 L192 76" stroke="currentColor" stroke-width="1.2" opacity=".45"/>
+    <g fill="currentColor" opacity=".8">
+      <circle cx="24" cy="70" r="2.6"/><circle cx="68" cy="122" r="3.4"/>
+      <circle cx="112" cy="74" r="3"/><circle cx="156" cy="126" r="2.6"/><circle cx="192" cy="76" r="3.2"/>
+    </g>
+    <text x="24" y="160">CASSIOPEIA</text>
+  </svg>
+</div>
 
 <div class="skinbar">
   🔍 레이아웃 미리보기 · 골격은 <b>시안9</b>, 색 테마는 <b>하늘(시안8)</b>·<b>라벤더(시안9)</b> 2종
@@ -520,6 +564,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
             <figure><div class="th">✦</div><figcaption>거문고자리</figcaption></figure>
             <figure><div class="th">✧</div><figcaption>카시오페이아</figcaption></figure>
             <figure><div class="th">✦</div><figcaption>오리온자리</figcaption></figure>
+            <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+            <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
             <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
           </div>
         </div>
