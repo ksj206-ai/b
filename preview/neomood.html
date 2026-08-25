@@ -17,15 +17,18 @@
     ⑤ 3단 컬럼(좌 사이드 / 본문 / 우 위젯)           ⑥ 제목바를 가진 박스 패널
     ⑦ 표·썸네일 갤러리·달력 위젯                     ⑧ 얇은 푸터 띠
 
-  색은 두 벌을 넣어 토글한다(우상단 버튼) — 레이아웃만 볼지, 색까지 갈아탈지
-  눈으로 비교하고 고르라는 뜻:
-    · pastel = 시안9 그대로의 파스텔 보라
-    · night  = 현재 앱의 밤하늘 색을 이 레이아웃에 입힌 것
+  색은 두 벌 다 남기고 "다크모드 온/오프"로 묶었다(상단 띠 우측 스위치):
+    · light = 시안9 그대로의 파스텔 보라   · dark = 현재 앱의 밤하늘 색
+  기준은 시스템 설정(prefers-color-scheme)이고, 스위치로 덮어쓰면 그 선택을
+  localStorage에 남긴다 — 실제 앱에 옮길 때도 이 규칙 그대로 쓰면 된다.
   ═══════════════════════════════════════════════════════════
 -->
 <style>
-/* ─── 스킨 토큰 ─── 색은 전부 여기서만 정의한다(레이아웃 규칙과 섞지 않는다) */
-html[data-skin="pastel"]{
+/* ─── 색 토큰 ─── 색은 전부 여기서만 정의한다(레이아웃 규칙과 섞지 않는다).
+   라이트=시안9 파스텔 / 다크=현재 앱 밤하늘. 다크 블록이 두 번 나오는 건
+   ① 시스템이 다크일 때(사용자가 라이트로 덮어쓰지 않았다면) ② 스위치로 켰을 때
+   두 경우를 모두 받기 위해서다. 값은 한 글자도 다르면 안 된다 — 고칠 땐 둘 다. */
+:root{
   --page:#e9e2f8;  --page-dot:#d9cef1;
   --frame:#9b85dc; --frame-2:#c9b7f1;
   --win:#f7f2fe;   --panel:#ffffff;
@@ -37,7 +40,7 @@ html[data-skin="pastel"]{
   --sky-ink:#4a3a72; --star:#fff7cf; --note:rgba(255,255,255,.82);
   --thumb:linear-gradient(160deg,#b9a4e8,#e6cff0);
 }
-html[data-skin="night"]{
+html[data-theme="dark"]{
   --page:#0b0a1c;  --page-dot:#181637;
   --frame:#6a5cae; --frame-2:#3b3169;
   --win:#141130;   --panel:#1b1740;
@@ -48,6 +51,20 @@ html[data-skin="night"]{
   --sky:linear-gradient(160deg,#1c1646 0%,#2a2060 50%,#3d2a68 100%);
   --sky-ink:#f2ecff; --star:#ffe9a8; --note:rgba(16,13,42,.78);
   --thumb:linear-gradient(160deg,#2a2160,#4a3480);
+}
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]){
+    --page:#0b0a1c;  --page-dot:#181637;
+    --frame:#6a5cae; --frame-2:#3b3169;
+    --win:#141130;   --panel:#1b1740;
+    --head:linear-gradient(#2c2359,#241d4c);  --head-ink:#e9e2ff;
+    --ink:#e6e1ff;   --dim:#a79ed6;  --line:#37306a;
+    --accent:#f0c36a; --accent-2:#8d6bd8; --accent-ink:#2a1f05;
+    --chip:#241f4d;  --ok:#6fc7a5;
+    --sky:linear-gradient(160deg,#1c1646 0%,#2a2060 50%,#3d2a68 100%);
+    --sky-ink:#f2ecff; --star:#ffe9a8; --note:rgba(16,13,42,.78);
+    --thumb:linear-gradient(160deg,#2a2160,#4a3480);
+  }
 }
 
 *{box-sizing:border-box;}
@@ -66,36 +83,49 @@ body{
 
 /* ─── 미리보기 배너(창 밖) — 실제 앱이 아님을 계속 알린다 ─── */
 .skinbar{
-  max-width:1180px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px;
-  align-items:center;justify-content:space-between;
+  max-width:1200px;margin:0 auto 12px;
+  font-size:.78rem;color:var(--dim);letter-spacing:.02em;
 }
-.skinbar b{font-size:.78rem;color:var(--dim);letter-spacing:.02em;}
-.skinbar .btns{display:flex;gap:6px;}
-.skinbar button{
-  font:inherit;font-size:.76rem;padding:6px 12px;cursor:pointer;
-  background:var(--panel);color:var(--ink);
-  border:2px solid var(--frame-2);border-radius:999px;
-}
-.skinbar button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;}
 
 /* ─── 창(win) — 시안9의 지배적 장치: 페이지 전체가 하나의 액자다 ─── */
 .win{
-  max-width:1180px;margin:0 auto;background:var(--win);
+  max-width:1200px;margin:0 auto;background:var(--win);
   border:3px solid var(--frame);border-radius:14px;overflow:hidden;
   box-shadow:0 14px 44px rgba(40,20,80,.22), 0 0 0 3px var(--frame-2) inset;
 }
 .win-top{
-  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
-  background:var(--frame);color:#fff;font-size:.72rem;padding:5px 12px;letter-spacing:.02em;
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;
+  background:var(--frame);color:#fff;font-size:.72rem;padding:4px 12px;letter-spacing:.02em;
 }
+.win-top .right{display:flex;align-items:center;gap:12px;}
+
+/* ─── 다크모드 스위치 ─── 상단 띠 오른쪽 끝. 실제 앱에도 이 자리를 그대로 쓴다 */
+.theme-toggle{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  background:none;border:0;padding:2px 0;color:#fff;font:inherit;font-size:.72rem;
+}
+.tt-track{
+  position:relative;display:inline-block;width:38px;height:20px;border-radius:999px;
+  background:rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.55);
+}
+.tt-knob{
+  position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;
+  background:#fff;color:#6b5a9c;font-size:9px;line-height:14px;text-align:center;
+  transition:transform .18s ease, background .18s ease;
+}
+html[data-theme="dark"] .tt-knob{transform:translateX(16px);background:#ffe9a8;}
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]) .tt-knob{transform:translateX(16px);background:#ffe9a8;}
+}
+@media (prefers-reduced-motion:reduce){ .tt-knob{transition:none;} }
 .win-foot{
   background:var(--frame);color:#fff;font-size:.7rem;padding:8px 12px;text-align:center;line-height:1.6;
 }
 
-/* ─── 배너 ─── */
+/* ─── 배너 ─── 왼쪽 고양이 / 가운데 워드마크 / 오른쪽 오늘의 한마디 */
 .banner{
   position:relative;background:var(--sky);color:var(--sky-ink);
-  display:grid;grid-template-columns:210px 1fr 200px;align-items:center;gap:14px;
+  display:grid;grid-template-columns:200px 1fr 220px;align-items:center;gap:14px;
   padding:18px 20px;border-bottom:2px solid var(--frame);overflow:hidden;
 }
 .banner-note{
@@ -109,9 +139,12 @@ body{
   margin:0;font-size:2.5rem;line-height:1.15;letter-spacing:.02em;
   text-shadow:2px 2px 0 rgba(255,255,255,.45), 0 6px 18px rgba(60,30,110,.25);
 }
-html[data-skin="night"] .banner-mark h1{text-shadow:0 0 18px rgba(240,195,106,.35);}
+html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(240,195,106,.35);}
+@media (prefers-color-scheme:dark){
+  html:not([data-theme="light"]) .banner-mark h1{text-shadow:0 0 18px rgba(240,195,106,.35);}
+}
 .banner-mark p{margin:6px 0 0;font-size:.8rem;opacity:.85;}
-.banner-cat{width:100%;max-width:170px;display:block;margin-left:auto;
+.banner-cat{width:100%;max-width:170px;display:block;margin-right:auto;
   filter:drop-shadow(0 8px 14px rgba(40,20,80,.3));}
 /* 배너 별 데코 */
 .banner .deco{position:absolute;color:var(--star);pointer-events:none;font-size:.8rem;opacity:.9;}
@@ -221,7 +254,13 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .gal .lock .th{filter:grayscale(1);opacity:.35;}
 
 /* ─── 우: 위젯 ─── */
-.sky-box{background:var(--sky);border-radius:6px;padding:6px;}
+/* 별자리 판은 라이트에서도 어둡게 둔다 — 밤하늘은 원래 어둡고,
+   파스텔 배경에 크림색 별을 올리면 별이 안 보인다(--star를 이 안에서만 덮어쓴다). */
+.sky-box{
+  --star:#ffe9a8;
+  background:linear-gradient(160deg,#241c56,#453079);
+  border:1px solid var(--frame-2);border-radius:6px;padding:6px;
+}
 .metric{display:flex;justify-content:space-between;font-size:.78rem;padding:4px 0;border-bottom:1px dashed var(--line);}
 .metric:last-of-type{border-bottom:0;}
 .metric b{font-variant-numeric:tabular-nums;}
@@ -256,32 +295,35 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 <body>
 
 <div class="skinbar">
-  <b>🔍 레이아웃 미리보기 · model/시안9(Neomood) 구조 · 실제 앱에는 아직 반영하지 않음</b>
-  <div class="btns">
-    <button data-set="pastel" class="on">🌸 파스텔 (시안9 그대로)</button>
-    <button data-set="night">🌙 밤하늘 (현재 앱 색)</button>
-  </div>
+  🔍 레이아웃 미리보기 · model/시안9(Neomood) 구조 · 실제 앱에는 아직 반영하지 않음
+  — 색 전환은 창 오른쪽 위 <b>다크모드 스위치</b>로
 </div>
 
 <div class="win">
 
-  <!-- ① 얇은 상태 띠 -->
+  <!-- ① 얇은 상태 띠 (오른쪽 끝 = 다크모드 스위치) -->
   <div class="win-top">
     <span class="mono">✦ 오늘의 별자리에 오신 걸 환영해요</span>
-    <span class="mono">🔥 12일째 · 🌌 도감 5/16 · 2026.08.25 (월)</span>
+    <span class="right">
+      <span class="mono">🔥 12일째 · 🌌 도감 5/16 · 2026.08.25 (월)</span>
+      <button class="theme-toggle" id="themeToggle" role="switch" aria-checked="false">
+        <span class="tt-track"><span class="tt-knob" aria-hidden="true">☀</span></span>
+        <span>다크모드</span>
+      </button>
+    </span>
   </div>
 
-  <!-- ② 배너 -->
+  <!-- ② 배너 — 고양이(왼쪽) ↔ 오늘의 한마디(오른쪽) -->
   <header class="banner">
-    <div class="banner-note">
-      <b>오늘의 한마디</b>
-      손목이 조금씩<br>부드러워지고 있어요.<br>오늘의 별도 함께 반짝여요 ✨
-    </div>
+    <img class="banner-cat" src="../assets/cat-idle.png" alt="" aria-hidden="true">
     <div class="banner-mark">
       <h1>오늘의 별자리</h1>
       <p class="mono">✿ 하루 1분 손목 웰니스 · 별 모으기 ✿</p>
     </div>
-    <img class="banner-cat" src="../assets/cat-idle.png" alt="" aria-hidden="true">
+    <div class="banner-note">
+      <b>오늘의 한마디</b>
+      손목이 조금씩<br>부드러워지고 있어요.<br>오늘의 별도 함께 반짝여요 ✨
+    </div>
     <span class="deco d1">✦</span><span class="deco d2">✧</span>
     <span class="deco d3">·</span><span class="deco d4">✦</span><span class="deco d5">✧</span>
   </header>
@@ -479,20 +521,38 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 </div>
 
 <script>
-// 스킨 토글 — data-skin 한 줄만 바꾼다(레이아웃은 그대로, 색만 갈아입는다)
-const btns = document.querySelectorAll('.skinbar button');
-btns.forEach(function (b) {
-  b.addEventListener('click', function () {
-    document.documentElement.dataset.skin = b.dataset.set;
-    btns.forEach(function (x) { x.classList.toggle('on', x === b); });
-    try { localStorage.setItem('previewSkin', b.dataset.set); } catch (e) {}
+// ─── 다크모드 스위치 ───
+// 기준은 시스템 설정. 사용자가 스위치를 만지면 그때부터 그 선택이 이긴다(data-theme + 저장).
+// CSS 쪽은 "속성이 있으면 속성이, 없으면 prefers-color-scheme이" 이기게 짜여 있다.
+(function () {
+  var root = document.documentElement;
+  var sw = document.getElementById('themeToggle');
+  var knob = sw.querySelector('.tt-knob');
+  var sysDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+  function isDark() {
+    return root.dataset.theme ? root.dataset.theme === 'dark' : sysDark.matches;
+  }
+  function paint() {
+    var dark = isDark();
+    sw.setAttribute('aria-checked', String(dark));
+    knob.textContent = dark ? '🌙' : '☀';
+  }
+
+  try {
+    var saved = localStorage.getItem('previewTheme');
+    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+  } catch (e) {}
+
+  sw.addEventListener('click', function () {
+    root.dataset.theme = isDark() ? 'light' : 'dark';
+    try { localStorage.setItem('previewTheme', root.dataset.theme); } catch (e) {}
+    paint();
   });
-});
-try {
-  var saved = localStorage.getItem('previewSkin');
-  var target = saved && document.querySelector('.skinbar button[data-set="' + saved + '"]');
-  if (target) target.click();
-} catch (e) {}
+  // 아직 스위치를 안 만졌다면 시스템 설정 변화를 그대로 따라간다
+  sysDark.addEventListener('change', function () { if (!root.dataset.theme) paint(); });
+  paint();
+})();
 </script>
 </body>
 </html>
