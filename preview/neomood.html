@@ -50,8 +50,8 @@ html[data-palette="sky"]{
   --sky-ink:#3d447e; --star:#fff4d2; --note:rgba(255,255,255,.85);
   --thumb:linear-gradient(160deg,#a3b0e6,#d3dff4);
   --skypanel:linear-gradient(160deg,#2c3468,#4b5497);   /* 별자리 판 — 두 모드 공통 */
-  --warm:#e5d3c4;
-  --deco:#bccbe8; --deco-2:#98a9dd;      /* 창 밖 배경의 잔별·별자리 */                                        /* 노을 크림 — 선물 칩 */
+  --warm:#e5d3c4;                       /* 노을 크림 — 선물 칩 */
+  --deco:#bccbe8; --deco-2:#98a9dd;      /* 창 밖 여백에 뿌려진 잔별 */
 }
 html[data-palette="sky"][data-theme="dark"]{
   --page:#11152c;  --page-dot:#1e2444;
@@ -121,14 +121,6 @@ body{
   height:100dvh;padding:8px 10px;overflow:hidden;
   display:flex;flex-direction:column;gap:6px;
 }
-/* ─── 창 밖 별자리 장식 ─── 창 뒤(z-index:-1)에 깔린다. 여백이 좁아지면 창이
-   덮어 저절로 잘리므로 화면 폭을 따로 재지 않는다. 도감에 실제로 있는 두 별자리다. */
-.bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
-.bg-const{position:absolute;width:210px;height:250px;color:var(--deco-2);}
-.bg-l{left:clamp(6px,1.4vw,22px);top:19%;}
-.bg-r{right:clamp(6px,1.4vw,22px);bottom:13%;}
-.bg-const text{font-size:11px;letter-spacing:.08em;fill:currentColor;opacity:.5;}
-
 /* 레트로 캡션용 — 픽셀 폰트가 있으면 쓰고 없으면 고정폭으로 자연스럽게 떨어진다 */
 .mono{font-family:"Galmuri11","DungGeunMo",ui-monospace,"D2Coding",Consolas,monospace;}
 
@@ -390,32 +382,6 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 </script>
 </head>
 <body>
-
-<div class="bg" aria-hidden="true">
-  <!-- 큰곰자리(북두칠성) — 물통 4 + 손잡이 3 -->
-  <svg class="bg-l bg-const" viewBox="0 0 210 250" fill="none">
-    <g stroke="currentColor" stroke-width="1.2" opacity=".45">
-      <path d="M26 92 L64 76 L78 118 L38 134 Z"/>
-      <path d="M64 76 L106 58 L146 48 L182 66"/>
-    </g>
-    <g fill="currentColor" opacity=".8">
-      <circle cx="26" cy="92" r="3"/><circle cx="64" cy="76" r="3.6"/>
-      <circle cx="78" cy="118" r="2.6"/><circle cx="38" cy="134" r="2.6"/>
-      <circle cx="106" cy="58" r="3"/><circle cx="146" cy="48" r="2.4"/>
-      <circle cx="182" cy="66" r="3.2"/>
-    </g>
-    <text x="26" y="164">URSA MAJOR</text>
-  </svg>
-  <!-- 카시오페이아 — 뚜렷한 W -->
-  <svg class="bg-r bg-const" viewBox="0 0 210 250" fill="none">
-    <path d="M24 70 L68 122 L112 74 L156 126 L192 76" stroke="currentColor" stroke-width="1.2" opacity=".45"/>
-    <g fill="currentColor" opacity=".8">
-      <circle cx="24" cy="70" r="2.6"/><circle cx="68" cy="122" r="3.4"/>
-      <circle cx="112" cy="74" r="3"/><circle cx="156" cy="126" r="2.6"/><circle cx="192" cy="76" r="3.2"/>
-    </g>
-    <text x="24" y="160">CASSIOPEIA</text>
-  </svg>
-</div>
 
 <div class="skinbar">
   🔍 레이아웃 미리보기 · 골격은 <b>시안9</b>, 색 테마는 <b>하늘(시안8)</b>·<b>라벤더(시안9)</b> 2종
