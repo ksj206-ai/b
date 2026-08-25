@@ -242,11 +242,15 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 .cols.home{grid-template-columns:240px minmax(0,1fr) 268px;}
 .cols.split{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);}
 /* 칸에 박스가 하나뿐이면 남는 높이를 그 박스가 먹는다 — 시범·카메라 무대가 커진다 */
-.cols.split > div{display:flex;flex-direction:column;}
-.cols.split > div > .box:only-child{flex:1 1 auto;display:flex;flex-direction:column;margin-bottom:0;}
-.cols.split > div > .box:only-child > .box-body{flex:1 1 auto;display:flex;flex-direction:column;}
-.cols.split > div > .box:only-child .stage-box{flex:1 1 auto;height:auto;min-height:170px;}
-.cols.split > div > .box:only-child .gal.dex{flex:1 1 auto;align-content:start;}
+.cols.split > div,.cols.wide > div{display:flex;flex-direction:column;}
+.cols.split > div > .box:only-child,
+.cols.wide > div > .box:only-child{flex:1 1 auto;display:flex;flex-direction:column;margin-bottom:0;}
+.cols.split > div > .box:only-child,
+.cols.wide > div > .box:only-child > .box-body{flex:1 1 auto;display:flex;flex-direction:column;}
+.cols.split > div > .box:only-child,
+.cols.wide > div > .box:only-child .stage-box{flex:1 1 auto;height:auto;min-height:170px;}
+.cols.split > div > .box:only-child,
+.cols.wide > div > .box:only-child .gal.dex{flex:1 1 auto;align-content:start;}
 .cols > *{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--frame-2) transparent;}
 .cols > *::-webkit-scrollbar{width:7px;}
 .cols > *::-webkit-scrollbar-thumb{background:var(--frame-2);border-radius:999px;}
@@ -426,6 +430,64 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   background:var(--chip);color:var(--ink);border:2px solid var(--frame-2);
 }
 .hand button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;}
+
+/* ─── 밤하늘 도감 ─── 하나의 밤하늘에 16개를 흩뿌린다(격자 아님).
+   라이트 팔레트에서도 판은 어둡게 둔다 — 별은 어두운 하늘에서만 별로 보인다. */
+.cols.wide{grid-template-columns:1fr;}
+.sky-body{flex:1 1 auto;display:flex;padding:8px;}
+.skymap{
+  --star:#ffeec2;
+  position:relative;flex:1 1 auto;min-height:260px;overflow:hidden;
+  background:var(--skypanel);border-radius:6px;border:1px solid var(--frame-2);
+  color:var(--star);
+}
+/* 정적 별밭 — 별자리 뒤에 깔린다 */
+.skymap::before{
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:.9;
+  background-image:
+    radial-gradient(1px 1px at 34px 42px, rgba(255,255,255,.85), transparent),
+    radial-gradient(1px 1px at 138px 96px, rgba(196,214,255,.5), transparent),
+    radial-gradient(1.5px 1.5px at 210px 168px, rgba(224,230,255,.75), transparent),
+    radial-gradient(1px 1px at 320px 58px, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 90px 244px, rgba(178,205,255,.58), transparent),
+    radial-gradient(1.5px 1.5px at 286px 286px, rgba(255,246,232,.5), transparent),
+    radial-gradient(1px 1px at 176px 20px, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 250px 210px, rgba(196,214,255,.5), transparent),
+    radial-gradient(1px 1px at 40px 330px, rgba(216,226,255,.6), transparent);
+  background-repeat:repeat;background-size:390px 390px;
+}
+.skymap-item{
+  position:absolute;transform:translate(-50%,-50%);z-index:1;
+  width:clamp(52px,8.4vw,116px);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit;
+  transition:transform .14s cubic-bezier(.34,1.5,.5,1), opacity .14s ease;
+}
+.skymap-item .sky{width:100%;aspect-ratio:1/1;display:block;}
+.skymap-item .nm{
+  font-size:clamp(9px,.78vw,13px);color:#eef2ff;white-space:nowrap;line-height:1.15;
+  text-shadow:0 1px 3px rgba(5,10,24,.8), 0 0 6px rgba(5,10,24,.6);
+}
+.skymap-item.done:hover{transform:translate(-50%,-50%) scale(1.1);z-index:3;}
+.skymap-item.done:active{transform:translate(-50%,-50%) scale(1.02);}
+.skymap-item.locked{opacity:.34;}          /* 아직 못 만난 별자리 — 아주 흐릿하게 */
+.skymap-item.locked:hover{opacity:.58;}
+@media (prefers-reduced-motion:reduce){ .skymap-item{transition:none;} }
+
+/* 크게 보기 — 완성이면 일기 카드, 아니면 잠김 안내 */
+.sky-modal{position:absolute;inset:0;z-index:5;background:rgba(6,9,26,.62);
+  display:flex;align-items:center;justify-content:center;padding:16px;}
+.sky-modal[hidden]{display:none;}
+.sky-card{
+  width:min(360px,92%);background:var(--panel);color:var(--ink);
+  border:2px solid var(--frame);border-radius:10px;overflow:hidden;
+  box-shadow:0 12px 32px rgba(6,9,26,.45);
+}
+.sky-card-sky{background:var(--skypanel);color:#ffeec2;padding:10px;height:150px;}
+.sky-card-body{padding:12px 14px 14px;}
+.sky-card-body h3{margin:0 0 5px;font-size:1.12rem;}
+.sky-card-body p{margin:0 0 7px;font-size:.86rem;}
+.sky-card-body .when{color:var(--dim);font-size:.8rem;}
 
 /* ─── 한 화면 셸을 포기하는 조건 ───
    칸을 세로로 쌓아야 하거나(좁은 화면) 높이가 모자라면(낮은 창), 억지로 우겨넣는 대신
@@ -893,61 +955,29 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
     </div>
   </section>
 
-  <!-- ───────── 🌌 밤하늘 도감 ───────── -->
+  <!-- ───────── 🌌 밤하늘 도감 ─────────
+       전에 만든 방식 그대로 — 격자 카드가 아니라 하나의 밤하늘이다.
+       16개를 constellations.js 의 con.pos(0~1) 좌표로 흩뿌리고, 별자리는 실제
+       stars/lines 데이터로 그린다. 완성=밝게+이름 / 미완성=아주 흐릿·이름 숨김. -->
   <section class="screen" data-screen="sky">
-    <div class="cols split">
+    <div class="cols wide">
       <div>
         <section class="box">
-          <h2 class="box-head">🌌 밤하늘 도감 <span class="more">5 / 16 수집</span></h2>
-          <div class="box-body">
-            <div class="gal dex">
-              <figure><div class="th">✦</div><figcaption>큰곰자리</figcaption></figure>
-              <figure><div class="th">✧</div><figcaption>백조자리</figcaption></figure>
-              <figure><div class="th">✦</div><figcaption>거문고자리</figcaption></figure>
-              <figure><div class="th">✧</div><figcaption>카시오페이아</figcaption></figure>
-              <figure><div class="th">✦</div><figcaption>오리온자리</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
-              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+          <h2 class="box-head">🌌 밤하늘 도감 <span class="more">5 / 16 수집 · 별자리를 눌러보세요</span></h2>
+          <div class="box-body sky-body">
+            <div class="skymap" id="skyMap">
+              <div class="sky-modal" id="skyModal" hidden>
+                <div class="sky-card">
+                  <div class="sky-card-sky" id="skyCardSky"></div>
+                  <div class="sky-card-body">
+                    <h3 id="skyCardName">별자리</h3>
+                    <p id="skyCardDesc"></p>
+                    <p class="when" id="skyCardWhen"></p>
+                    <button class="btn" id="skyCardClose">닫기</button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
-      </div>
-
-      <div>
-        <section class="box">
-          <h2 class="box-head">📖 그날의 일기</h2>
-          <div class="box-body diary">
-            <div class="sky-box">
-              <svg viewBox="0 0 200 120" width="100%" height="96" role="img" aria-label="백조자리">
-                <g stroke="var(--star)" stroke-width="1.4" opacity=".55">
-                  <line x1="100" y1="16" x2="100" y2="62"/><line x1="100" y1="62" x2="100" y2="104"/>
-                  <line x1="42" y1="56" x2="100" y2="62"/><line x1="100" y1="62" x2="158" y2="54"/>
-                </g>
-                <g fill="var(--star)">
-                  <circle cx="100" cy="16" r="4"/><circle cx="100" cy="62" r="5"/>
-                  <circle cx="42" cy="56" r="4"/><circle cx="158" cy="54" r="4"/><circle cx="100" cy="104" r="3.6"/>
-                </g>
-              </svg>
-            </div>
-            <p style="margin-top:9px;font-weight:700;font-size:1.02rem;">백조자리</p>
-            <p class="when">2026.08.24 완성 · 풀코스 6종 · 컨디션 😊 좋음</p>
-            <p style="color:var(--dim);">여름 밤하늘을 가로지르는 북십자. 그날은 손목이 한결 편했던 날이에요.</p>
-          </div>
-        </section>
-
-        <section class="box">
-          <h2 class="box-head">🔒 아직 못 만난 별자리</h2>
-          <div class="box-body">
-            <p style="color:var(--dim);">루틴을 완주한 날에 하나씩 열려요. 계절마다 4개씩, 모두 16개예요.</p>
           </div>
         </section>
       </div>
@@ -1060,6 +1090,84 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
     e.preventDefault();
     go(el.dataset.nav);
   });
+})();
+
+var CONS = [
+  {id:"ursa_major",name:"큰곰자리",desc:"북두칠성을 품은 큰 곰",pos:[0.15,0.235],stars:[[0.05, 0.36], [0.19, 0.25], [0.36, 0.26], [0.52, 0.33], [0.7, 0.27], [0.73, 0.52], [0.53, 0.57]],lines:[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 3]]},
+  {id:"leo",name:"사자자리",desc:"봄 하늘의 늠름한 사자",pos:[0.4,0.225],stars:[[0.7, 0.66], [0.74, 0.46], [0.68, 0.3], [0.36, 0.36], [0.42, 0.58], [0.14, 0.5]],lines:[[2, 1], [1, 0], [0, 4], [4, 3], [3, 5], [1, 3]]},
+  {id:"bootes",name:"목동자리",desc:"봄밤을 걷는 목동",pos:[0.62,0.235],stars:[[0.48, 0.84], [0.6, 0.56], [0.5, 0.3], [0.34, 0.44], [0.4, 0.66]],lines:[[0, 1], [1, 2], [2, 3], [3, 4], [4, 0]]},
+  {id:"virgo",name:"처녀자리",desc:"이삭을 든 수확의 여신",pos:[0.87,0.225],stars:[[0.3, 0.82], [0.44, 0.58], [0.4, 0.44], [0.6, 0.3], [0.3, 0.4], [0.16, 0.34]],lines:[[0, 1], [1, 2], [2, 3], [2, 4], [4, 5]]},
+  {id:"cygnus",name:"백조자리",desc:"은하수를 가르는 백조",pos:[0.13,0.445],stars:[[0.5, 0.1], [0.5, 0.48], [0.5, 0.9], [0.15, 0.44], [0.72, 0.5], [0.88, 0.53]],lines:[[0, 1], [1, 2], [1, 3], [1, 4], [4, 5]]},
+  {id:"lyra",name:"거문고자리",desc:"오르페우스의 하프",pos:[0.39,0.435],stars:[[0.5, 0.14], [0.38, 0.52], [0.62, 0.5], [0.66, 0.82], [0.42, 0.84]],lines:[[0, 1], [0, 2], [1, 2], [2, 3], [3, 4], [4, 1]]},
+  {id:"aquila",name:"독수리자리",desc:"제우스의 독수리",pos:[0.63,0.445],stars:[[0.5, 0.5], [0.52, 0.3], [0.48, 0.76], [0.15, 0.37], [0.85, 0.41]],lines:[[1, 0], [0, 2], [3, 0], [0, 4]]},
+  {id:"scorpius",name:"전갈자리",desc:"오리온을 쏜 붉은 전갈",pos:[0.85,0.435],stars:[[0.28, 0.12], [0.33, 0.26], [0.4, 0.4], [0.45, 0.56], [0.54, 0.7], [0.68, 0.8], [0.8, 0.72], [0.83, 0.57]],lines:[[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7]]},
+  {id:"pegasus",name:"페가수스자리",desc:"날개를 편 하늘의 말",pos:[0.16,0.645],stars:[[0.28, 0.72], [0.28, 0.28], [0.72, 0.24], [0.72, 0.68]],lines:[[0, 1], [1, 2], [2, 3], [3, 0]]},
+  {id:"andromeda",name:"안드로메다자리",desc:"별이 된 공주",pos:[0.38,0.65],stars:[[0.16, 0.3], [0.36, 0.44], [0.58, 0.54], [0.82, 0.66]],lines:[[0, 1], [1, 2], [2, 3]]},
+  {id:"cassiopeia",name:"카시오페이아",desc:"W자를 그리는 왕비",pos:[0.61,0.645],stars:[[0.1, 0.34], [0.3, 0.62], [0.5, 0.38], [0.7, 0.66], [0.9, 0.4]],lines:[[0, 1], [1, 2], [2, 3], [3, 4]]},
+  {id:"aquarius",name:"물병자리",desc:"물병을 기울인 소년",pos:[0.87,0.65],stars:[[0.44, 0.24], [0.24, 0.34], [0.52, 0.4], [0.62, 0.3], [0.58, 0.6], [0.66, 0.8]],lines:[[1, 0], [0, 2], [2, 3], [2, 4], [4, 5]]},
+  {id:"orion",name:"오리온자리",desc:"삼태성을 두른 겨울 사냥꾼",pos:[0.14,0.86],stars:[[0.32, 0.2], [0.66, 0.22], [0.42, 0.5], [0.5, 0.52], [0.58, 0.54], [0.36, 0.84], [0.7, 0.82]],lines:[[0, 1], [0, 2], [1, 4], [2, 3], [3, 4], [2, 5], [4, 6]]},
+  {id:"canis_major",name:"큰개자리",desc:"오리온을 따르는 사냥개",pos:[0.4,0.85],stars:[[0.3, 0.28], [0.44, 0.44], [0.56, 0.62], [0.44, 0.78], [0.72, 0.7]],lines:[[0, 1], [1, 2], [2, 3], [2, 4]]},
+  {id:"gemini",name:"쌍둥이자리",desc:"나란히 선 쌍둥이 형제",pos:[0.63,0.86],stars:[[0.34, 0.16], [0.6, 0.2], [0.3, 0.48], [0.56, 0.5], [0.24, 0.82], [0.62, 0.82]],lines:[[0, 1], [0, 2], [2, 4], [1, 3], [3, 5]]},
+  {id:"taurus",name:"황소자리",desc:"뿔을 세운 겨울 황소",pos:[0.85,0.85],stars:[[0.4, 0.5], [0.3, 0.7], [0.16, 0.52], [0.54, 0.44], [0.72, 0.16], [0.86, 0.42]],lines:[[2, 1], [1, 0], [0, 3], [3, 4], [3, 5]]},
+];
+
+// ─── 밤하늘 도감 ───
+// 격자 카드가 아니라 하나의 밤하늘. 좌표(con.pos)·모양(stars/lines)은 실제 앱의
+// js/constellations.js 에서 그대로 뽑아 온 값이라, 여기서 보이는 배치가 앱의 배치다.
+// 완성 = 밝게 + 이름 / 미완성 = 아주 흐릿 + 이름 숨김(무엇인지 미리 알려주지 않는다).
+(function () {
+  var map = document.getElementById('skyMap');
+  if (!map || typeof CONS === 'undefined') return;
+
+  var DONE = { ursa_major: '2026.04.02', lyra: '2026.08.21', cygnus: '2026.08.24',
+               cassiopeia: '2026.07.30', orion: '2026.01.15' };
+
+  function svgFor(c, done) {
+    var s = '<svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true" focusable="false">';
+    s += '<g stroke="currentColor" stroke-width="' + (done ? 1.4 : 1.1) + '" opacity="' + (done ? .5 : .38) + '">';
+    for (var i = 0; i < c.lines.length; i++) {
+      var a = c.stars[c.lines[i][0]], b = c.stars[c.lines[i][1]];
+      s += '<line x1="' + (a[0] * 100) + '" y1="' + (a[1] * 100) + '" x2="' + (b[0] * 100) + '" y2="' + (b[1] * 100) + '"/>';
+    }
+    s += '</g><g fill="currentColor">';
+    for (var j = 0; j < c.stars.length; j++) {
+      s += '<circle cx="' + (c.stars[j][0] * 100) + '" cy="' + (c.stars[j][1] * 100) + '" r="' + (done ? 2.7 : 2.1) + '"/>';
+    }
+    return s + '</g></svg>';
+  }
+
+  var modal = document.getElementById('skyModal');
+  var cardSky = document.getElementById('skyCardSky');
+  var cardName = document.getElementById('skyCardName');
+  var cardDesc = document.getElementById('skyCardDesc');
+  var cardWhen = document.getElementById('skyCardWhen');
+
+  function open(c, when) {
+    cardSky.innerHTML = svgFor(c, true);
+    cardName.textContent = when ? c.name : '아직 못 만난 별자리';
+    cardDesc.textContent = when ? c.desc : '루틴을 완주한 날에 하나씩 열려요. 계절마다 4개씩, 모두 16개예요.';
+    cardWhen.textContent = when ? (when + ' 완성 · 풀코스 6종 · 컨디션 😊 좋음') : '';
+    cardSky.style.opacity = when ? '1' : '.35';
+    modal.hidden = false;
+  }
+  document.getElementById('skyCardClose').addEventListener('click', function () { modal.hidden = true; });
+  modal.addEventListener('click', function (e) { if (e.target === modal) modal.hidden = true; });
+
+  for (var k = 0; k < CONS.length; k++) {
+    (function (c) {
+      var when = DONE[c.id];
+      var it = document.createElement('button');
+      it.type = 'button';
+      it.className = 'skymap-item ' + (when ? 'done' : 'locked');
+      it.style.left = (c.pos[0] * 100) + '%';
+      it.style.top = (c.pos[1] * 100) + '%';
+      it.setAttribute('aria-label', when ? c.name : '아직 완성하지 않은 별자리');
+      it.innerHTML = '<span class="sky">' + svgFor(c, !!when) + '</span>'
+                   + (when ? '<span class="nm">' + c.name + '</span>' : '');
+      it.addEventListener('click', function () { open(c, when); });
+      map.appendChild(it);
+    })(CONS[k]);
+  }
 })();
 </script>
 </body>
