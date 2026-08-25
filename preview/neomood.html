@@ -22,6 +22,10 @@
     · 다크모드     라이트 ↔ 다크
   둘은 독립 축이라 조합은 4가지. 다크모드 기본값은 시스템 설정(prefers-color-scheme)이고,
   둘 다 사용자가 만지면 그 선택이 이겨서 localStorage에 남는다.
+
+  화면은 하나가 아니다 — 탭·메뉴·카드가 [data-nav]로 무대(.stage)를 갈아끼운다:
+    홈 / 오늘의 루틴 / 손목 체크 / 기록 / 밤하늘 도감 / 안내
+  어느 화면이든 같은 토큰만 쓰므로 팔레트·다크모드를 그대로 따른다.
   ═══════════════════════════════════════════════════════════
 -->
 <style>
@@ -228,15 +232,25 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 .tabs a.on{background:var(--chip);border-top-color:var(--accent);color:var(--accent);font-weight:700;}
 .tabs a.off{opacity:.4;}
 
-/* ─── 3단 컬럼 ─── 남은 높이를 전부 차지하고, 넘치는 칸만 그 안에서 스크롤한다 */
-.grid{
-  flex:1 1 auto;min-height:0;overflow:hidden;
-  display:grid;grid-template-columns:240px minmax(0,1fr) 268px;gap:12px;padding:12px;
-}
-.grid > *{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--frame-2) transparent;}
-.grid > *::-webkit-scrollbar{width:7px;}
-.grid > *::-webkit-scrollbar-thumb{background:var(--frame-2);border-radius:999px;}
-.grid > *::-webkit-scrollbar-track{background:transparent;}
+/* ─── 화면 무대 ─── 탭·카드가 화면을 갈아끼운다(.screen 중 하나만 .is-on).
+   무대는 남은 높이를 전부 차지하고, 넘치는 것은 각 칸이 자기 안에서 처리한다 —
+   어느 화면으로 가든 페이지는 스크롤하지 않는다는 규칙이 유지된다. */
+.stage{flex:1 1 auto;min-height:0;overflow:hidden;padding:12px;}
+.screen{display:none;height:100%;}
+.screen.is-on{display:block;}
+.cols{display:grid;gap:12px;height:100%;}
+.cols.home{grid-template-columns:240px minmax(0,1fr) 268px;}
+.cols.split{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);}
+/* 칸에 박스가 하나뿐이면 남는 높이를 그 박스가 먹는다 — 시범·카메라 무대가 커진다 */
+.cols.split > div{display:flex;flex-direction:column;}
+.cols.split > div > .box:only-child{flex:1 1 auto;display:flex;flex-direction:column;margin-bottom:0;}
+.cols.split > div > .box:only-child > .box-body{flex:1 1 auto;display:flex;flex-direction:column;}
+.cols.split > div > .box:only-child .stage-box{flex:1 1 auto;height:auto;min-height:170px;}
+.cols.split > div > .box:only-child .gal.dex{flex:1 1 auto;align-content:start;}
+.cols > *{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--frame-2) transparent;}
+.cols > *::-webkit-scrollbar{width:7px;}
+.cols > *::-webkit-scrollbar-thumb{background:var(--frame-2);border-radius:999px;}
+.cols > *::-webkit-scrollbar-track{background:transparent;}
 
 /* ─── 박스 패널(시안9의 기본 단위) ─── */
 .box{
@@ -250,6 +264,8 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
   border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;
 }
 .box-head .more{margin-left:auto;font-weight:400;font-size:.76rem;opacity:.75;}
+[data-nav]{cursor:pointer;}
+.box-head .more[data-nav]:hover{opacity:1;text-decoration:underline;}
 .box-body{padding:9px 10px;font-size:.85rem;}
 .box-body p{margin:0 0 8px;}
 .box-body p:last-child{margin-bottom:0;}
@@ -353,6 +369,64 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   font-size:.64rem;text-align:center;padding:8px 2px;color:var(--dim);
 }
 
+/* ═══ 화면별 부품 ═══ 색은 전부 토큰을 쓴다 — 팔레트·다크모드를 그대로 따라간다 */
+
+/* 시범/카메라 무대 */
+.stage-box{
+  position:relative;background:var(--skypanel);border:2px solid var(--frame-2);border-radius:8px;
+  height:clamp(180px,30vh,300px);display:flex;align-items:center;justify-content:center;
+  color:#e9edff;overflow:hidden;
+}
+.stage-box .hint{font-size:.86rem;opacity:.62;text-align:center;line-height:1.7;}
+.stage-box .arc{position:absolute;inset:0;}
+.pip{
+  position:absolute;right:10px;bottom:10px;width:132px;height:88px;border-radius:6px;
+  border:2px solid var(--frame-2);background:rgba(0,0,0,.42);
+  display:flex;align-items:center;justify-content:center;font-size:.72rem;color:#e9edff;
+}
+.pip .dot{
+  position:absolute;top:6px;left:8px;display:flex;align-items:center;gap:4px;font-size:.64rem;
+}
+.pip .dot i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;}
+
+/* 단계 칩 줄 */
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px;}
+.steps span{
+  padding:4px 10px;border-radius:999px;font-size:.78rem;
+  background:var(--chip);border:2px solid var(--frame-2);color:var(--dim);
+}
+.steps span.now{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
+.steps span.done{color:var(--ok);}
+
+/* 큰 수치 */
+.readout{display:flex;align-items:baseline;gap:10px;margin:6px 0 8px;}
+.readout b{font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent);}
+.readout span{font-size:.84rem;color:var(--dim);}
+
+/* 나란한 두 버튼 */
+.row-btn{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.row-btn .btn{margin-top:0;}
+
+/* 도감 16칸 + 일기 카드 */
+.gal.dex{grid-template-columns:repeat(4,1fr);gap:10px;}
+.gal.dex .th{height:clamp(74px,12vh,124px);font-size:1.5rem;}
+.gal.dex figcaption{font-size:.8rem;}
+.diary p{margin:0 0 7px;}
+.diary .when{font-size:.78rem;color:var(--dim);}
+
+/* 최근 7일 컨디션 */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center;}
+.week span{font-size:1.15rem;}
+.week small{display:block;font-size:.7rem;color:var(--dim);}
+
+/* 손 선택 */
+.hand{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.hand button{
+  font:inherit;font-size:.9rem;padding:14px 8px;cursor:pointer;border-radius:8px;
+  background:var(--chip);color:var(--ink);border:2px solid var(--frame-2);
+}
+.hand button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;}
+
 /* ─── 한 화면 셸을 포기하는 조건 ───
    칸을 세로로 쌓아야 하거나(좁은 화면) 높이가 모자라면(낮은 창), 억지로 우겨넣는 대신
    평범한 문서 스크롤로 되돌린다. 한 화면에 넣는 건 넓은 화면에서의 이득이지 규칙이 아니다. */
@@ -360,11 +434,13 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   body{height:auto;overflow:visible;display:block;padding:12px 12px 32px;}
   .skinbar{white-space:normal;margin-bottom:10px;}
   .win{display:block;}
-  .grid{overflow:visible;}
-  .grid > *{overflow:visible;}
+  .stage{overflow:visible;}
+  .screen{height:auto;}
+  .cols{height:auto;}
+  .cols > *{overflow:visible;}
 }
 @media (max-width:980px){
-  .grid{grid-template-columns:1fr;}
+  .cols.home,.cols.split{grid-template-columns:1fr;}
   .banner{grid-template-columns:1fr;text-align:center;}
   .banner-cat{margin:0 auto;max-width:120px;}
   .gal{grid-template-columns:repeat(3,1fr);}
@@ -428,17 +504,20 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 
   <!-- ③ 탭 내비 -->
   <nav class="tabs" aria-label="주요 기능">
-    <a href="#" class="on">🏠 홈</a>
-    <a href="#">🎬 오늘의 루틴</a>
-    <a href="#">📊 손목 체크</a>
-    <a href="#">📈 기록</a>
-    <a href="#">🌌 밤하늘 도감</a>
-    <a href="#" class="off">🎮 게임</a>
-    <a href="#">ℹ️ 안내</a>
+    <a href="#" class="on" data-nav="home">🏠 홈</a>
+    <a href="#" data-nav="routine">🎬 오늘의 루틴</a>
+    <a href="#" data-nav="measure">📊 손목 체크</a>
+    <a href="#" data-nav="records">📈 기록</a>
+    <a href="#" data-nav="sky">🌌 밤하늘 도감</a>
+    <a href="#" class="off" aria-disabled="true">🎮 게임</a>
+    <a href="#" data-nav="info">ℹ️ 안내</a>
   </nav>
 
-  <!-- ④ 3단 컬럼 -->
-  <div class="grid">
+  <!-- ④ 화면 무대 — 탭·카드가 여기를 갈아끼운다 -->
+  <div class="stage">
+
+  <section class="screen is-on" data-screen="home">
+  <div class="cols home">
 
     <!-- ───────── 좌: 사이드 ───────── -->
     <aside>
@@ -449,7 +528,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
           <div class="hi">우주비행사 고양이</div>
           <div class="sub">오늘도 만나서 반가워요!<br>손목, 잠깐 챙겨볼까요?</div>
           <div class="streak">🔥 12일 연속</div>
-          <button class="btn">오늘의 루틴 시작 🚀</button>
+          <button class="btn" data-nav="routine">오늘의 루틴 시작 🚀</button>
         </div>
       </section>
 
@@ -457,12 +536,12 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
         <h2 class="box-head">🧭 메뉴</h2>
         <div class="box-body" style="padding:6px 8px;">
           <ul class="menu">
-            <li><a href="#">🏠 <span>홈</span></a></li>
-            <li><a href="#">🎬 <span>오늘의 루틴</span></a></li>
-            <li><a href="#">📊 <span>손목 체크</span></a></li>
-            <li><a href="#">📈 <span>기록 보기</span></a></li>
-            <li><a href="#">🌌 <span>밤하늘 도감</span></a></li>
-            <li><a href="#">🔔 <span>리마인더 설정</span></a></li>
+            <li><a href="#" data-nav="home">🏠 <span>홈</span></a></li>
+            <li><a href="#" data-nav="routine">🎬 <span>오늘의 루틴</span></a></li>
+            <li><a href="#" data-nav="measure">📊 <span>손목 체크</span></a></li>
+            <li><a href="#" data-nav="records">📈 <span>기록 보기</span></a></li>
+            <li><a href="#" data-nav="sky">🌌 <span>밤하늘 도감</span></a></li>
+            <li><a href="#" data-nav="home">🔔 <span>리마인더 설정</span></a></li>
           </ul>
         </div>
       </section>
@@ -501,12 +580,12 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
             <li><span class="n">✊</span><span class="name">악력 유지</span><span class="rep">20초</span></li>
             <li><span class="n">🖐️</span><span class="name">손가락 벌리기</span><span class="rep">10회</span></li>
           </ul>
-          <button class="btn">이어서 하기 (2개 남음) 🚀</button>
+          <button class="btn" data-nav="routine">이어서 하기 (2개 남음) 🚀</button>
         </div>
       </section>
 
       <section class="box">
-        <h2 class="box-head">📰 최근 기록 <span class="more">전체 보기 ▸</span></h2>
+        <h2 class="box-head">📰 최근 기록 <span class="more" data-nav="records">전체 보기 ▸</span></h2>
         <div class="box-body" style="padding:0;">
           <table>
             <thead>
@@ -524,7 +603,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
       </section>
 
       <section class="box">
-        <h2 class="box-head">🌌 밤하늘 도감 <span class="more">5 / 16 수집 ▸</span></h2>
+        <h2 class="box-head">🌌 밤하늘 도감 <span class="more" data-nav="sky">5 / 16 수집 ▸</span></h2>
         <div class="box-body">
           <div class="gal">
             <figure><div class="th">✦</div><figcaption>큰곰자리</figcaption></figure>
@@ -566,7 +645,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
       </section>
 
       <section class="box">
-        <h2 class="box-head">📊 손목 체크 <span class="more">추이 ▸</span></h2>
+        <h2 class="box-head">📊 손목 체크 <span class="more" data-nav="records">추이 ▸</span></h2>
         <div class="box-body">
           <svg viewBox="0 0 200 70" width="100%" height="48" role="img" aria-label="굽힘 추이">
             <polyline points="6,52 44,48 82,44 120,38 158,34 194,28" fill="none"
@@ -612,6 +691,304 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
       </section>
     </aside>
   </div>
+  </section>
+
+  <!-- ───────── 🎬 오늘의 루틴 ───────── -->
+  <section class="screen" data-screen="routine">
+    <div class="cols split">
+      <div>
+        <section class="box">
+          <h2 class="box-head">🎬 오늘의 루틴 <span class="more">3 / 6 · 손목 좌우 편위</span></h2>
+          <div class="box-body">
+            <div class="stage-box">
+              <p class="hint">시범 손 애니메이션<br><span class="mono">assets/guide-deviation.png</span></p>
+              <div class="pip">
+                <span class="dot"><i></i> 인식 중</span>
+                카메라 (미저장)
+              </div>
+            </div>
+            <p style="margin:10px 0 8px;font-size:1.02rem;font-weight:700;text-align:center;">
+              천천히 엄지쪽으로 기울여요 🎯
+            </p>
+            <div class="bar"><i style="width:30%;"></i></div>
+            <div class="bar-label"><span>3 / 10회</span><span>박자는 안 맞춰도 괜찮아요</span></div>
+            <div class="row-btn">
+              <button class="btn ghost" data-nav="home">그만두기</button>
+              <button class="btn">다음 운동 →</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div>
+        <section class="box">
+          <h2 class="box-head">오늘의 6종</h2>
+          <div class="box-body">
+            <ul class="rt">
+              <li class="done"><span class="n">✋</span><span class="name">손목 굽힘·폄</span><span class="rep">10회 ✓</span></li>
+              <li class="done"><span class="n">🖐️</span><span class="name">손목 좌우 편위</span><span class="rep">진행 중</span></li>
+              <li><span class="n">🤚</span><span class="name">힘줄 활주 운동</span><span class="rep">5회</span></li>
+              <li><span class="n">🤏</span><span class="name">핀치 집기</span><span class="rep">20초</span></li>
+              <li><span class="n">✊</span><span class="name">악력 유지</span><span class="rep">20초</span></li>
+              <li><span class="n">🖐️</span><span class="name">손가락 벌리기</span><span class="rep">10회</span></li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2 class="box-head">✦ 오늘의 별자리</h2>
+          <div class="box-body">
+            <div class="sky-box">
+              <svg viewBox="0 0 200 120" width="100%" height="76" role="img" aria-label="오늘의 별자리">
+                <g stroke="var(--star)" stroke-width="1.4" opacity=".5">
+                  <line x1="100" y1="16" x2="100" y2="62"/><line x1="42" y1="56" x2="100" y2="62"/>
+                  <line x1="100" y1="62" x2="158" y2="54"/><line x1="100" y1="62" x2="100" y2="104"/>
+                </g>
+                <g fill="var(--star)"><circle cx="100" cy="16" r="4"/><circle cx="100" cy="62" r="5"/><circle cx="42" cy="56" r="4"/></g>
+                <g fill="var(--star)" opacity=".26"><circle cx="158" cy="54" r="3.6"/><circle cx="100" cy="104" r="3.4"/></g>
+              </svg>
+            </div>
+            <p style="text-align:center;margin-top:6px;">운동 하나 끝낼 때마다 별이 하나 켜져요</p>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2 class="box-head">🩺 안내</h2>
+          <div class="box-body">
+            <p style="color:var(--dim);">통증이 있으면 즉시 멈추세요. 회수를 다 못 채워도 오늘 한 것으로 인정돼요.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 📊 손목 체크 ───────── -->
+  <section class="screen" data-screen="measure">
+    <div class="cols split">
+      <div>
+        <section class="box">
+          <h2 class="box-head">📊 손목 체크 <span class="more">오른손 · 옆모습</span></h2>
+          <div class="box-body">
+            <div class="steps">
+              <span class="done">중립 ✓</span><span class="now">굽힘</span><span>폄</span>
+              <span>정면 중립</span><span>엄지쪽</span><span>새끼쪽</span>
+            </div>
+            <div class="stage-box">
+              <p class="hint">카메라 화면 + 관절점 오버레이<br><span class="mono">영상은 저장하지 않아요</span></p>
+              <div class="pip"><span class="dot"><i></i> 손 감지됨</span>시범 자세</div>
+            </div>
+            <div class="readout"><b>62°</b><span>굽힘 · 끝범위에서 2.2초 유지하면 저장돼요</span></div>
+            <div class="bar"><i style="width:72%;"></i></div>
+            <div class="bar-label"><span>유지 중…</span><span>흔들리면 다시 세요</span></div>
+            <div class="row-btn">
+              <button class="btn ghost" data-nav="home">그만두기</button>
+              <button class="btn">이렇게 재요 ▶</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div>
+        <section class="box">
+          <h2 class="box-head">✋ 어느 손을 재나요</h2>
+          <div class="box-body">
+            <div class="hand">
+              <button>왼손</button>
+              <button class="on">오른손</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2 class="box-head">📐 이렇게 재요</h2>
+          <div class="box-body">
+            <p>① 팔꿈치를 책상에 대고 옆모습이 보이게 두세요</p>
+            <p>② 손목만 천천히 굽혔다 폈다 해요</p>
+            <p style="color:var(--dim);">어깨나 팔이 같이 움직여도 회수는 그대로 인정돼요.</p>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2 class="box-head">🗓️ 지난 기록 <span class="more">08.18</span></h2>
+          <div class="box-body">
+            <div class="metric"><span>굽힘</span><b>58°</b></div>
+            <div class="metric"><span>폄</span><b>54°</b></div>
+            <div class="metric"><span>좌우 편위 합</span><b>39°</b></div>
+            <div class="gift">🎁 오늘 굽힘이 조금 늘었어요. 별 하나를 선물로 드릴게요 ✦</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 📈 기록 ───────── -->
+  <section class="screen" data-screen="records">
+    <div class="cols split">
+      <div>
+        <section class="box">
+          <h2 class="box-head">📈 굽힘·폄 추이 <span class="more">최근 6회</span></h2>
+          <div class="box-body">
+            <svg viewBox="0 0 420 150" width="100%" height="150" role="img" aria-label="굽힘 폄 추이">
+              <g stroke="var(--line)" stroke-width="1">
+                <line x1="10" y1="30" x2="410" y2="30"/><line x1="10" y1="75" x2="410" y2="75"/><line x1="10" y1="120" x2="410" y2="120"/>
+              </g>
+              <polyline points="20,104 100,96 180,88 260,74 340,66 404,52" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+              <polyline points="20,118 100,116 180,110 260,106 340,100 404,94" fill="none" stroke="var(--accent-2)" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 5"/>
+              <g fill="var(--accent)"><circle cx="404" cy="52" r="5"/></g>
+            </svg>
+            <div class="metric"><span>— 굽힘 (최근 62°)</span><b style="color:var(--ok);">+4°</b></div>
+            <div class="metric"><span>┄ 폄 (최근 55°)</span><b style="color:var(--ok);">+1°</b></div>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2 class="box-head">↔️ 좌우 편위 합 추이</h2>
+          <div class="box-body">
+            <svg viewBox="0 0 420 110" width="100%" height="110" role="img" aria-label="편위 합 추이">
+              <g stroke="var(--line)" stroke-width="1"><line x1="10" y1="30" x2="410" y2="30"/><line x1="10" y1="80" x2="410" y2="80"/></g>
+              <polyline points="20,84 100,78 180,80 260,70 340,66 404,60" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+            </svg>
+            <p style="color:var(--dim);">일상생활 기준으로 보면 오늘은 <b>84%</b> 지점이에요.</p>
+          </div>
+        </section>
+      </div>
+
+      <div>
+        <section class="box">
+          <h2 class="box-head">🙂 최근 7일 컨디션</h2>
+          <div class="box-body">
+            <div class="week">
+              <span>😊<small>19</small></span><span>🙂<small>20</small></span><span>😐<small>21</small></span>
+              <span>😊<small>22</small></span><span>🙂<small>23</small></span><span>😊<small>24</small></span>
+              <span>—<small>25</small></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2 class="box-head">🔥 데일리 루틴</h2>
+          <div class="box-body">
+            <div class="bar"><i style="width:86%;"></i></div>
+            <div class="bar-label"><span>이번 달 24일 중 20일</span><span>86%</span></div>
+            <div class="metric"><span>현재 연속</span><b>12일</b></div>
+            <div class="metric"><span>최고 연속</span><b>17일</b></div>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2 class="box-head">📋 운동 기록</h2>
+          <div class="box-body" style="padding:0;">
+            <table>
+              <thead><tr><th>날짜</th><th>한 일</th><th class="num">달성</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">08.24</td><td>풀코스 6종</td><td class="num">6 / 6</td></tr>
+                <tr><td class="mono">08.23</td><td>풀코스 6종</td><td class="num">5 / 6</td></tr>
+                <tr><td class="mono">08.22</td><td>손목 체크</td><td class="num">—</td></tr>
+                <tr><td class="mono">08.21</td><td>풀코스 6종</td><td class="num">6 / 6</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── 🌌 밤하늘 도감 ───────── -->
+  <section class="screen" data-screen="sky">
+    <div class="cols split">
+      <div>
+        <section class="box">
+          <h2 class="box-head">🌌 밤하늘 도감 <span class="more">5 / 16 수집</span></h2>
+          <div class="box-body">
+            <div class="gal dex">
+              <figure><div class="th">✦</div><figcaption>큰곰자리</figcaption></figure>
+              <figure><div class="th">✧</div><figcaption>백조자리</figcaption></figure>
+              <figure><div class="th">✦</div><figcaption>거문고자리</figcaption></figure>
+              <figure><div class="th">✧</div><figcaption>카시오페이아</figcaption></figure>
+              <figure><div class="th">✦</div><figcaption>오리온자리</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+              <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div>
+        <section class="box">
+          <h2 class="box-head">📖 그날의 일기</h2>
+          <div class="box-body diary">
+            <div class="sky-box">
+              <svg viewBox="0 0 200 120" width="100%" height="96" role="img" aria-label="백조자리">
+                <g stroke="var(--star)" stroke-width="1.4" opacity=".55">
+                  <line x1="100" y1="16" x2="100" y2="62"/><line x1="100" y1="62" x2="100" y2="104"/>
+                  <line x1="42" y1="56" x2="100" y2="62"/><line x1="100" y1="62" x2="158" y2="54"/>
+                </g>
+                <g fill="var(--star)">
+                  <circle cx="100" cy="16" r="4"/><circle cx="100" cy="62" r="5"/>
+                  <circle cx="42" cy="56" r="4"/><circle cx="158" cy="54" r="4"/><circle cx="100" cy="104" r="3.6"/>
+                </g>
+              </svg>
+            </div>
+            <p style="margin-top:9px;font-weight:700;font-size:1.02rem;">백조자리</p>
+            <p class="when">2026.08.24 완성 · 풀코스 6종 · 컨디션 😊 좋음</p>
+            <p style="color:var(--dim);">여름 밤하늘을 가로지르는 북십자. 그날은 손목이 한결 편했던 날이에요.</p>
+          </div>
+        </section>
+
+        <section class="box">
+          <h2 class="box-head">🔒 아직 못 만난 별자리</h2>
+          <div class="box-body">
+            <p style="color:var(--dim);">루틴을 완주한 날에 하나씩 열려요. 계절마다 4개씩, 모두 16개예요.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── ℹ️ 안내 ───────── -->
+  <section class="screen" data-screen="info">
+    <div class="cols split">
+      <div>
+        <section class="box">
+          <h2 class="box-head">ℹ️ 오늘의 별자리는 어떤 앱인가요</h2>
+          <div class="box-body">
+            <p>컴퓨터·스마트폰을 많이 쓰는 사람을 위한 <b>데일리 손목 웰니스 루틴</b>이에요.
+               짧은 운동, 웹캠 손목 체크, 밤하늘 별자리 수집을 하나로 묶었습니다.</p>
+            <p>운동을 하나 끝낼 때마다 오늘의 별자리에 별이 켜지고, 6개를 다 하면
+               별자리가 완성돼 밤하늘 도감에 쌓여요.</p>
+            <p style="color:var(--dim);">설치도 회원가입도 없어요. 브라우저에서 바로 실행됩니다.</p>
+          </div>
+        </section>
+      </div>
+      <div>
+        <section class="box">
+          <h2 class="box-head">🔒 개인정보</h2>
+          <div class="box-body">
+            <p>웹캠 영상은 저장하지도 보내지도 않아요. 좌표에서 계산한 수치만 내 브라우저에 남습니다.</p>
+          </div>
+        </section>
+        <section class="box">
+          <h2 class="box-head">🩺 꼭 알아두세요</h2>
+          <div class="box-body">
+            <p>본 서비스는 의료기기가 아니며 질병의 진단·치료 목적이 아니에요.
+               통증이 있거나 질환이 의심되면 의사와 상담하세요.</p>
+            <p style="color:var(--dim);">체크값은 참고용 자가 수치예요.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  </div>
 
   <!-- ⑤ 푸터 -->
   <footer class="win-foot">
@@ -655,6 +1032,34 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   });
 
   paintTheme(); paintPalette();
+})();
+
+// ─── 화면 전환 ───
+// [data-nav]를 단 하나의 대리 리스너로 받는다 — 탭·메뉴·카드·더보기 링크가
+// 전부 같은 규칙을 태다. 화면을 늘려도 여기는 손 대질 일이 없다.
+(function () {
+  var screens = document.querySelectorAll('.screen');
+  var tabs = document.querySelectorAll('.tabs a[data-nav]');
+
+  function go(name) {
+    var found = false;
+    screens.forEach(function (sc) {
+      var on = sc.dataset.screen === name;
+      sc.classList.toggle('is-on', on);
+      if (on) found = true;
+    });
+    if (!found) return;
+    tabs.forEach(function (t) { t.classList.toggle('on', t.dataset.nav === name); });
+    // 화면마다 칸이 따로 스크롤되므로 들어올 때 맨 위에서 시작하게 맞춰둔다
+    document.querySelectorAll('.screen.is-on .cols > *').forEach(function (c) { c.scrollTop = 0; });
+  }
+
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-nav]') : null;
+    if (!el) return;
+    e.preventDefault();
+    go(el.dataset.nav);
+  });
 })();
 </script>
 </body>
