@@ -1991,7 +1991,9 @@ function renderDevTrend(e, ms) {
 /** 굽힘/폄(°) 시계열을 시간순 라인차트로 그림 — series: [{data, color, label}] */
 function drawTrend(canvas, series) {
   const dpr = window.devicePixelRatio || 1;
-  const cssW = canvas.clientWidth || 460, cssH = 170;
+  // 높이는 CSS가 정한다(.rec-canvas) — 화면 높이에 따라 늘어나기 때문에
+  // 여기서 고정값을 쓰면 차트가 칸 안에서 떠거나 잘린다. 칸을 못 재면 예전 값으로.
+  const cssW = canvas.clientWidth || 460, cssH = canvas.clientHeight || 170;
   canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

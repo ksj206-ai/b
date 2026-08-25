@@ -289,13 +289,15 @@ html[data-theme="dark"] .app-title-btn{ text-shadow:0 0 18px rgba(255,255,255,.2
 /* ⚠ .is-active를 반드시 함께 건다 — 그냥 #screen-home으로 쓰면 id 특이도가
    styles.css의 .screen{display:none}을 이겨서 홈이 다른 화면 위에 항상 남는다. */
 #screen-home.is-active{
-  display:block; grid-template-columns:none; gap:0; padding:0;
-  max-width:none; min-height:0;
+  display:flex; flex-direction:column; grid-template-columns:none; gap:0; padding:0;
+  max-width:none; min-height:0; height:100%;
 }
+#screen-home.is-active > .cols{ flex:1 1 auto; min-height:0; }
 .app:has(#screen-home.is-active) > .app-disc{ position:static; margin:0; padding:5px 12px; }
 
 #screen-home .cols{
-  display:grid; grid-template-columns:250px minmax(0,1fr) 280px; gap:12px; align-items:start;
+  display:grid; grid-template-columns:250px minmax(0,1fr) 280px; gap:12px;
+  align-items:stretch;
 }
 #screen-home .col{ display:flex; flex-direction:column; gap:10px; min-width:0; }
 
@@ -593,9 +595,9 @@ body{ font:15px/1.55 var(--font); }
 #screen-records.is-active{ display:block; }
 .screen .cols.split{
   display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
-  gap:12px; align-items:start;
+  gap:12px; align-items:stretch;
 }
-.screen .cols.split > .col{ display:flex; flex-direction:column; gap:0; min-width:0; }
+.screen .cols.split > .col{ display:flex; flex-direction:column; gap:0; min-width:0; min-height:0; }
 
 /* 기록 카드 = 박스 */
 .app .rec-card{ padding:0 12px 12px; overflow:hidden; }
@@ -635,6 +637,54 @@ body{ font:15px/1.55 var(--font); }
 /* 화면 머리 — 뒤로 버튼 + 제목 한 줄. 탭이 있으니 크게 외칠 필요가 없다 */
 .screen-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .app .screen-head .btn-back{ padding:6px 12px; font-size:.82rem; }
+
+/* ═══════════ 칸을 화면 높이에 맞춘다 ═══════════
+   미리보기에서 각 화면은 "무대 높이를 채우고, 넘치는 칸만 그 안에서 스크롤"이었다.
+   앱도 같게 만든다 — 무대는 고정, 안쪽 칸이 각자 스크롤. 그래서 어느 화면으로 가도
+   액자·배너·탭·푸터가 그대로 있고, 카드는 화면에 맞춰 늘어난다.
+   (좁거나 낮은 화면에서는 맨 아래 미디어쿼리가 이 규칙을 통째로 푼다.) */
+.screens{ overflow:hidden; }
+.screen.is-active{
+  height:100%; min-height:0; display:flex; flex-direction:column; gap:0;
+}
+.screen.is-active > .screen-head,
+.screen.is-active > .m-disc{ flex:none; }
+/* 화면의 몸통 — 남는 높이를 전부 가져간다 */
+.screen.is-active > .cols,
+.screen.is-active > .cols.split,
+.screen.is-active > .mzone,
+.screen.is-active > .guide-list{ flex:1 1 auto; min-height:0; }
+
+/* 칸은 각자 스크롤 — 긴 목록(운동 기록)이 짧은 칸(추이)을 끌고 늘어나지 않는다 */
+.cols > .col{
+  min-height:0; overflow-y:auto;
+  scrollbar-width:thin; scrollbar-color:var(--sh-frame2) transparent;
+}
+.cols > .col::-webkit-scrollbar{ width:7px; }
+.cols > .col::-webkit-scrollbar-thumb{ background:var(--sh-frame2); border-radius:999px; }
+.cols > .col::-webkit-scrollbar-track{ background:transparent; }
+.app .guide-list{ overflow-y:auto; }
+
+/* ─── 기록 ─── 차트는 칸 높이에 따라 늘어난다(고정 170px 금지) */
+.app .rec-canvas{ height:clamp(130px, 20vh, 240px); }
+.app .rec-history{ margin:0; }
+
+/* ─── 손목 체크 ─── 카메라가 칸을 채운다. 4/3 고정이면 아래에 빈 공간이 남는다. */
+#screen-measure .mzone{ height:100%; }
+/* 카메라는 4/3을 지키면서 자리를 채운다 — 칸 높이에 맞춰 세로로 늘리면
+   가로로 찍히는 웹컬 영상이 양옆이 잘린다(object-fit:cover). 남는 여백은 위아래로 나눈다. */
+#screen-measure .mzone > .cam-wrap{ aspect-ratio:4/3; height:auto; max-height:100%; margin:auto 0; }
+@media (max-width:1000px){
+  #screen-measure .mzone{ height:auto; }
+  #screen-measure .mzone > .cam-wrap{ aspect-ratio:4/3; height:auto; }
+}
+
+/* ─── 오늘의 루틴 목록 ─── 6줄이 판 높이를 고르게 나눠 갖는다(위쪽에만 몰리지 않게) */
+#screen-guide .guide-list{ display:flex; flex-direction:column; }
+#screen-guide .guide-list::before{ flex:none; }
+/* 판은 화면을 채우되 행은 너무 벌어지지 않게 — 6줄이 세로로 늘어지면
+   이름 하나만 떠 있는 빈 줄로 보인다. 남는 여백은 판 아래에 모인다. */
+#screen-guide .guide-card{ flex:1 1 auto; min-height:52px; max-height:76px; }
 
 /* ═══════════ 좁거나 낮은 화면 ═══════════
    한 화면에 담는 건 넓은 화면에서의 이득이지 규칙이 아니다. 여기서는 평범한 문서 스크롤로. */
