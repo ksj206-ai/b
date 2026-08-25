@@ -420,7 +420,7 @@ html[data-palette="sky"] .sky-panel{ background:linear-gradient(160deg,#2c3468,#
 .mono{ font-family:ui-monospace,"D2Coding",Consolas,monospace; }
 
 /* 가운데: 도감 미리보기 */
-.pgal{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.pgal{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
 .pgal figure{ margin:0; text-align:center; }
 .pgal .th{
   height:clamp(56px,7vh,84px);

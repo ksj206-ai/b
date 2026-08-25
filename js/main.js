@@ -208,7 +208,8 @@ function renderHomeFocus() {
   name.textContent = g ? `${label} · ${g.name}` : label;
 }
 
-/** 최근 기록 — 날짜별로 묶어 최근 5일. 운동은 개수로, 측정은 수치로 한 줄씩. */
+/** 최근 기록 — 날짜별로 묶어 최근 3일. 홈은 요약만 — 전체는 기록 화면이 맡는다
+ *  (가운데 열은 오늘의 루틴을 다 보여주는 게 우선이라 여기서 높이를 양보한다). */
 function renderHomeHistory() {
   const table = document.getElementById('homeHistory');
   const empty = document.getElementById('homeHistoryEmpty');
@@ -220,7 +221,7 @@ function renderHomeHistory() {
   for (const m of s.measurements || []) pick(String(m.at).slice(0, 10)).meas = m;
   for (const c of s.conditions || []) pick(String(c.at).slice(0, 10)).cond = c.condition;
 
-  const dates = [...byDate.keys()].sort().reverse().slice(0, 5);
+  const dates = [...byDate.keys()].sort().reverse().slice(0, 3);
   const has = dates.length > 0;
   table.hidden = !has;
   if (empty) empty.hidden = has;
@@ -247,7 +248,7 @@ function renderHomeHistory() {
 function renderHomeDex() {
   const wrap = document.getElementById('homeDex');
   if (!wrap) return;
-  const SLOTS = 8;
+  const SLOTS = 5;   // 한 줄 — 가운데 열 높이를 루틴에 양보한다
   const done = [];
   const seen = new Set();
   for (const c of (getSky().constellations || []).slice().reverse()) {  // 최근 완성부터
