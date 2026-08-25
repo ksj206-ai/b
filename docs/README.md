@@ -10,7 +10,7 @@
 | [측정모듈_설계서_v2.md](측정모듈_설계서_v2.md) | ROM 측정·판정·콘텐츠 통합 설계 (원근 단축 보정, judge 계층, 미니게임 구조) | 굽힘·폄 + 정면 편위 구현 완료 (미니게임 미착수) |
 | [가이드모듈_구현명세서.md](가이드모듈_구현명세서.md) | 캐릭터 애니메이션 기반 운동 가이드 모듈 구현 명세 | 구현 완료 |
 | [맞춤루틴_설계문서_1.md](맞춤루틴_설계문서_1.md) | 측정 기록 기반 적응형(adaptive) 루틴 조정 시스템 | 구현 완료 (§6 1~6단계) |
-| [보이는_돌봄_설계.md](보이는_돌봄_설계.md) | 적응형 신호를 긍정으로 번역해 노출 — "오늘의 별자리 한마디" 외 | 1단계 구현 완료 (2·3단계 대기) |
+| [보이는_돌봄_설계.md](보이는_돌봄_설계.md) | 적응형 신호를 긍정으로 번역해 노출 — "오늘의 별자리 한마디" 외 | 1·2·3단계 구현 완료 (§5 전체) |
 
 ## 관련 코드 매핑
 
@@ -18,7 +18,7 @@
 |---|---|
 | 손 인식 | `js/tracking.js` |
 | 지표 계산 · ROM 측정 · 부호 정규화 | `js/measurement.js` |
-| 운동 가이드 | `js/guide/` (guideData · guideHand · animPlayer · stepEngine) |
+| 운동 가이드 | `js/guide/` (guideData · handSprite · guideHand · animPlayer · stepEngine) |
 | 루틴 구성 · 적응형 조정 | `js/routine.js`, `js/store.js` |
 | 별자리 데이터 · 렌더 | `js/constellations.js`, `js/sky.js` |
 | 오늘의 별자리 한마디 | `js/routine.js` (dailyStarMessage), `js/config.js` (STAR_MESSAGE) |
