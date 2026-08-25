@@ -14,6 +14,7 @@ import { renderSky } from './sky.js';
 import { CONSTELLATIONS } from './constellations.js';
 import {
   SCREENS, VIEWS, ROUTINE, HAND_LM, DEBUG_GUIDE, DEBUG_MEASURE, FUNCTIONAL_ROM, DEV_LABEL,
+  STAR_MESSAGE,
 } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
@@ -191,15 +192,20 @@ function renderHomeRoutine(r) {
   });
 }
 
-/** 오늘의 포커스 — 적응형이 고른 방향이 있을 때만 나타난다 */
+/** 오늘의 포커스 — 적응형이 고른 방향이 있을 때만 나타난다.
+ *  ⚠ adapt.focus는 운동 id가 아니라 방향('flex'|'ext')이다. 라벨과 운동은 설정에서
+ *  가져온다(STAR_MESSAGE.focusLabel / ROUTINE.adaptReps.focusGuide) — 한마디와 같은
+ *  출처라 둘이 서로 다른 말을 하지 않는다. */
 function renderHomeFocus() {
   const box = document.getElementById('homeFocusBox');
   const name = document.getElementById('homeFocusName');
   if (!box || !name) return;
   const focus = getAdapt().focus;
-  const g = focus ? getGuide(focus) : null;
-  box.hidden = !g;
-  if (g) name.textContent = g.name;
+  const label = focus ? STAR_MESSAGE.focusLabel[focus] : null;
+  box.hidden = !label;
+  if (!label) return;
+  const g = getGuide((ROUTINE.adaptReps.focusGuide || {})[focus]);
+  name.textContent = g ? `${label} · ${g.name}` : label;
 }
 
 /** 최근 기록 — 날짜별로 묶어 최근 5일. 운동은 개수로, 측정은 수치로 한 줄씩. */
