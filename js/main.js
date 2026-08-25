@@ -416,6 +416,7 @@ function boot() {
   maybeAutoWelcome(); // 홈 최초 렌더 위에 환영 오버레이 (첫 1회)
 
   onScreenChange((name, view) => {
+    syncTabs(name);
     if (name !== SCREENS.MEASURE) stopMeasure();
     if (name !== SCREENS.GUIDE) stopGuide();
     if (name === SCREENS.HOME) renderHome();
@@ -424,6 +425,8 @@ function boot() {
     if (name === SCREENS.RECORDS) renderRecords();
     if (name === SCREENS.SKY) renderSkyDex();
   });
+  // 최초 표시는 initUI() 안에서 이미 끝났다(리스너 등록 전) — 탭만 한 번 맞춰 준다.
+  syncTabs(getCurrentScreen());
 
   initReminderUI();
   startReminderLoop();
@@ -435,6 +438,15 @@ function boot() {
   }
 
   console.log('[오늘의 별자리] 부팅 완료');
+}
+
+/** 상단 탭의 현재 위치 표시 — 라우터가 화면을 바꿀 때마다 .on을 옮긴다.
+ *  탭 자체는 [data-nav]라 이동은 ui.js가 처리한다. 여기는 "지금 어디"만 칠한다.
+ *  (가이드 플레이어처럼 화면 위에 얹힌 서브뷰도 같은 화면이므로 탭은 그대로 둔다.) */
+function syncTabs(name) {
+  document.querySelectorAll('.tabs button[data-nav]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.nav === name);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
