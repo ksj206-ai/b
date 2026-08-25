@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-skin="pastel">
+<html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -17,24 +17,28 @@
     ⑤ 3단 컬럼(좌 사이드 / 본문 / 우 위젯)           ⑥ 제목바를 가진 박스 패널
     ⑦ 표·썸네일 갤러리·달력 위젯                     ⑧ 얇은 푸터 띠
 
-  색은 두 벌 다 남기고 "다크모드 온/오프"로 묶었다(상단 띠 우측 스위치):
-    · light = 시안9 그대로의 파스텔 보라   · dark = 현재 앱의 밤하늘 색
-  기준은 시스템 설정(prefers-color-scheme)이고, 스위치로 덮어쓰면 그 선택을
-  localStorage에 남긴다 — 실제 앱에 옮길 때도 이 규칙 그대로 쓰면 된다.
+  색은 사용자가 고른다 — 상단 띠 오른쪽에 컨트롤 둘, 둘 다 실제 앱에 갈 것이다:
+    · 색 테마 2종  하늘(시안8 실측색) / 라벤더(시안9 색)
+    · 다크모드     라이트 ↔ 다크
+  둘은 독립 축이라 조합은 4가지. 다크모드 기본값은 시스템 설정(prefers-color-scheme)이고,
+  둘 다 사용자가 만지면 그 선택이 이겨서 localStorage에 남는다.
   ═══════════════════════════════════════════════════════════
 -->
 <style>
 /* ═══ 색 토큰 ═══ 색은 전부 여기서만 정의한다(레이아웃 규칙과 섞지 않는다).
-   축이 둘이다:
-     · data-tone  = 어느 시안의 색을 쓸지 (c8 / c9)  ← 미리보기 전용 비교 스위치
-     · data-theme = 라이트 / 다크                     ← 실제 앱에 갈 다크모드
-   톤 블록은 라이트 값 + 두 모드 공통값을, [data-theme="dark"] 블록은 덮어쓸 값만 쓴다.
-   (톤 선택자는 모드와 무관하게 항상 걸리므로 공통값은 톤 블록에 두면 된다.)
-   두 속성은 <head> 스크립트가 로드 즉시 박아 넣는다 — 그래서 미디어쿼리 사본이 없다. */
+   축이 둘이다 — 둘 다 사용자가 고르는 값이다:
+     · data-palette = sky(하늘) / lavender(라벤더)
+     · data-theme   = light / dark
+   팔레트 블록에 라이트 값 + 두 모드 공통값을, [data-theme="dark"] 블록에 덮어쓸 값만 둔다.
+   (팔레트 선택자는 모드와 무관하게 항상 걸리므로 공통값은 팔레트 블록에 두면 된다.)
+   두 속성은 <head> 스크립트가 로드 즉시 박아 넣는다 — 그래서 미디어쿼리 사본이 없다.
 
-/* ─── 시안8 톤 — model/시안8.png 실측: 하늘색 #d6e6f0 · 페리윙클 #b2bbe9 ·
+   ⚠ 새 팔레트를 추가하려면 아래 두 블록(라이트/다크)을 한 벌 더 쓰고, 상단 띠의
+     스와치 버튼 하나만 늘리면 된다. 레이아웃 CSS는 손댈 일이 없다. */
+
+/* ─── 하늘 — model/시안8.png 실측: 하늘색 #d6e6f0 · 페리윙클 #b2bbe9 ·
        테두리 #7a82d3 · 창 흰색 #ffffff · 노을 크림 #e5d3c4 ─── */
-html[data-tone="c8"]{
+html[data-palette="sky"]{
   --page:#d9e6f2;  --page-dot:#c1d1e9;
   --frame:#7a82d3; --frame-2:#b2bbe9;
   --win:#eef4fb;   --panel:#ffffff;
@@ -48,7 +52,7 @@ html[data-tone="c8"]{
   --skypanel:linear-gradient(160deg,#2c3468,#4b5497);   /* 별자리 판 — 두 모드 공통 */
   --warm:#e5d3c4;                                        /* 노을 크림 — 선물 칩 */
 }
-html[data-tone="c8"][data-theme="dark"]{
+html[data-palette="sky"][data-theme="dark"]{
   --page:#11152c;  --page-dot:#1e2444;
   --frame:#5560ad; --frame-2:#333b6d;
   --win:#191e3b;   --panel:#212848;
@@ -62,8 +66,8 @@ html[data-tone="c8"][data-theme="dark"]{
   --warm:#4d4340;   /* 노을 크림의 다크 대응 — 차가운 판 위 유일한 따뜻한 자리 */
 }
 
-/* ─── 시안9 톤 — 파스텔 보라·핑크(처음 만든 것) ─── */
-html[data-tone="c9"]{
+/* ─── 라벤더 — model/시안9.png 계열의 파스텔 보라·핑크 ─── */
+html[data-palette="lavender"]{
   --page:#e9e2f8;  --page-dot:#d9cef1;
   --frame:#9b85dc; --frame-2:#c9b7f1;
   --win:#f7f2fe;   --panel:#ffffff;
@@ -77,7 +81,7 @@ html[data-tone="c9"]{
   --skypanel:linear-gradient(160deg,#241c56,#453079);
   --warm:#f6e2cf;
 }
-html[data-tone="c9"][data-theme="dark"]{
+html[data-palette="lavender"][data-theme="dark"]{
   --page:#0b0a1c;  --page-dot:#181637;
   --frame:#6a5cae; --frame-2:#3b3169;
   --win:#141130;   --panel:#1b1740;
@@ -107,18 +111,9 @@ body{
 
 /* ─── 미리보기 배너(창 밖) — 실제 앱이 아님을 계속 알린다 ─── */
 .skinbar{
-  max-width:1200px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:10px;
-  align-items:center;justify-content:space-between;
+  max-width:1200px;margin:0 auto 12px;
   font-size:.78rem;color:var(--dim);letter-spacing:.02em;
 }
-/* 톤 비교 스위치 — 창 밖에 둔다. 실제 앱에 갈 UI가 아니라 고르기 위한 발판이다. */
-.tonebar{display:flex;align-items:center;gap:6px;}
-.tonebar button{
-  font:inherit;font-size:.74rem;padding:5px 11px;cursor:pointer;
-  background:var(--panel);color:var(--ink);
-  border:2px solid var(--frame-2);border-radius:999px;
-}
-.tonebar button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;}
 
 /* ─── 창(win) — 시안9의 지배적 장치: 페이지 전체가 하나의 액자다 ─── */
 .win{
@@ -130,7 +125,24 @@ body{
   display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;
   background:var(--frame);color:#fff;font-size:.72rem;padding:4px 12px;letter-spacing:.02em;
 }
-.win-top .right{display:flex;align-items:center;gap:12px;}
+.win-top .right{display:flex;align-items:center;gap:10px;}
+.win-top .sep{opacity:.45;}
+
+/* ─── 색 테마 스와치 ─── 다크모드 스위치 왼쪽. 점 두 개면 "색 고르는 곳"으로 읽힌다.
+   스와치 색만은 토큰을 쓰지 않는다 — 이 점은 "지금 색"이 아니라 "누르면 갈 색"이라,
+   현재 테마를 따라가면 두 점이 같아져 버린다. */
+.pal{display:inline-flex;align-items:center;gap:5px;}
+.pal button{
+  width:17px;height:17px;padding:0;cursor:pointer;border-radius:50%;
+  border:2px solid rgba(255,255,255,.5);
+}
+.pal button[aria-pressed="true"]{box-shadow:0 0 0 2px #fff;border-color:transparent;}
+.pal .sw-sky{background:linear-gradient(135deg,#cfdcf2 45%,#7a82d3);}
+.pal .sw-lavender{background:linear-gradient(135deg,#f3bcd8 45%,#9b85dc);}
+.sr-only{
+  position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
 
 /* ─── 다크모드 스위치 ─── 상단 띠 오른쪽 끝. 실제 앱에도 이 자리를 그대로 쓴다 */
 .theme-toggle{
@@ -319,11 +331,11 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 }
 </style>
 <script>
-// 톤·모드 속성을 그리기 전에 박는다 — 이게 늦으면 라이트로 한 번 깜빡였다가 다크로 바뀐다.
+// 팔레트·모드 속성을 그리기 전에 박는다 — 이게 늦으면 라이트로 한 번 깜빡였다가 다크로 바뀐다.
 (function () {
   var r = document.documentElement, s = {};
-  try { s.tone = localStorage.getItem('previewTone'); s.theme = localStorage.getItem('previewTheme'); } catch (e) {}
-  r.dataset.tone = (s.tone === 'c9' || s.tone === 'c8') ? s.tone : 'c8';
+  try { s.pal = localStorage.getItem('appPalette'); s.theme = localStorage.getItem('appTheme'); } catch (e) {}
+  r.dataset.palette = (s.pal === 'sky' || s.pal === 'lavender') ? s.pal : 'sky';
   r.dataset.theme = (s.theme === 'dark' || s.theme === 'light') ? s.theme
     : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 })();
@@ -332,21 +344,26 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 <body>
 
 <div class="skinbar">
-  <span>🔍 레이아웃 미리보기 · 골격은 <b>시안9</b>, 색은 아래에서 선택 · 실제 앱 미반영
-    — 라이트/다크는 창 오른쪽 위 스위치로</span>
-  <span class="tonebar">🎨 컬러톤
-    <button data-tone="c8">시안8 (하늘·페리윙클)</button>
-    <button data-tone="c9">시안9 (파스텔 보라)</button>
-  </span>
+  🔍 레이아웃 미리보기 · 골격은 <b>시안9</b>, 색 테마는 <b>하늘(시안8)</b>·<b>라벤더(시안9)</b> 2종
+  · 실제 앱에는 아직 반영하지 않음 — 색 선택과 다크모드는 창 오른쪽 위에서
 </div>
 
 <div class="win">
 
-  <!-- ① 얇은 상태 띠 (오른쪽 끝 = 다크모드 스위치) -->
+  <!-- ① 얇은 상태 띠 (오른쪽 끝 = 색 테마 스와치 + 다크모드 스위치) -->
   <div class="win-top">
     <span class="mono">✦ 오늘의 별자리에 오신 걸 환영해요</span>
     <span class="right">
       <span class="mono">🔥 12일째 · 🌌 도감 5/16 · 2026.08.25 (월)</span>
+      <span class="sep">|</span>
+      <span class="pal" role="group" aria-label="색 테마">
+        <button class="sw-sky" data-palette="sky" aria-pressed="false" title="하늘">
+          <span class="sr-only">하늘 테마</span>
+        </button>
+        <button class="sw-lavender" data-palette="lavender" aria-pressed="false" title="라벤더">
+          <span class="sr-only">라벤더 테마</span>
+        </button>
+      </span>
       <button class="theme-toggle" id="themeToggle" role="switch" aria-checked="false">
         <span class="tt-track"><span class="tt-knob" aria-hidden="true">☀</span></span>
         <span>다크모드</span>
@@ -562,8 +579,8 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 </div>
 
 <script>
-// ─── 다크모드 스위치(앱에 갈 것) + 컬러톤 비교 스위치(미리보기 전용) ───
-// 두 속성의 초기값은 <head>에서 이미 정해졌다. 여기서는 켜고 끄는 일만 한다.
+// ─── 색 테마 스와치 + 다크모드 스위치 ───
+// 두 속성의 초기값은 <head>에서 이미 정해졌다. 여기서는 바꾸고·저장하고·상태만 칠한다.
 (function () {
   var root = document.documentElement;
   var sw = document.getElementById('themeToggle');
@@ -577,23 +594,25 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   }
   sw.addEventListener('click', function () {
     root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
-    save('previewTheme', root.dataset.theme);
+    save('appTheme', root.dataset.theme);
     paintTheme();
   });
 
-  var toneBtns = document.querySelectorAll('.tonebar button');
-  function paintTone() {
-    toneBtns.forEach(function (b) { b.classList.toggle('on', b.dataset.tone === root.dataset.tone); });
+  var palBtns = document.querySelectorAll('.pal button');
+  function paintPalette() {
+    palBtns.forEach(function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.palette === root.dataset.palette));
+    });
   }
-  toneBtns.forEach(function (b) {
+  palBtns.forEach(function (b) {
     b.addEventListener('click', function () {
-      root.dataset.tone = b.dataset.tone;
-      save('previewTone', b.dataset.tone);
-      paintTone();
+      root.dataset.palette = b.dataset.palette;
+      save('appPalette', b.dataset.palette);
+      paintPalette();
     });
   });
 
-  paintTheme(); paintTone();
+  paintTheme(); paintPalette();
 })();
 </script>
 </body>
