@@ -2,7 +2,9 @@
    손목 정원 — 전역 스타일 (둥글둥글·친근 테마)
    디자인 토큰은 프로토타입(wrist-garden)에서 이식 + 따뜻하게 보정.
    ═══════════════════════════════════════════════════════════ */
-@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&display=swap');
+/* 웹폰트(Black Han Sans·Jua)는 더 이상 쓰지 않는다 — 글자는 한 벌(본문 산세리프)로
+   통일하고 위계는 크기·굵기·색으로만 준다(css/shell.css 타이포 블록).
+   덕분에 CDN 왕복이 하나 줄고, 오프라인에서도 글자 모양이 흔들리지 않는다. */
 
 :root{
   /* 이 앱은 밤하늘 다크 톤 하나로 설계됐다(prefers-color-scheme 분기 없음).
