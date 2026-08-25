@@ -4,7 +4,7 @@
 // 축이 둘이다. 둘 다 사용자가 고르고, 고른 값은 localStorage에 남는다:
 //   · data-palette : lavender(성운 보라 — 원래 톤) / sky(하늘·페리윙클)
 //   · data-theme   : dark / light
-// 색은 CSS 토큰이 전부 받아낸다(css/shell.css 맨 위 블록). 이 파일은 <html>에
+// 색은 CSS 토큰이 전부 받아낸다(css/app.css 맨 위 블록). 이 파일은 <html>에
 // 속성 두 개를 박고 스위치를 연결할 뿐, 색을 하나도 알지 못한다.
 //
 // ⚠ 이 스크립트는 <head>에서 defer 없이 즉시 실행돼야 한다. 늦으면 기본값으로 한 번

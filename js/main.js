@@ -290,10 +290,10 @@ function renderHomeMeasure() {
   const dev = (last.radialDev != null && last.ulnarDev != null)
     ? Math.round(Math.abs(last.radialDev) + Math.abs(last.ulnarDev)) : null;
   box.innerHTML =
-    `<div class="pmetric"><span>굽힘</span><b>${Math.round(last.flex)}°</b></div>`
-    + `<div class="pmetric"><span>폄</span><b>${Math.round(last.ext)}°</b></div>`
-    + (dev != null ? `<div class="pmetric"><span>좌우 편위 합</span><b>${dev}°</b></div>` : '')
-    + (isImproving() ? '<div class="pgift">🎁 지난번보다 조금 늘었어요. 별 하나를 선물로 드릴게요 ✦</div>' : '');
+    `<div class="metric"><span>굽힘</span><b>${Math.round(last.flex)}°</b></div>`
+    + `<div class="metric"><span>폄</span><b>${Math.round(last.ext)}°</b></div>`
+    + (dev != null ? `<div class="metric"><span>좌우 편위 합</span><b>${dev}°</b></div>` : '')
+    + (isImproving() ? '<div class="gift">🎁 지난번보다 조금 늘었어요. 별 하나를 선물로 드릴게요 ✦</div>' : '');
 
   // 미니 추이 — 점이 둘 이상일 때만. 값 범위에 맞춰 세로를 늘려 변화가 보이게 한다.
   if (!trend) return;

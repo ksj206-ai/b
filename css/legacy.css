@@ -1,0 +1,669 @@
+/* ═════════════════════════════════════════════════════════
+   legacy.css — 기능에 꼭 필요한 규칙만 남긴 옛 스타일시트 (예전 styles.css)
+   남긴 것: 카메라 영상·오버레이, 시범 무대·스프라이트 기하, 별자리 SVG 렌더,
+             도감 배치, 마스코트, 모달, JS가 만드는 조각(gc-·rh-·rw-·remind-), 키프레임
+   색·글자·카드 모양 같은 디자인은 app.css가 맡는다 — 여기 토큰은 app.css의
+   별칭(alias)을 타므로 색은 자동으로 미리보기 팔레트를 따른다.
+   ═════════════════════════════════════════════════════════ */
+
+
+/* display 지정 요소가 UA의 [hidden] 규칙을 덮어써 숨김이 풀리는 문제 방지 */
+[hidden]{ display:none !important; }
+
+
+/* ③ 반짝이는 별 — 밝고 큰 소수만 천천히. opacity 애니라 GPU 합성이고,
+   prefers-reduced-motion에서는 전역 규칙(*{animation:none}
+
+@keyframes star-twinkle{ 0%,100%{ opacity:.45; } 50%{ opacity:.92; } }
+
+@keyframes sway{ 0%,100%{ transform:rotate(-7deg); } 50%{ transform:rotate(7deg); } }
+
+@keyframes fadeIn{ from{ opacity:0; transform:translateY(10px) scale(.98); } to{ opacity:1; transform:none; } }
+
+/* 별자리가 주인공 — 무대가 위, 이름은 그 아래 캡션 (DOM 순서 그대로라 order 불필요) */
+.home-hero > .sky-stage-wrap{ width:100%; }
+
+/* 마스코트 자리 — 능선 가운데. 말풍선은 order로 고양이 아래에 놓는다. */
+.mascot-wrap{
+  position:relative; z-index:1;
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-sm);
+}
+
+.mascot-wrap > .mascot{ order:1; }
+
+.mascot-wrap > .speech{ order:2; }
+
+/* 달빛 후광 — 고양이 뒤에서 번지는 넓고 옅은 빛. 어두운 능선 위에서 실루엣이
+   배경에 묻히지 않게 하는 장치다(고양이 자체를 밝히면 그림체가 떠 보인다).
+   평소엔 살짝 죽여두고(opacity .82) 완성 연출(is-stargaze)에서 슬쩍 밝아진다. */
+.mascot-wrap::before{
+  content:''; position:absolute; z-index:-2; left:50%; top:calc(var(--mascot-size) * .06);
+  transform:translateX(-50%); pointer-events:none;
+  width:calc(var(--mascot-size) * 2.05); height:calc(var(--mascot-size) * 1.45);
+  border-radius:50%; opacity:.82; transition:opacity .6s ease .25s;
+  background:radial-gradient(50% 50% at 50% 50%, rgba(var(--warm-glow),.17), transparent 70%);
+}
+
+.mascot-wrap.is-stargaze::before{ opacity:1; }
+
+/* 접지 그림자 — 고양이가 능선에 '딛고 앉은' 무게감. 고양이와 말풍선 사이에 깔린다. */
+.mascot-wrap::after{
+  content:''; position:absolute; z-index:-1; left:50%; transform:translateX(-50%);
+  top:calc(var(--mascot-size) - 6px);
+  width:calc(var(--mascot-size) * 0.52); height:calc(var(--mascot-size) * 0.10);
+  border-radius:50%; pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 50%, rgba(var(--shade-rgb),.42), transparent 72%);
+  animation:shadow-breathe 5.4s ease-in-out infinite;
+}
+
+.mascot{
+  width:var(--mascot-size); height:auto; object-fit:contain; display:block;
+  /* 접지 그림자 + 금빛 테두리 광 + 달빛이 감싸는 넓은 앰비언트(장면에 녹아들게) */
+  filter:drop-shadow(0 10px 20px rgba(var(--shade-rgb),.38))
+         drop-shadow(0 0 16px rgba(var(--warm-glow),.30))
+         drop-shadow(0 -4px 42px rgba(var(--warm-glow),.20));
+  animation:float 5.4s ease-in-out infinite;               /* 둥실 + 숨쉬기 (느리고 미세하게) */
+  transform-origin:50% 92%;
+  /* 완성 연출(is-stargaze)의 고개 젖힘 — transform이 아니라 독립 속성(rotate·translate)을
+     옮기므로 위 float의 transform(둥실 호흡)과 서로 간섭하지 않는다. */
+  transition:rotate .6s cubic-bezier(.34,1.25,.5,1), translate .6s cubic-bezier(.34,1.25,.5,1);
+}
+
+.mascot:hover{ animation:wiggle .6s ease-in-out; }
+
+/* 완성 payoff — 루틴 완주로 오늘의 별자리를 다 채운 순간, 고양이가 밤하늘을 올려다본다
+   (main.js celebrateSky가 .mascot-wrap에 이 클래스를 잠깐 붙인다).
+   transform-origin:50% 92%(발밑) 덕에 '앉은 채 고개만 젖힘'으로 보인다. */
+.mascot-wrap.is-stargaze > .mascot{
+  rotate:-8deg; translate:0 -6px; transition-delay:.25s;
+}
+
+/* 상하 부유(마스코트) — 회전 없이, 아주 미세한 호흡 스케일만 곁들여 */
+@keyframes float{
+  0%,100%{ transform:translateY(0) scale(1); }
+  50%{ transform:translateY(-5px) scale(1.012); }
+}
+
+@keyframes shadow-breathe{ 0%,100%{ opacity:.9; transform:translateX(-50%) scale(1); } 50%{ opacity:.6; transform:translateX(-50%) scale(.9); } }
+
+
+/* bob: 이모지 장식(placeholder·완료·빈 상태)에서 계속 사용 */
+@keyframes bob{ 0%,100%{ transform:translateY(0) rotate(-1.5deg); } 50%{ transform:translateY(-8px) rotate(1.5deg); } }
+
+@keyframes wiggle{ 0%,100%{ transform:rotate(0); } 25%{ transform:rotate(-9deg); } 75%{ transform:rotate(9deg); } }
+
+@keyframes pop-in{ from{ opacity:0; transform:translateY(6px) scale(.85); } to{ opacity:1; transform:none; } }
+
+/* 별자리 무대: 마스코트 아래 넉넉한 영역. 배경은 투명 —
+   히어로 카드의 밤하늘 표면 위에 별자리가 그대로 뜬 느낌. */
+/* 무대 폭을 장면 폭으로 제한한다. SVG는 preserveAspectRatio="meet"이라 세로로 긴
+   별자리는 어차피 높이에 맞춰 그려져 좌우가 텅 비었다 — 그 빈 띠를 잘라내면
+   달·고양이·별자리가 가운데 한 덩어리로 모인다(카드를 넓혀도 흩어지지 않음).
+   max-height는 아래 능선(.hero-ridge)이 먹는 자리만큼 낮춰 잡는다. */
+.sky-stage{
+  position:relative; z-index:1; width:100%; max-width:400px;
+  aspect-ratio:3/2; max-height:196px; min-height:150px;
+  margin:0 auto;   /* 마스코트와 한 덩어리로 보이게 위아래를 조임 */
+}
+
+/* SVG는 절대배치로 상자를 꽉 채운다 — 세로로 긴 별자리가 aspect-ratio 상자를
+   밀어 늘리지 않게(도감 격자 칸 높이가 튀는 문제 방지). 컨테이너는 position:relative. */
+.sky-svg{ position:absolute; inset:0; display:block; width:100%; height:100%; }
+
+
+/* 연결선 — 안 켜진 선은 별 사이에 걸린 실처럼 거의 안 보이게(차분),
+   양 끝 별이 켜지면 금빛 그라디언트(#skyLinkGrad)를 머금은 luminous line이 된다. */
+.sky-link{ stroke:rgba(255,232,196,.10); stroke-linecap:round; fill:none; }
+
+/* 켜진 선 — 프레임·칩과 같은 금색(--gold-rgb) 단색. 단색으로 두는 이유는 전시창 안에서
+   선·별·테두리가 한 가지 금색으로 묶여야 '한 벌'로 읽히기 때문이다(그라디언트는 톤이 흔들린다). */
+.sky-link.is-on{
+  stroke:rgba(var(--gold-rgb),.55);
+  filter:drop-shadow(0 0 1.6px rgba(var(--gold-rgb),.6));
+}
+
+/* 완성 payoff — 라인이 한 번 은은하게 밝아졌다 돌아온다.
+   기존 1회 플래그(.sky-stage.celebrate, main.js celebrateSky)에 그대로 물린다. */
+.sky-stage.celebrate .sky-link.is-on{ animation:link-flare 1.8s ease-in-out; }
+
+@keyframes link-flare{
+  0%{ stroke-opacity:.72; }
+  32%{ stroke-opacity:1; filter:drop-shadow(0 0 4px rgba(255,207,107,.95)); }
+  100%{ stroke-opacity:.72; }
+}
+
+
+/* 별 — 안 켜진 별도 '삭막한 회색 점'이 아니라 아직 멀리 있는 작은 warm dim 발광점.
+   켜진 별과의 구분은 (a) 헤일로 유무 (b) 코어 크기 (c) 밝기·글로우 세기로 확실히 남는다. */
+.sky-star{ transform-box:fill-box; transform-origin:center; }
+
+/* 안 켜진 별도 회색 점이 아니라 금빛 발광점 — 코어 #ffe9a8 + 헤일로 #ffcf6b.
+   켜진 별과는 색이 아니라 '세기'로 갈린다: 여기는 fill-opacity로 눌러 차분하게,
+   켜진 별은 불투명 코어 + 넓은 헤일로 원(sky-halo)까지 얹힌다.
+   SVG 필터 길이는 user unit 기준 — viewBox(≈95unit)에서 1unit ≈ 화면 2.8px. */
+.sky-dim{
+  fill:#ffe9a8; fill-opacity:.68;
+  /* 필터 길이는 user unit이라 무대가 커지면 발광 반경도 함께 커진다(별도 조정 불필요) */
+  filter:drop-shadow(0 0 1.5px rgba(255,233,168,.92))    /* 좁고 밝은 블룸 */
+         drop-shadow(0 0 5.2px rgba(255,207,107,.58));   /* 넓고 옅은 금빛 헤일로 */
+}
+
+.sky-halo{ fill:url(#skyHaloGrad); animation:halo-breathe 6.2s ease-in-out infinite; }
+
+/* 켜진 별 도트 — 금빛 코어 + 넓은 금빛 발광 */
+.sky-core{ fill:var(--dot-on); filter:drop-shadow(0 0 5px rgba(var(--gold-rgb),.85)); }
+
+/* 켜진 별의 아주 잔잔한 숨 — 헤일로만(코어는 고정) 살짝 넓어졌다 좁아진다 */
+@keyframes halo-breathe{ 0%,100%{ opacity:.78; } 50%{ opacity:1; } }
+
+
+/* 점등 순간의 부드러운 반짝임 (과하지 않게 — 별 하나씩 살짝 늦춰 켜짐) */
+@keyframes sky-twinkle{
+  0%{ opacity:.2; transform:scale(.35); }
+  55%{ opacity:1; transform:scale(1.3); }
+  100%{ opacity:1; transform:scale(1); }
+}
+
+.sky-star.twinkle{ animation:sky-twinkle .72s cubic-bezier(.3,1.5,.5,1) both; }
+
+
+/* ─── 홈: 오늘의 별자리 완성 축하 (조용한 1회 연출) ─── */
+.sky-stage-wrap{ position:relative; }
+
+/* 별자리가 뜬 자리에 옅은 성운 한 겹 — 마스코트 뒤 별빛 웅덩이와 같은 재료(보라+금빛)라
+   두 덩어리가 하나의 하늘로 이어져 보인다. 별자리 도형 뒤에만 은은하게. */
+.sky-stage-wrap::before{
+  content:''; position:absolute; z-index:0; left:50%; top:48%; transform:translate(-50%,-50%);
+  width:min(74%, 340px); height:82%; border-radius:50%; pointer-events:none;
+  /* 전시창 안이라 금빛이 우세해야 한다 — 보라가 세면 프레임·별자리와 계열이 갈린다 */
+  background:radial-gradient(50% 50% at 50% 50%,
+    rgba(var(--gold-rgb),.09), rgba(var(--glow),.07) 48%, transparent 74%);
+  animation:nebula-breathe 9.6s ease-in-out infinite;
+}
+
+@keyframes nebula-breathe{
+  0%,100%{ opacity:.7; transform:translate(-50%,-50%) scale(.98); }
+  50%{ opacity:1; transform:translate(-50%,-50%) scale(1.04); }
+}
+
+/* 완성 순간: 별자리 전체가 잠깐 은은히 밝아짐 (한 번, 과하지 않게) */
+@keyframes sky-shine{
+  0%{ filter:none; }
+  30%{ filter:drop-shadow(0 0 10px rgba(255,211,107,.75)) brightness(1.22); }
+  100%{ filter:none; }
+}
+
+.sky-stage.celebrate{ animation:sky-shine 1.8s ease-in-out; }
+
+/* 완성 메시지 — 별자리 위로 부드럽게 떠올랐다 사라짐 */
+.sky-celebrate{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%) scale(.92);
+  margin:0; text-align:center; pointer-events:none; opacity:0; z-index:2;
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--honey);
+  background:var(--scrim); border-radius:var(--r-md); padding:var(--sp-sm) var(--sp-lg);
+  box-shadow:var(--shadow-sm); white-space:nowrap;
+  transition:opacity .5s ease, transform .5s cubic-bezier(.3,1.4,.5,1);
+}
+
+.sky-celebrate.show{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+
+.sky-celebrate b{
+  display:block; font-family:"Black Han Sans",sans-serif; font-size:var(--fs-lg);
+  color:#fff; margin-top:var(--sp-3xs); text-shadow:0 0 14px rgba(255,211,107,.6);
+}
+   /* 버튼만 클릭 활성 */
+
+/* 밤하늘: full-bleed — 화면 끝에서 끝까지. 별자리는 con.pos(뷰포트 %)대로 전체에 흩뿌려짐.
+   크기는 vmin 기준 → 데스크톱·모바일 어떤 화면비에서도 균일한 크기로 안 겹침. */
+.sky-map{
+  position:absolute; inset:0; z-index:1;
+  width:100%; height:100%; margin:0; max-width:none;
+  aspect-ratio:auto; overflow:hidden; background:transparent;
+  border:none; border-radius:0; box-shadow:none;
+}
+
+.sky-map::before{  /* 정적 별밭 (넓은 화면에도 촘촘하게 타일) */
+  content:''; position:absolute; inset:0; pointer-events:none; opacity:.9;
+  background-image:
+    radial-gradient(1px 1px at 34px 42px, rgba(255,255,255,.85), transparent),
+    radial-gradient(1px 1px at 138px 96px, rgba(196,214,255,.5), transparent),
+    radial-gradient(1.5px 1.5px at 210px 168px, rgba(224,230,255,.75), transparent),
+    radial-gradient(1px 1px at 320px 58px, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 90px 244px, rgba(178,205,255,.58), transparent),
+    radial-gradient(1.5px 1.5px at 286px 286px, rgba(255,246,232,.5), transparent),
+    radial-gradient(1px 1px at 176px 20px, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 250px 210px, rgba(196,214,255,.5), transparent),
+    radial-gradient(1px 1px at 40px 330px, rgba(216,226,255,.6), transparent);
+  background-repeat:repeat; background-size:390px 390px;
+}
+
+.sky-map::after{  /* 반짝이는 밝은 별 (은은하게, 별자리 뒤) */
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background-image:
+    radial-gradient(2px 2px at 80px 120px, rgba(255,255,255,.95), transparent),
+    radial-gradient(2.5px 2.5px at 320px 250px, rgba(188,210,255,.9), transparent),
+    radial-gradient(2px 2px at 200px 430px, rgba(255,255,255,.85), transparent),
+    radial-gradient(2px 2px at 470px 80px, rgba(206,222,255,.82), transparent),
+    radial-gradient(2.5px 2.5px at 410px 360px, rgba(255,255,255,.9), transparent);
+  background-repeat:repeat; background-size:540px 500px;
+  animation:star-twinkle 5.5s ease-in-out infinite;
+}
+
+.sky-map-item{
+  position:absolute; transform:translate(-50%,-50%); z-index:1;  /* 별밭(::before/::after) 위 */
+  width:clamp(46px, 12vmin, 108px);
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  background:none; border:none; padding:0; cursor:pointer; font-family:inherit; color:inherit;
+  transition:transform .14s cubic-bezier(.34,1.5,.5,1);
+}
+
+.sky-map-sky{ position:relative; width:100%; aspect-ratio:1/1; }
+  /* renderSky 대상 */
+.sky-map-name{
+  font-family:"Jua",sans-serif; font-size:clamp(8.5px, 2.5vmin, 13px);
+  color:var(--ink); text-align:center; line-height:1.15; white-space:nowrap;
+  text-shadow:0 1px 3px rgba(var(--shade-rgb),.55), 0 0 6px rgba(5,10,24,.6);  /* 성운 위 가독성 */
+}
+
+.sky-map-item.is-done:hover{ transform:translate(-50%,-50%) scale(1.1); z-index:3; }
+
+.sky-map-item.is-done:active{ transform:translate(-50%,-50%) scale(1.02); }
+
+.sky-map-item.is-locked{ opacity:.42; }
+              /* 아주 흐릿하게 (잠김) */
+.sky-map-item.is-locked:hover{ opacity:.6; }
+
+
+/* 도감: 크게 보기 — 완성=일기 카드 / 미완성=잠김 안내 (뷰포트 오버레이) */
+.sky-dex-modal{
+  position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+  background:var(--scrim); padding:var(--sp-xl); animation:fadeIn .2s ease;
+}
+
+.sky-dex-modal-card{
+  background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
+  padding:var(--sp-xl); box-shadow:var(--glass-shadow), var(--glass-rim);
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-sm);
+  width:min(360px,100%); max-height:88vh; overflow-y:auto;
+}
+
+.sky-dex-modal-sky{ position:relative; width:100%; aspect-ratio:1/1; max-height:260px; }
+
+.sky-dex-modal-name{ font-family:"Black Han Sans",sans-serif; font-size:var(--fs-xl); color:var(--honey); margin:var(--sp-2xs) 0 0; }
+
+.sky-dex-modal-desc{ font-family:"Jua",sans-serif; font-size:var(--fs-base); color:var(--ink-soft); margin:0 0 var(--sp-xs); text-align:center; word-break:keep-all; }
+
+.sky-dex-modal-lock{ font-family:"Jua",sans-serif; font-size:var(--fs-md); color:var(--muted); text-align:center; margin:var(--sp-lg) var(--sp-sm); word-break:keep-all; }
+
+.remind-presets{
+  display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-sm); width:100%;
+}
+
+.remind-preset{
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-2xs);
+  padding:var(--sp-md) var(--sp-xs) var(--sp); cursor:pointer;
+  background:var(--paper); border:2px solid var(--line); border-radius:var(--r-md);
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink);
+  transition:transform .12s cubic-bezier(.34,1.5,.5,1), box-shadow .2s;
+}
+
+.remind-preset span{ font-size:var(--fs-xs); color:var(--muted); }
+
+.remind-preset:hover{ transform:translateY(-2px); border-color:var(--sage); }
+
+.remind-preset.is-on{
+  background:var(--sage-soft); border-color:var(--moss-dd);
+  box-shadow:0 3px 8px rgba(var(--glow),.22);
+}
+
+.remind-custom{
+  display:flex; align-items:center; gap:var(--sp-sm);
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted);
+}
+
+.remind-custom input{
+  font-family:inherit; font-size:var(--fs-sm); color:var(--ink);
+  border:2px solid var(--line); border-radius:var(--r-sm); padding:var(--sp-sm) var(--sp); background:var(--paper);
+}
+
+.remind-custom .btn{ padding:var(--sp) var(--sp-lg); font-size:var(--fs-sm); }
+
+.remind-selected{ display:flex; gap:var(--sp-sm); flex-wrap:wrap; justify-content:center; min-height:8px; }
+
+.remind-chip{
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:#fff; cursor:pointer;
+  background:var(--moss-d); border:none; border-radius:var(--r-pill); padding:var(--sp-sm) var(--sp-lg);
+  box-shadow:var(--shadow-badge);
+}
+
+.gc-emoji{
+  width:52px; height:52px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:var(--fs-emoji-sm);
+  background:radial-gradient(circle at 38% 32%, #fff, var(--sage-soft));
+  box-shadow:var(--shadow-emoji);
+}
+
+.gc-name{ min-width:0; font-family:"Black Han Sans",sans-serif; font-weight:700; font-size:var(--fs-lg); color:var(--moss-dd); }
+
+/* 카드 오른쪽 태그 묶음 — 포커스 태그와 상태 배지가 나란히. 두 배지가 함께 뜰 때
+   카드 gap(--sp-lg)만큼 벌어지지 않게 자체 gap을 쓴다. margin-left:auto는 여기 한 번만. */
+.gc-tags{ margin-left:auto; flex-shrink:0; display:flex; align-items:center; gap:var(--sp-xs); }
+
+.gc-badge{
+  flex-shrink:0; font-family:"Jua",sans-serif; font-size:var(--fs-xs);
+  color:#fff; background:var(--moss-d); padding:var(--sp-2xs) var(--sp-md); border-radius:var(--r-pill);
+  box-shadow:var(--shadow-badge);
+}
+
+.gc-badge--done{ background:var(--sage); box-shadow:none; }
+
+/* 오늘의 포커스 — 상태 배지(보라, 채움)보다 한 단계 조용한 금빛 아웃라인 칩.
+   "약함" 라벨이 아니라 권유라 위계를 낮춰 둔다(보이는_돌봄 §2③·§3 절제). */
+.gc-focus,.gp-focus{
+  flex-shrink:0; font-family:"Jua",sans-serif; font-size:var(--fs-xs); color:var(--honey);
+  background:var(--sun-soft); box-shadow:inset 0 0 0 1px rgba(var(--honey-rgb),.35);
+  padding:var(--sp-2xs) var(--sp-md); border-radius:var(--r-pill); white-space:nowrap;
+}
+
+.gp-stage{
+  position:relative; width:100%; border-radius:var(--r-lg); overflow:hidden;
+  background:var(--grad-surface); box-shadow:var(--ring-sage);
+}
+
+.guide-canvas{ display:block; width:100%; height:auto; }
+
+/* 시범 손 애니(APNG) — 캔버스와 같은 상자에 절대 배치. left/top/width는 JS가 %로 넣어
+   손목을 호 중심에 물린다(캔버스가 늘어나도 비율 유지). 투명 여백은 .gp-stage가 잘라낸다. */
+.gp-anim{ position:absolute; height:auto; pointer-events:none; user-select:none; }
+
+/* 카메라(내 손) — 기본은 시범 위 PiP 오버레이(모바일), 데스크톱은 오른쪽 열로 승격.
+   위치 맥락만 두 곳에서 바꾸고, 미러·오버레이 매핑은 크기와 무관하게 그대로 유지된다. */
+.gp-pip{
+  position:relative; border-radius:var(--r-sm); overflow:hidden; background:var(--cam-bg);
+  box-shadow:var(--ring-white), var(--shadow-sm);
+}
+
+.gp-stage > .gp-pip{ /* 모바일: 시범 캔버스 위 PiP (지금보다 한 단계 크게) */
+  position:absolute; top:12px; right:12px; width:34%; max-width:150px; aspect-ratio:4/3;
+}
+
+.gp-pip .cam-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+
+.gp-lm{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+
+/* 손 감지 칩 — 카메라를 가리지 않게 모서리에 작게 (전폭 바 아님) */
+.gp-cam{
+  position:absolute; bottom:6px; left:6px; max-width:calc(100% - 12px);
+  display:inline-flex; align-items:center; gap:var(--sp-2xs);
+  font-family:"Jua",sans-serif; font-size:var(--fs-2xs); line-height:1.2; color:#fff;
+  padding:var(--sp-2xs) var(--sp-sm); border-radius:var(--r-chip); background:var(--scrim-2);
+}
+
+.gp-cam.ok{ background:rgba(var(--moss-dd-rgb),.9); }
+
+.gp-cam-ico{ flex:none; }
+
+.gp-cam-txt{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* 회수 인정 피드백: 카메라 테두리 초록 반짝 + 진행 점 통통 */
+@keyframes gp-flash{
+  0%{ box-shadow:var(--ring-white), 0 0 0 5px rgba(var(--glow),.85), var(--shadow-sm); }
+  100%{ box-shadow:var(--ring-white), 0 0 0 0 rgba(var(--glow),0), var(--shadow-sm); }
+}
+
+.gp-pip.flash{ animation:gp-flash .55s ease-out; }
+
+@keyframes gp-dot-pop{ 0%{ transform:scale(.5); } 55%{ transform:scale(1.5); } 100%{ transform:scale(1.12); } }
+
+.gp-dot.pop{ animation:gp-dot-pop .45s cubic-bezier(.3,1.6,.5,1); }
+
+/* 통증 안내 — 차분한 회색 작은 글씨 (경고색 아님), 하단 */
+.gp-safe{ font-size:var(--fs-2xs); color:var(--muted); margin:var(--sp-xs) 0 0; text-align:center; opacity:.9; }
+
+/* 회수: 큰 숫자가 주인공 ("N/5회"), 진행 점은 보조 */
+.gp-count{ display:flex; align-items:baseline; justify-content:center; gap:var(--sp-2xs); margin:var(--sp-xs) 0 0; }
+
+.gp-count-num{ display:inline-block; font-family:"Black Han Sans",sans-serif; font-size:var(--fs-count); line-height:1; color:var(--moss-dd); }
+
+.gp-count-num.pop{ animation:capPop .5s cubic-bezier(.3,1.5,.5,1); }
+
+.gp-count-unit{ font-family:"Jua",sans-serif; font-size:var(--fs-base); color:var(--muted); }
+
+.gp-dots{ display:flex; gap:var(--sp-xs); margin:var(--sp-2xs) 0 0; min-height:11px; justify-content:center; }
+
+.gp-dot{ width:15px; height:15px; border-radius:50%; background:rgba(var(--moss-rgb),.22); box-shadow:var(--shadow-inset); transition:.25s cubic-bezier(.3,1.5,.5,1); }
+
+/* 회수 진행 점은 보조 지표 — 작게 (완료 화면 routine-prog 점은 원래 크기 유지) */
+.gp-dots .gp-dot{ width:9px; height:9px; }
+
+.gp-dot.on{ background:linear-gradient(180deg,var(--moss-l),rgb(var(--glow))); box-shadow:0 3px 8px rgba(var(--glow),.45); transform:scale(1.12); }
+
+.cam-wrap{
+  position:relative; width:100%; aspect-ratio:4/3; border-radius:var(--r-lg); overflow:hidden;
+  background:var(--cam-bg); box-shadow:var(--ring-white);
+}
+
+.cam-video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+
+.cam-badge{
+  position:absolute; top:12px; left:12px; font-family:"Jua",sans-serif; font-size:var(--fs-sm);
+  color:#fff; background:var(--scrim); padding:var(--sp-xs) var(--sp-lg); border-radius:var(--r-pill);
+  backdrop-filter:blur(4px);
+}
+
+
+/* 라이브 각도 오버레이 */
+.m-live{
+  position:absolute; left:50%; bottom:22px; transform:translateX(-50%);
+  background:var(--scrim); backdrop-filter:blur(4px); border-radius:var(--r-md);
+  padding:var(--sp-sm) var(--sp-xl); text-align:center; color:#fff; min-width:130px;
+}
+
+.m-live-val{ display:block; font-family:"Black Han Sans",sans-serif; font-size:var(--fs-num); letter-spacing:.5px; }
+
+.m-live-cap{ display:block; font-family:"Jua",sans-serif; font-size:var(--fs-2xs); opacity:.85; margin-top:var(--sp-3xs); }
+
+
+/* 중립/유지 진행 바 */
+.m-prog{ position:absolute; left:14px; right:14px; bottom:10px; height:6px; border-radius:var(--r-pill); background:var(--white-a35); overflow:hidden; }
+
+.m-prog-bar{ height:100%; width:0; border-radius:var(--r-pill); background:var(--grad-bar); transition:width .1s linear; }
+
+
+/* 측정 방법 안내 팝업 — 앱 톤 그대로(밤하늘 scrim · 글라스 카드). sky-dex-modal과 같은 오버레이. */
+.m-intro-modal{
+  position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+  background:var(--scrim); padding:var(--sp-xl); animation:fadeIn .2s ease;
+}
+
+.m-intro-card{
+  position:relative; background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
+  padding:var(--sp-xl); box-shadow:var(--glass-shadow), var(--glass-rim);
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
+  width:min(380px,100%); max-height:88vh; overflow-y:auto;
+}
+
+.m-intro-x{
+  position:absolute; top:var(--sp-sm); right:var(--sp-sm); width:32px; height:32px;
+  border:none; border-radius:var(--r-pill); background:var(--paper); color:var(--muted);
+  font-size:var(--fs-md); line-height:1; cursor:pointer;
+}
+
+.m-intro-x:active{ transform:translateY(1px); }
+
+.m-intro-title{ font-family:"Black Han Sans",sans-serif; font-size:var(--fs-xl); color:var(--honey); margin:0; }
+
+.m-intro-poses{ display:flex; flex-direction:column; gap:var(--sp-md); width:100%; }
+
+.m-intro-pose{ display:flex; align-items:center; gap:var(--sp-md); margin:0; text-align:left; }
+
+.m-intro-img{
+  flex:none; width:96px; height:96px; object-fit:contain;
+  border-radius:var(--r-md); background:var(--paper);
+}
+
+.m-intro-cap{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--ink-soft); line-height:var(--lh); word-break:keep-all; margin:0; }
+
+.m-intro-cap b{ display:block; color:var(--ink); font-weight:400; margin-bottom:var(--sp-3xs); }
+
+.m-intro-common{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted); text-align:center; word-break:keep-all; margin:0; }
+
+
+/* ─── 첫 실행 환영 오버레이 (감성 2장) ─── 다른 모달(z-index:50)보다 위. 같은 스크림·글라스 톤.
+   twinkle·fadeIn 애니는 전역 @media(prefers-reduced-motion){*{animation:none}}
+ 규칙이 알아서 끈다. */
+.welcome-modal{
+  position:fixed; inset:0; z-index:60; display:flex; align-items:center; justify-content:center;
+  background:var(--scrim); padding:var(--sp-xl); animation:fadeIn .2s ease;
+}
+
+.welcome-card{
+  position:relative; background:var(--glass-bg-strong);
+  -webkit-backdrop-filter:var(--glass-blur); backdrop-filter:var(--glass-blur);
+  border:var(--glass-border); border-radius:var(--r-card);
+  padding:var(--sp-xl); box-shadow:var(--glass-shadow), var(--glass-rim);
+  display:flex; flex-direction:column; align-items:center; gap:var(--sp-md);
+  width:min(360px,100%); max-height:90vh; overflow-y:auto; text-align:center;
+}
+
+.welcome-x{
+  position:absolute; top:var(--sp-sm); right:var(--sp-sm); width:32px; height:32px; z-index:1;
+  border:none; border-radius:var(--r-pill); background:var(--paper); color:var(--muted);
+  font-size:var(--fs-md); line-height:1; cursor:pointer;
+}
+
+.welcome-x:active{ transform:translateY(1px); }
+
+.welcome-slide{ display:flex; flex-direction:column; align-items:center; gap:var(--sp-xs); width:100%; }
+
+/* 밤하늘 비주얼 — 홈과 같은 인디고 그라데이션 + 반짝이는 별 + 마스코트 */
+.welcome-visual{
+  position:relative; width:100%; aspect-ratio:16/10; border-radius:var(--r-lg); overflow:hidden;
+  background:var(--grad-surface); display:flex; align-items:flex-end; justify-content:center;
+  margin-bottom:var(--sp-xs);
+}
+
+.welcome-visual--soft{ aspect-ratio:16/9; }
+
+.welcome-cat{ width:52%; max-width:150px; height:auto; object-fit:contain; filter:drop-shadow(0 6px 12px rgba(0,0,0,.35)); }
+
+.welcome-star{ position:absolute; width:4px; height:4px; border-radius:50%; background:#fff; box-shadow:0 0 6px 1px rgba(255,255,255,.7); }
+
+.welcome-star--a{ top:22%; left:24%; animation:welcomeTwinkle 2.4s ease-in-out infinite; }
+
+.welcome-star--b{ top:32%; right:22%; width:5px; height:5px; animation:welcomeTwinkle 3s ease-in-out .6s infinite; }
+
+.welcome-star--c{ top:16%; right:40%; width:3px; height:3px; animation:welcomeTwinkle 2s ease-in-out 1s infinite; }
+
+@keyframes welcomeTwinkle{ 0%,100%{ opacity:.45; } 50%{ opacity:1; } }
+
+.welcome-title{ font-family:"Black Han Sans",sans-serif; font-size:var(--fs-xl); color:var(--honey); margin:0; }
+
+.welcome-body{ font-family:"Jua",sans-serif; font-size:var(--fs-base); color:var(--ink-soft); line-height:var(--lh); word-break:keep-all; margin:0; }
+
+.welcome-sub{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted); margin:var(--sp-2xs) 0 0; }
+
+.welcome-foot{ display:flex; flex-direction:column; align-items:center; gap:var(--sp-md); width:100%; margin-top:var(--sp-2xs); }
+
+.welcome-dots{ display:flex; gap:var(--sp-xs); }
+
+.welcome-dot{ width:8px; height:8px; border-radius:50%; background:var(--white-a35); transition:background .2s, transform .2s; }
+
+.welcome-dot.is-on{ background:var(--honey); transform:scale(1.2); }
+
+.welcome-foot .btn{ width:100%; }
+
+.welcome-skip{
+  font-family:"Jua",sans-serif; font-size:var(--fs-2xs); color:var(--muted);
+  background:none; border:none; cursor:pointer; text-decoration:underline; text-underline-offset:2px;
+}
+
+.m-hand-chip{
+  position:absolute; top:12px; right:12px; font-family:"Jua",sans-serif; font-size:var(--fs-sm);
+  color:#fff; background:var(--scrim); border:none; border-radius:var(--r-pill);
+  padding:var(--sp-xs) var(--sp-md); cursor:pointer;
+}
+
+.m-hand-chip:active{ transform:translateY(1px); }
+
+
+/* 굽힘·폄 캡처 칩 */
+.m-caps{ display:flex; gap:var(--sp-md); width:100%; }
+
+.m-cap{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:var(--sp-3xs);
+  background:var(--paper); border-radius:var(--r-md); padding:var(--sp-md); box-shadow:var(--ring);
+}
+
+.m-cap-k{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--muted); }
+
+.m-cap-v{ font-family:"Black Han Sans",sans-serif; font-size:var(--fs-num); color:var(--moss-dd); }
+
+.m-cap.pop{ animation:capPop .5s cubic-bezier(.3,1.5,.5,1); }
+
+@keyframes capPop{
+  0%{ transform:scale(1); }
+  40%{ transform:scale(1.12); box-shadow:0 6px 16px rgba(var(--glow),.4), inset 0 0 0 2px var(--moss); }
+  100%{ transform:scale(1); }
+}
+
+
+.m-comp{ font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:var(--terra); margin:0; text-align:center; }
+
+.rec-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:var(--sp-2xs); }
+
+.rec-dot--flex{ background:var(--moss-dd); }
+
+.rec-dot--ext{ background:var(--water-d); }
+
+.rec-dot--dev{ background:var(--honey); }
+   /* 편위 합 — 굽힘(라벤더)·폄(시안)과 구분되는 골드 */
+
+.rec-canvas{ display:block; width:100%; height:170px; }
+
+.rw-day{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:var(--sp-2xs);
+  background:var(--paper); border-radius:var(--r-sm); padding:var(--sp-sm) var(--sp-3xs);
+}
+
+.rw-day.is-today{ box-shadow:var(--ring-accent); }
+
+.rw-label{ font-family:"Jua",sans-serif; font-size:var(--fs-2xs); color:var(--muted); }
+
+.rw-emoji{ font-size:var(--fs-md); min-height:22px; display:flex; align-items:center; color:var(--sage); }
+
+.rh-item{
+  display:flex; align-items:center; gap:var(--sp-md);
+  background:var(--paper); border-radius:var(--r-sm); padding:var(--sp-md) var(--sp-lg);
+}
+
+.rh-date{
+  font-family:"Jua",sans-serif; font-size:var(--fs-sm); color:#fff; background:var(--sage);
+  padding:var(--sp-2xs) var(--sp-md); border-radius:var(--r-pill); flex-shrink:0; min-width:44px; text-align:center;
+}
+
+.rh-name{ font-family:"Jua",sans-serif; font-size:var(--fs-base); color:var(--ink); }
+
+.rh-more{ font-family:"Jua",sans-serif; font-size:var(--fs-xs); color:var(--muted); text-align:center; padding:var(--sp-2xs) 0; }
+
+@keyframes breathe{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
+
+/* 기록 빈 상태 위계: 두 빈 상태가 동시에 보일 때만 두 번째 CTA(운동 기록)를 테두리형으로.
+   추이 카드의 '체크하러 가기'가 채운 주버튼으로 남는다. 운동 기록 빈 상태만 단독으로
+   보일 땐 그 버튼이 화면의 유일한 CTA이므로 채운 형태를 유지한다(:has 미지원 시 현행 유지). */
+#screen-records:has(#recTrendEmpty:not([hidden])) #recHistoryEmpty .btn{
+  background:var(--paper); color:var(--moss-dd); font-size:var(--fs-sm);
+  padding:var(--btn-pad-sm); border:2px solid var(--sage);
+  box-shadow:0 var(--btn-lift-sm) 0 var(--sage);
+}
+
+#screen-records:has(#recTrendEmpty:not([hidden])) #recHistoryEmpty .btn:active{
+  transform:translateY(3px); box-shadow:0 2px 0 var(--sage);
+}
+
+
+@media (prefers-reduced-motion:reduce){ *{ animation:none!important; } }

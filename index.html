@@ -4,13 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>오늘의 별자리 — 데일리 손목 웰니스</title>
-<link rel="stylesheet" href="css/styles.css" />
-<link rel="stylesheet" href="css/shell.css" />
+<!-- app.css = 디자인 원본(미리보기) / legacy.css = 기능에 필요한 규칙만 -->
+<link rel="stylesheet" href="css/legacy.css" />
+<link rel="stylesheet" href="css/app.css" />
 <!-- 색 테마·다크모드는 첫 페인트 전에 확정돼야 한다(깜빡임 방지) — defer 없이 즉시 실행 -->
 <script src="js/theme.js"></script>
 </head>
 <body>
-  <div class="app">
+  <div class="win">
     <!-- ─── ① 상태 띠 ───
          스트릭·도감 진척 같은 "메타"와 테마 컨트롤만 둔다. 기능은 아래 탭이 맡는다. -->
     <div class="win-top">
@@ -38,15 +39,15 @@
          왼쪽 마스코트 / 가운데 워드마크 / 오른쪽 오늘의 한마디.
          마스코트는 여기 하나뿐이다 — main.js가 상태별로 src를 바꾸고(renderHome),
          루틴 완주 시 .is-stargaze가 붙어 밤하늘을 올려다본다(celebrateSky). -->
-    <header class="app-header">
+    <header class="banner">
       <div class="mascot-wrap" id="mascotWrap">
         <img class="mascot banner-cat" id="mascotImg" src="assets/cat-idle.png" data-mood="idle" alt="" aria-hidden="true">
       </div>
       <div class="banner-mark">
-        <h1 class="app-title">
-          <button type="button" class="app-title-btn" data-nav="home">오늘의 별자리</button>
+        <h1>
+          <button type="button" class="wordmark" data-nav="home">오늘의 별자리</button>
         </h1>
-        <p class="app-tag">✿ 하루 1분 손목 웰니스 · 별 모으기 ✿</p>
+        <p>✿ 하루 1분 손목 웰니스 · 별 모으기 ✿</p>
       </div>
       <!-- 오늘의 한마디 — 적응형 상태를 긍정으로 번역한 한 줄(routine.js dailyStarMessage) -->
       <div class="banner-note">
@@ -68,30 +69,30 @@
     </nav>
 
     <!-- ─── 화면 컨테이너 ─── -->
-    <main id="screens" class="screens">
+    <main id="screens" class="stage">
 
       <!-- ─── 홈 — 3단 포털 ───
            좌=길잡이 / 가운데=오늘 할 일 / 우=상태 위젯.
            박스는 전부 제목바를 가진 같은 단위(.pbox)다. 위계는 "가운데가 크다"로만 준다.
            내용은 전부 실제 저장 데이터에서 온다(main.js renderHome* 계열). -->
       <section id="screen-home" class="screen is-active" data-screen="home">
-        <div class="cols">
+        <div class="cols home">
 
           <!-- ── 좌: 길잡이 ── -->
           <aside class="col">
-            <section class="pbox">
-              <h2 class="pbox-head">🐾 반가워요</h2>
-              <div class="pbox-body welcome-box">
+            <section class="box">
+              <h2 class="box-head">🐾 반가워요</h2>
+              <div class="box-body welcome-box">
                 <img class="welcome-cat-sm" src="assets/cat-idle.png" alt="" aria-hidden="true">
                 <p class="hi" id="homeGreet">오늘도 만나서 반가워요!</p>
-                <button type="button" class="pbtn ghost" data-nav="guide">운동 목록 보기 ▸</button>
+                <button type="button" class="btn ghost" data-nav="guide">운동 목록 보기 ▸</button>
               </div>
             </section>
 
-            <section class="pbox">
-              <h2 class="pbox-head">🧭 메뉴</h2>
-              <div class="pbox-body" style="padding:5px 8px;">
-                <ul class="pmenu">
+            <section class="box">
+              <h2 class="box-head">🧭 메뉴</h2>
+              <div class="box-body" style="padding:5px 8px;">
+                <ul class="menu">
                   <li><button type="button" data-nav="guide">🎬 <span>오늘의 루틴</span></button></li>
                   <li><button type="button" data-nav="measure">📊 <span>손목 체크</span></button></li>
                   <li><button type="button" data-nav="records">📈 <span>기록 보기</span></button></li>
@@ -102,17 +103,17 @@
 
             <!-- 오늘의 포커스 — 적응형이 고른 방향을 "부족"이 아니라 "오늘 여기"로 노출한다.
                  고를 방향이 없는 날엔 통째로 숨는다(보이는_돌봄 §2③). -->
-            <section class="pbox" id="homeFocusBox" hidden>
-              <h2 class="pbox-head">🎯 오늘의 포커스</h2>
-              <div class="pbox-body">
+            <section class="box" id="homeFocusBox" hidden>
+              <h2 class="box-head">🎯 오늘의 포커스</h2>
+              <div class="box-body">
                 <p class="focus-name" id="homeFocusName"></p>
                 <p class="focus-sub">오늘은 여기에 살짝 더 마음 써봐요. 천천히 함께 해요.</p>
               </div>
             </section>
 
-            <section class="pbox">
-              <h2 class="pbox-head">🩺 이것만 지켜요</h2>
-              <div class="pbox-body">
+            <section class="box">
+              <h2 class="box-head">🩺 이것만 지켜요</h2>
+              <div class="box-body">
                 <p class="soft">통증이 있으면 즉시 멈추세요. 회수를 다 못 채워도 오늘 한 것으로 인정돼요.</p>
               </div>
             </section>
@@ -123,9 +124,9 @@
             <!-- 오늘의 루틴 — 홈의 주인공.
                  ⚠ 카드 머리(운동 목록)와 시작하기는 형제로 둔다. 시작하기를 [data-nav] 안에
                    넣으면 ui.js의 위임 라우터가 조상을 타고 올라가 화면 전환이 두 번 일어난다. -->
-            <section class="pbox">
-              <h2 class="pbox-head">🎬 오늘의 루틴 <span class="more" data-nav="guide">운동 목록 ▸</span></h2>
-              <div class="pbox-body">
+            <section class="box">
+              <h2 class="box-head">🎬 오늘의 루틴 <span class="more" data-nav="guide">운동 목록 ▸</span></h2>
+              <div class="box-body">
                 <p class="home-hero-title" id="todayRoutine">1분, 손목 굽힘·폄부터 시작해요</p>
                 <div class="pbar"><i id="homeBar"></i></div>
                 <p id="rpText" class="rp-text"></p>
@@ -134,28 +135,28 @@
               </div>
             </section>
 
-            <section class="pbox">
-              <h2 class="pbox-head">📰 최근 기록 <span class="more" data-nav="records">전체 보기 ▸</span></h2>
-              <div class="pbox-body" style="padding:0;">
-                <table class="ptable" id="homeHistory"></table>
+            <section class="box">
+              <h2 class="box-head">📰 최근 기록 <span class="more" data-nav="records">전체 보기 ▸</span></h2>
+              <div class="box-body" style="padding:0;">
+                <table id="homeHistory"></table>
                 <p class="empty" id="homeHistoryEmpty" hidden>아직 기록이 없어요. 오늘의 루틴부터 시작해 봐요.</p>
               </div>
             </section>
 
-            <section class="pbox">
-              <h2 class="pbox-head">🌌 밤하늘 도감
+            <section class="box">
+              <h2 class="box-head">🌌 밤하늘 도감
                 <span class="more" data-nav="sky"><b id="skyDexCount">0/16</b> 수집 ▸</span></h2>
-              <div class="pbox-body">
-                <div class="pgal" id="homeDex"></div>
+              <div class="box-body">
+                <div class="gal" id="homeDex"></div>
               </div>
             </section>
           </main>
 
           <!-- ── 우: 상태 위젯 ── -->
           <aside class="col">
-            <section class="pbox">
-              <h2 class="pbox-head">✦ 오늘의 하늘 <span class="more" data-nav="sky">도감 ▸</span></h2>
-              <div class="pbox-body">
+            <section class="box">
+              <h2 class="box-head">✦ 오늘의 하늘 <span class="more" data-nav="sky">도감 ▸</span></h2>
+              <div class="box-body">
                 <!-- 오늘의 별자리 — 운동을 완료할수록 별이 그리는 순서대로 켜진다
                      (렌더·점등은 sky.js / main.js renderHome). 판은 라이트 테마에서도
                      어둡다 — 별은 어두운 하늘에서만 별로 보인다. -->
@@ -170,26 +171,26 @@
               </div>
             </section>
 
-            <section class="pbox">
-              <h2 class="pbox-head">📊 손목 체크 <span class="more" data-nav="records">추이 ▸</span></h2>
-              <div class="pbox-body">
-                <div id="homeTrend" class="ptrend" hidden></div>
+            <section class="box">
+              <h2 class="box-head">📊 손목 체크 <span class="more" data-nav="records">추이 ▸</span></h2>
+              <div class="box-body">
+                <div id="homeTrend" class="trend" hidden></div>
                 <div id="homeMetrics"></div>
                 <p class="section-chip" id="measureChip"></p>
-                <button type="button" class="pbtn" data-nav="measure">체크하러 가기</button>
+                <button type="button" class="btn" data-nav="measure">체크하러 가기</button>
               </div>
             </section>
 
-            <section class="pbox">
-              <h2 class="pbox-head">📅 이번 달 <span class="more" id="homeCalCount"></span></h2>
-              <div class="pbox-body">
-                <div class="pcal" id="homeCal"></div>
+            <section class="box">
+              <h2 class="box-head">📅 이번 달 <span class="more" id="homeCalCount"></span></h2>
+              <div class="box-body">
+                <div class="cal" id="homeCal"></div>
               </div>
             </section>
 
-            <section class="pbox">
-              <h2 class="pbox-head">🔔 리마인더</h2>
-              <div class="pbox-body">
+            <section class="box">
+              <h2 class="box-head">🔔 리마인더</h2>
+              <div class="box-body">
                 <!-- 평소엔 접힌 한 줄. 탭하면 아래 패널이 펼쳐진다.
                      미설정=시간 정하기 / 설정됨=요약 칩(변경) — 문구는 main.js renderRemindEntry가 채운다. -->
                 <button class="remind-entry-chip" id="remindEntry" aria-controls="remindPanel" aria-expanded="false" hidden>⏰ 알림 시간 정하기</button>
@@ -227,11 +228,18 @@
           <h2 class="screen-title">🎬 오늘의 루틴</h2>
         </div>
 
+        <div class="cols split">
+        <div class="col">
         <!-- 가이드 목록 -->
-        <div id="guideList" class="guide-list"></div>
+        <section class="box" id="guideListBox">
+          <h2 class="box-head">🎬 오늘의 루틴 <span class="more">누르면 시범이 재생돼요</span></h2>
+          <div class="box-body" style="padding:0;">
+            <div id="guideList" class="guide-list"></div>
+          </div>
+        </section>
 
         <!-- 플레이어 -->
-        <div id="guidePlayer" class="guide-player" hidden>
+        <section class="box" id="guidePlayer" hidden>
           <div class="gp-top">
             <span id="gpName" class="gp-name">운동</span>
             <!-- 오늘의 포커스 — 루틴 모드에서 focus 방향 운동에만 (약함이 아니라 "여기 신경 써봐요") -->
@@ -306,6 +314,25 @@
               <button class="btn btn-back" data-nav="home">홈으로</button>
             </div>
           </div>
+        </section>
+        </div>
+
+        <div class="col">
+          <section class="box">
+            <h2 class="box-head">🩺 이것만 지켜요</h2>
+            <div class="box-body">
+              <p class="soft">통증이 있으면 즉시 멈추세요. 회수를 다 못 채워도 오늘 한 것으로 인정돼요.</p>
+            </div>
+          </section>
+          <section class="box">
+            <h2 class="box-head">💡 인식이 잘 안 돼요</h2>
+            <div class="box-body">
+              <p>① 손이 화면 안에 다 들어오게 놓아주세요</p>
+              <p>② 밝기가 너무 어두우면 인식이 어려워요</p>
+              <p class="soft">박자는 안 맞춰도 괜찮아요 — 천천히 하면 됩니다.</p>
+            </div>
+          </section>
+        </div>
         </div>
       </section>
 
@@ -316,7 +343,11 @@
           <h2 class="screen-title">📏 손목 체크</h2>
         </div>
 
-        <div class="mzone">
+        <div class="cols split">
+        <div class="col">
+        <section class="box">
+          <h2 class="box-head">📊 손목 체크 <span class="more" id="mHandChipHead"></span></h2>
+          <div class="box-body">
           <div class="cam-wrap">
             <video id="camVideo" class="cam-video" playsinline muted></video>
             <span id="camBadge" class="cam-badge">카메라 꺼짐</span>
@@ -341,10 +372,16 @@
                안 건드린다). 홈으로 나가는 건 좌상단 뒤로 버튼의 몫.
                ⚠ mActions 안에 두지 말 것 — 그쪽은 캡처 단계에만 보이는데 이 버튼은
                중립 단계에도 보여야 한다. 카메라 위에 겹치지 않게 안내 문구 아래 별도 줄. -->
-          <button class="btn btn-back" id="mCancel" hidden>그만두기</button>
+          <button class="btn ghost" id="mCancel" hidden>그만두기</button>
+          </div>
+        </section>
+        </div>
 
+        <div class="col">
           <!-- idle: 체크할 손 선택 + 시작 -->
-          <div id="mIdle" class="m-panel m-panel-col">
+          <section class="box" id="mIdle">
+            <h2 class="box-head">✋ 어느 손을 재나요</h2>
+            <div class="box-body">
             <div id="mHandSel" class="m-hand-sel" role="group" aria-label="체크할 손 선택">
               <button class="m-hand-btn" data-hand="left">🫲 왼손</button>
               <button class="m-hand-btn" data-hand="right">🫱 오른손</button>
@@ -352,7 +389,8 @@
             <!-- 카메라 켜기 전 안심 안내 (권한 거부 방지) -->
             <p class="priv-note">🔒 분석은 이 기기 안에서만 이루어지며, 영상은 저장되거나 외부로 전송되지 않습니다.</p>
             <button class="btn" id="mStart">체크 시작하기</button>
-          </div>
+            </div>
+          </section>
 
           <!-- 측정 중 캡처 칩 2개 — 단계에 따라 라벨이 바뀐다(옆모습: 굽힘·폄 / 정면: 엄지쪽·새끼쪽) -->
           <div id="mCapture" class="m-caps" hidden>
@@ -367,8 +405,9 @@
           </div>
 
           <!-- 결과 -->
-          <div id="mResult" class="m-result" hidden>
-            <p class="m-result-title">오늘의 손목 가동범위</p>
+          <section class="box" id="mResult" hidden>
+            <h2 class="box-head">🎯 오늘의 손목 가동범위</h2>
+            <div class="box-body">
             <div class="m-result-grid">
               <div><span>굽힘</span><b id="rFlex">–</b></div>
               <div><span>폄</span><b id="rExt">–</b></div>
@@ -394,13 +433,22 @@
             <!-- 서사 한 줄 — 이번 주 루틴 완료 일수 (0회면 숨김) -->
             <p id="rNarr" class="m-narr" hidden></p>
             <p class="m-next">🗓 다음 체크는 다음 주쯤이 좋아요</p>
-            <div class="m-result-btns">
-              <button class="btn btn-back" id="mAgain">다시 체크</button>
+            <div class="row-btn">
+              <button class="btn ghost" id="mAgain">다시 체크</button>
               <button class="btn" data-nav="records">기록 보기</button>
             </div>
-          </div>
+            </div>
+          </section>
 
-          <p class="m-disc">본 수치는 웹캠 기반 자가 참고값입니다. 질병의 진단·판정 목적이 아닙니다.</p>
+          <section class="box">
+            <h2 class="box-head">📐 이렇게 재요</h2>
+            <div class="box-body">
+              <p>① 팔꿈치를 책상에 대고 옆모습이 보이게 두세요</p>
+              <p>② 손목만 천천히 굽혔다 폈다 해요</p>
+              <p class="soft">본 수치는 웹캠 기반 자가 참고값입니다. 질병의 진단·판정 목적이 아닙니다.</p>
+            </div>
+          </section>
+        </div>
         </div>
       </section>
 
@@ -615,7 +663,7 @@
     </div>
 
     <!-- ─── 면책 (의료법) ─── -->
-    <footer class="app-disc">
+    <footer class="win-foot">
       본 서비스는 의료기기가 아니며 질병의 진단·치료 목적이 아닙니다.
       통증이 있거나 질환이 의심되면 의사와 상담하세요.
     </footer>

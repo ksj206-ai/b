@@ -1,0 +1,702 @@
+/* ═════════════════════════════════════════════════════════
+   app.css — 앱의 기본 스타일시트 (preview/neomood.html에서 그대로 가져온 것)
+   이 파일이 디자인의 원본이다. 마크업은 여기 클래스를 그대로 쓴다.
+   기능에만 필요한 규칙(카메라·시범 무대·별자리 렌더·모달)은 legacy.css가 맡는다.
+   ═════════════════════════════════════════════════════════ */
+
+/* ═══ 색 토큰 ═══ 색은 전부 여기서만 정의한다(레이아웃 규칙과 섞지 않는다).
+   축이 둘이다 — 둘 다 사용자가 고르는 값이다:
+     · data-palette = sky(하늘) / lavender(라벤더)
+     · data-theme   = light / dark
+   팔레트 블록에 라이트 값 + 두 모드 공통값을, [data-theme="dark"] 블록에 덮어쓸 값만 둔다.
+   (팔레트 선택자는 모드와 무관하게 항상 걸리므로 공통값은 팔레트 블록에 두면 된다.)
+   두 속성은 <head> 스크립트가 로드 즉시 박아 넣는다 — 그래서 미디어쿼리 사본이 없다.
+
+   ⚠ 새 팔레트를 추가하려면 아래 두 블록(라이트/다크)을 한 벌 더 쓰고, 상단 띠의
+     스와치 버튼 하나만 늘리면 된다. 레이아웃 CSS는 손댈 일이 없다. */
+
+/* ─── 하늘 — model/시안8.png 실측: 하늘색 #d6e6f0 · 페리윙클 #b2bbe9 ·
+       테두리 #7a82d3 · 창 흰색 #ffffff · 노을 크림 #e5d3c4 ─── */
+html[data-palette="sky"]{
+  --page:#d9e6f2;  --page-dot:#c1d1e9;
+  --frame:#7a82d3; --frame-2:#b2bbe9;
+  --win:#eef4fb;   --panel:#ffffff;
+  --head:linear-gradient(#e2e9f8,#c9d5ee);  --head-ink:#4d5490;
+  --ink:#3f467c;   --dim:#7b83ad;  --line:#d6dff2;
+  --accent:#7a82d3; --accent-2:#aab2e8; --accent-ink:#ffffff;
+  --chip:#e8eefb;  --ok:#5aa593;
+  --sky:linear-gradient(160deg,#b6c4ee 0%,#cfdcf2 45%,#e7eff9 100%);
+  --sky-ink:#3d447e; --star:#fff4d2; --note:rgba(255,255,255,.85);
+  --thumb:linear-gradient(160deg,#a3b0e6,#d3dff4);
+  --skypanel:linear-gradient(160deg,#2c3468,#4b5497);   /* 별자리 판 — 두 모드 공통 */
+  --warm:#e5d3c4;                       /* 노을 크림 — 선물 칩 */
+  --deco:#bccbe8; --deco-2:#98a9dd;      /* 창 밖 여백에 뿌려진 잔별 */
+}
+html[data-palette="sky"][data-theme="dark"]{
+  --page:#11152c;  --page-dot:#1e2444;
+  --frame:#5560ad; --frame-2:#333b6d;
+  --win:#191e3b;   --panel:#212848;
+  --head:linear-gradient(#2e3768,#262e58);  --head-ink:#dee5ff;
+  --ink:#dfe5ff;   --dim:#99a2ce;  --line:#343c70;
+  --accent:#8f9ae8; --accent-2:#5b66bb; --accent-ink:#0f1330;
+  --chip:#272e56;  --ok:#79c6b4;
+  --sky:linear-gradient(160deg,#1d2450 0%,#39407f 50%,#4a4f92 100%);
+  --sky-ink:#eef1ff; --star:#ffeec2; --note:rgba(17,21,44,.78);
+  --thumb:linear-gradient(160deg,#2b3364,#4b5296);
+  --deco:#232a52; --deco-2:#3b4585;
+  --warm:#4d4340;   /* 노을 크림의 다크 대응 — 차가운 판 위 유일한 따뜻한 자리 */
+}
+
+/* ─── 라벤더 — model/시안9.png 계열의 파스텔 보라·핑크 ─── */
+html[data-palette="lavender"]{
+  --page:#e9e2f8;  --page-dot:#d9cef1;
+  --frame:#9b85dc; --frame-2:#c9b7f1;
+  --win:#f7f2fe;   --panel:#ffffff;
+  --head:linear-gradient(#e7ddfb,#dbcef8);  --head-ink:#5b4a8c;
+  --ink:#4b3f6d;   --dim:#8a7cae;  --line:#ddd1f7;
+  --accent:#e58cbb; --accent-2:#f3bcd8; --accent-ink:#ffffff;
+  --chip:#fdeaf4;  --ok:#5fae8d;
+  --sky:linear-gradient(160deg,#c9b3ef 0%,#e0cbf3 45%,#fadfee 100%);
+  --sky-ink:#4a3a72; --star:#fff7cf; --note:rgba(255,255,255,.82);
+  --thumb:linear-gradient(160deg,#b9a4e8,#e6cff0);
+  --skypanel:linear-gradient(160deg,#241c56,#453079);
+  --warm:#f6e2cf;
+  --deco:#d6c8ef; --deco-2:#bba6e4;
+}
+html[data-palette="lavender"][data-theme="dark"]{
+  --page:#0b0a1c;  --page-dot:#181637;
+  --frame:#6a5cae; --frame-2:#3b3169;
+  --win:#141130;   --panel:#1b1740;
+  --head:linear-gradient(#2c2359,#241d4c);  --head-ink:#e9e2ff;
+  --ink:#e6e1ff;   --dim:#a79ed6;  --line:#37306a;
+  --accent:#f0c36a; --accent-2:#8d6bd8; --accent-ink:#2a1f05;
+  --chip:#241f4d;  --ok:#6fc7a5;
+  --sky:linear-gradient(160deg,#1c1646 0%,#2a2060 50%,#3d2a68 100%);
+  --sky-ink:#f2ecff; --star:#ffe9a8; --note:rgba(16,13,42,.78);
+  --thumb:linear-gradient(160deg,#2a2160,#4a3480);
+  --deco:#1e1a42; --deco-2:#382f6d;
+  --warm:#4a3c22;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+/* ─── 한 화면 셸 ───
+   페이지는 스크롤하지 않는다. 창이 화면 높이를 꽉 채우고, 넘치는 건 3단 컬럼이
+   각자 안에서 처리한다(아래 .grid > *). 그래서 액자·배너·탭·푸터는 항상 보인다.
+   좁거나 낮은 화면에서는 이 규칙을 버리고 평범한 문서 스크롤로 되돌린다(맨 아래 미디어쿼리). */
+body{
+  background-color:var(--page);
+  /* 창 밖 여백 = 밤하늘. 격자 점 위에 크기 다른 잔별 두 겹을 서로 어긋난 주기로 얹어
+     규칙적인 격자처럼 보이지 않게 한다(주기가 서로 나누어떨어지지 않게 잡았다). */
+  background-image:
+    radial-gradient(var(--deco-2) 1.7px, transparent 1.8px),
+    radial-gradient(var(--deco) 1.1px, transparent 1.2px),
+    radial-gradient(var(--page-dot) 1px, transparent 1px);
+  background-size:317px 251px, 131px 173px, 12px 12px;
+  background-position:47px 23px, 13px 61px, 0 0;
+  color:var(--ink);
+  font:15px/1.5 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  height:100dvh;padding:8px 10px;overflow:hidden;
+  display:flex;flex-direction:column;gap:6px;
+}
+/* 레트로 캡션용 — 픽셀 폰트가 있으면 쓰고 없으면 고정폭으로 자연스럽게 떨어진다 */
+.mono{font-family:"Galmuri11","DungGeunMo",ui-monospace,"D2Coding",Consolas,monospace;}
+
+/* ─── 창(win) — 시안9의 지배적 장치: 페이지 전체가 하나의 액자다 ─── */
+.win{
+  flex:1 1 auto;min-height:0;
+  max-width:1700px;width:100%;margin:0 auto;background:var(--win);
+  border:3px solid var(--frame);border-radius:14px;overflow:hidden;
+  box-shadow:0 14px 44px rgba(40,20,80,.22), 0 0 0 3px var(--frame-2) inset;
+  display:flex;flex-direction:column;
+}
+.win-top{
+  flex:none;
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;
+  background:var(--frame);color:#fff;font-size:.7rem;padding:3px 12px;letter-spacing:.02em;
+}
+.win-top .right{display:flex;align-items:center;gap:10px;}
+.win-top .sep{opacity:.45;}
+
+/* ─── 색 테마 스와치 ─── 다크모드 스위치 왼쪽. 점 두 개면 "색 고르는 곳"으로 읽힌다.
+   스와치 색만은 토큰을 쓰지 않는다 — 이 점은 "지금 색"이 아니라 "누르면 갈 색"이라,
+   현재 테마를 따라가면 두 점이 같아져 버린다. */
+.pal{display:inline-flex;align-items:center;gap:5px;}
+.pal button{
+  width:17px;height:17px;padding:0;cursor:pointer;border-radius:50%;
+  border:2px solid rgba(255,255,255,.5);
+}
+.pal button[aria-pressed="true"]{box-shadow:0 0 0 2px #fff;border-color:transparent;}
+.pal .sw-sky{background:linear-gradient(135deg,#cfdcf2 45%,#7a82d3);}
+.pal .sw-lavender{background:linear-gradient(135deg,#f3bcd8 45%,#9b85dc);}
+.sr-only{
+  position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;
+  clip:rect(0 0 0 0);white-space:nowrap;border:0;
+}
+
+/* ─── 다크모드 스위치 ─── 상단 띠 오른쪽 끝. 실제 앱에도 이 자리를 그대로 쓴다 */
+.theme-toggle{
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+  background:none;border:0;padding:2px 0;color:#fff;font:inherit;font-size:.72rem;
+}
+.tt-track{
+  position:relative;display:inline-block;width:38px;height:20px;border-radius:999px;
+  background:rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.55);
+}
+.tt-knob{
+  position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;
+  background:#fff;color:#6b5a9c;font-size:9px;line-height:14px;text-align:center;
+  transition:transform .18s ease, background .18s ease;
+}
+html[data-theme="dark"] .tt-knob{transform:translateX(16px);background:#ffe9a8;}
+@media (prefers-reduced-motion:reduce){ .tt-knob{transition:none;} }
+.win-foot{
+  flex:none;
+  background:var(--frame);color:#fff;font-size:.66rem;padding:5px 12px;text-align:center;line-height:1.5;
+}
+
+/* ─── 배너 ─── 왼쪽 고양이 / 가운데 워드마크 / 오른쪽 오늘의 한마디 */
+.banner{
+  flex:none;
+  position:relative;background:var(--sky);color:var(--sky-ink);
+  display:grid;grid-template-columns:150px 1fr 260px;align-items:center;gap:20px;
+  padding:7px 26px;border-bottom:2px solid var(--frame);overflow:hidden;
+}
+.banner-note{
+  background:var(--note);border:2px solid var(--frame);border-radius:8px;
+  padding:7px 9px;font-size:.72rem;line-height:1.45;color:var(--ink);
+  box-shadow:2px 2px 0 var(--frame-2);
+}
+.banner-note b{display:block;font-size:.72rem;color:var(--accent);margin-bottom:3px;}
+.banner-mark{text-align:center;}
+.banner-mark h1{
+  margin:0;font-size:2.2rem;line-height:1.15;letter-spacing:.02em;
+  text-shadow:2px 2px 0 rgba(255,255,255,.45), 0 6px 18px rgba(60,30,110,.25);
+}
+html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.22);}
+.banner-mark p{margin:4px 0 0;font-size:.74rem;opacity:.85;}
+.banner-cat{width:100%;max-width:108px;display:block;margin-right:auto;
+  filter:drop-shadow(0 6px 12px rgba(40,20,80,.3));}
+/* 배너 별 데코 */
+.banner .deco{position:absolute;color:var(--star);pointer-events:none;font-size:.8rem;opacity:.9;}
+.banner .d1{top:12px;left:38%;} .banner .d2{top:44px;left:30%;font-size:1.1rem;}
+.banner .d3{bottom:18px;left:44%;} .banner .d4{top:20px;right:34%;font-size:1rem;}
+.banner .d5{bottom:30px;right:30%;}
+@media (prefers-reduced-motion:no-preference){
+  .banner .deco{animation:tw 3.2s ease-in-out infinite;}
+  .banner .d2{animation-delay:.7s;} .banner .d4{animation-delay:1.4s;} .banner .d5{animation-delay:2.1s;}
+  @keyframes tw{0%,100%{opacity:.35;transform:scale(.9);}50%{opacity:1;transform:scale(1.15);}}
+}
+
+/* ─── 탭 내비 ─── */
+.tabs{flex:none;display:flex;flex-wrap:wrap;background:var(--panel);border-bottom:2px solid var(--frame);}
+.tabs a{
+  display:flex;align-items:center;gap:6px;padding:9px 18px;font-size:.88rem;
+  color:var(--ink);text-decoration:none;border-right:1px solid var(--line);
+  border-top:3px solid transparent;
+}
+.tabs a:hover{background:var(--chip);}
+.tabs a.on{background:var(--chip);border-top-color:var(--accent);color:var(--accent);font-weight:700;}
+.tabs a.off{opacity:.4;}
+
+/* ─── 화면 무대 ─── 탭·카드가 화면을 갈아끼운다(.screen 중 하나만 .is-on).
+   무대는 남은 높이를 전부 차지하고, 넘치는 것은 각 칸이 자기 안에서 처리한다 —
+   어느 화면으로 가든 페이지는 스크롤하지 않는다는 규칙이 유지된다. */
+.stage{flex:1 1 auto;min-height:0;overflow:hidden;padding:12px;}
+.screen{display:none;height:100%;}
+.screen.is-on{display:block;}
+.cols{display:grid;gap:12px;height:100%;}
+.cols.home{grid-template-columns:240px minmax(0,1fr) 268px;}
+.cols.split{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);}
+/* 칸에 박스가 하나뿐이면 남는 높이를 그 박스가 먹는다 — 시범·카메라 무대가 커진다 */
+.cols.split > div,.cols.wide > div{display:flex;flex-direction:column;}
+.cols.split > div > .box:only-child,
+.cols.wide > div > .box:only-child{flex:1 1 auto;display:flex;flex-direction:column;margin-bottom:0;}
+.cols.split > div > .box:only-child,
+.cols.wide > div > .box:only-child > .box-body{flex:1 1 auto;display:flex;flex-direction:column;}
+.cols.split > div > .box:only-child,
+.cols.wide > div > .box:only-child .stage-box{flex:1 1 auto;height:auto;min-height:170px;}
+.cols.split > div > .box:only-child,
+.cols.wide > div > .box:only-child .gal.dex{flex:1 1 auto;align-content:start;}
+.cols > *{min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--frame-2) transparent;}
+.cols > *::-webkit-scrollbar{width:7px;}
+.cols > *::-webkit-scrollbar-thumb{background:var(--frame-2);border-radius:999px;}
+.cols > *::-webkit-scrollbar-track{background:transparent;}
+
+/* ─── 박스 패널(시안9의 기본 단위) ─── */
+.box{
+  background:var(--panel);border:2px solid var(--frame-2);border-radius:8px;
+  overflow:hidden;margin-bottom:8px;
+}
+.box:last-child{margin-bottom:0;}
+.box-head{
+  margin:0;background:var(--head);color:var(--head-ink);
+  font-size:.84rem;font-weight:700;padding:5px 10px;
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;
+}
+.box-head .more{margin-left:auto;font-weight:400;font-size:.76rem;opacity:.75;}
+[data-nav]{cursor:pointer;}
+.box-head .more[data-nav]:hover{opacity:1;text-decoration:underline;}
+.box-body{padding:9px 10px;font-size:.85rem;}
+.box-body p{margin:0 0 8px;}
+.box-body p:last-child{margin-bottom:0;}
+
+/* ─── 좌: 환영 박스 ─── */
+.welcome{text-align:center;}
+.welcome img{width:54px;display:block;margin:0 auto 5px;}
+.welcome .hi{font-size:.92rem;font-weight:700;margin-bottom:4px;}
+.welcome .sub{font-size:.8rem;color:var(--dim);line-height:1.5;}
+.streak{
+  display:inline-block;margin:6px 0 2px;padding:3px 10px;border-radius:999px;
+  background:var(--chip);border:2px solid var(--frame-2);font-size:.8rem;font-weight:700;
+}
+/* 미리보기에선 버튼이 항상 박스 안 가로말뚝이였지만, 앱에선 화면 머리·줄 안에도
+   섞인다. 기본을 inline으로 두고 "판을 채우는 자리"에서만 블록으로 만든다. */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  width:auto;margin-top:0;padding:9px 16px;cursor:pointer;
+  font:inherit;font-size:.98rem;font-weight:700;
+  background:var(--accent);color:var(--accent-ink);
+  border:2px solid var(--frame);border-radius:8px;box-shadow:2px 2px 0 var(--frame-2);
+}
+.btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--frame-2);}
+.btn.ghost{background:transparent;color:var(--ink);}
+
+/* ─── 좌: 메뉴 목록 ─── */
+.menu{list-style:none;margin:0;padding:0;}
+.menu li a{
+  display:flex;gap:8px;padding:7px 5px;font-size:.86rem;color:var(--ink);
+  text-decoration:none;border-bottom:1px dashed var(--line);
+}
+.menu li:last-child a{border-bottom:0;}
+.menu li a:hover{background:var(--chip);}
+
+/* ─── 중앙: 오늘의 루틴 ─── */
+.rt{list-style:none;margin:0 0 8px;padding:0;}
+.rt li{
+  display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;
+  padding:7px 5px;border-bottom:1px dashed var(--line);font-size:.92rem;
+}
+.rt li:last-child{border-bottom:0;}
+.rt .n{font-size:1rem;text-align:center;}
+.rt .rep{font-size:.82rem;color:var(--dim);}
+.rt li.done .name{color:var(--dim);text-decoration:line-through;}
+.rt li.done .rep{color:var(--ok);font-weight:700;text-decoration:none;}
+.bar{
+  height:12px;border:2px solid var(--frame-2);border-radius:999px;
+  background:var(--chip);overflow:hidden;margin-bottom:6px;
+}
+.bar i{
+  display:block;height:100%;width:66%;
+  background:repeating-linear-gradient(45deg,var(--accent) 0 7px,var(--accent-2) 7px 14px);
+}
+.bar-label{display:flex;justify-content:space-between;font-size:.79rem;color:var(--dim);margin-bottom:7px;}
+
+/* ─── 중앙: 표 ─── */
+table{width:100%;border-collapse:collapse;}
+th,td{padding:6px 8px;text-align:left;font-size:.84rem;}
+th{background:var(--chip);color:var(--dim);font-size:.72rem;font-weight:700;border-bottom:2px solid var(--line);}
+td{border-bottom:1px dashed var(--line);}
+tr:last-child td{border-bottom:0;}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+/* ─── 중앙: 도감 갤러리 ─── */
+.gal{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;}
+.gal figure{margin:0;text-align:center;}
+.gal .th{
+  /* 8칸이라 정사각형이면 한 칸이 130px 넘게 커진다 — 세로만 묶어 높이를 돌려받는다 */
+  height:clamp(56px,6.8vh,80px);
+  border:2px solid var(--frame-2);border-radius:6px;background:var(--thumb);
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--star);
+}
+.gal figcaption{font-size:.74rem;margin-top:4px;color:var(--dim);}
+.gal .lock .th{filter:grayscale(1);opacity:.35;}
+
+/* ─── 우: 위젯 ─── */
+/* 별자리 판은 라이트에서도 어둡게 둔다 — 밤하늘은 원래 어둡고,
+   파스텔 배경에 크림색 별을 올리면 별이 안 보인다(--star를 이 안에서만 덮어쓴다). */
+.sky-box{
+  --star:#ffeec2;
+  background:var(--skypanel);
+  border:1px solid var(--frame-2);border-radius:6px;padding:6px;
+}
+.metric{display:flex;justify-content:space-between;font-size:.85rem;padding:4px 0;border-bottom:1px dashed var(--line);}
+.metric:last-of-type{border-bottom:0;}
+.metric b{font-variant-numeric:tabular-nums;}
+.gift{
+  margin-top:7px;background:var(--warm);border:2px solid var(--frame-2);border-radius:6px;
+  padding:7px 9px;font-size:.8rem;line-height:1.45;
+}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center;font-size:.74rem;}
+.cal span{padding:0;line-height:1.6;border-radius:4px;color:var(--dim);}
+.cal .h{font-weight:700;color:var(--accent);}
+.cal .on{background:var(--chip);color:var(--ink);font-weight:700;}
+.cal .today{outline:2px solid var(--accent);}
+.radio{display:flex;align-items:center;gap:9px;font-size:.84rem;}
+.radio .knob{
+  width:30px;height:30px;border-radius:50%;border:2px solid var(--frame);
+  background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;
+}
+.aff{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.aff span{
+  border:2px solid var(--frame-2);border-radius:5px;background:var(--chip);
+  font-size:.64rem;text-align:center;padding:8px 2px;color:var(--dim);
+}
+
+/* ═══ 화면별 부품 ═══ 색은 전부 토큰을 쓴다 — 팔레트·다크모드를 그대로 따라간다 */
+
+/* 시범/카메라 무대 */
+.stage-box{
+  position:relative;background:var(--skypanel);border:2px solid var(--frame-2);border-radius:8px;
+  height:clamp(180px,30vh,300px);display:flex;align-items:center;justify-content:center;
+  color:#e9edff;overflow:hidden;
+}
+.stage-box .hint{font-size:.86rem;opacity:.62;text-align:center;line-height:1.7;}
+.stage-box .arc{position:absolute;inset:0;}
+.pip{
+  position:absolute;right:10px;bottom:10px;width:132px;height:88px;border-radius:6px;
+  border:2px solid var(--frame-2);background:rgba(0,0,0,.42);
+  display:flex;align-items:center;justify-content:center;font-size:.72rem;color:#e9edff;
+}
+.pip .dot{
+  position:absolute;top:6px;left:8px;display:flex;align-items:center;gap:4px;font-size:.64rem;
+}
+.pip .dot i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;}
+
+/* 단계 칩 줄 */
+.steps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:9px;}
+.steps span{
+  padding:4px 10px;border-radius:999px;font-size:.78rem;
+  background:var(--chip);border:2px solid var(--frame-2);color:var(--dim);
+}
+.steps span.now{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700;}
+.steps span.done{color:var(--ok);}
+
+/* 큰 수치 */
+.readout{display:flex;align-items:baseline;gap:10px;margin:6px 0 8px;}
+.readout b{font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums;color:var(--accent);}
+.readout span{font-size:.84rem;color:var(--dim);}
+
+/* 나란한 두 버튼 */
+.row-btn{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.row-btn .btn{margin-top:0;}
+
+/* 도감 16칸 + 일기 카드 */
+.gal.dex{grid-template-columns:repeat(4,1fr);gap:10px;}
+.gal.dex .th{height:clamp(74px,12vh,124px);font-size:1.5rem;}
+.gal.dex figcaption{font-size:.8rem;}
+.diary p{margin:0 0 7px;}
+.diary .when{font-size:.78rem;color:var(--dim);}
+
+/* 최근 7일 컨디션 */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;text-align:center;}
+.week span{font-size:1.15rem;}
+.week small{display:block;font-size:.7rem;color:var(--dim);}
+
+/* 손 선택 */
+.hand{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.hand button{
+  font:inherit;font-size:.9rem;padding:14px 8px;cursor:pointer;border-radius:8px;
+  background:var(--chip);color:var(--ink);border:2px solid var(--frame-2);
+}
+.hand button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;}
+
+/* ─── 밤하늘 도감 ─── 하나의 밤하늘에 16개를 흩뿌린다(격자 아님).
+   라이트 팔레트에서도 판은 어둡게 둔다 — 별은 어두운 하늘에서만 별로 보인다. */
+.cols.wide{grid-template-columns:1fr;}
+.sky-body{flex:1 1 auto;display:flex;padding:8px;}
+.skymap{
+  --star:#ffeec2;
+  position:relative;flex:1 1 auto;min-height:260px;overflow:hidden;
+  background:var(--skypanel);border-radius:6px;border:1px solid var(--frame-2);
+  color:var(--star);
+}
+/* 정적 별밭 — 별자리 뒤에 깔린다 */
+.skymap::before{
+  content:'';position:absolute;inset:0;pointer-events:none;opacity:.9;
+  background-image:
+    radial-gradient(1px 1px at 34px 42px, rgba(255,255,255,.85), transparent),
+    radial-gradient(1px 1px at 138px 96px, rgba(196,214,255,.5), transparent),
+    radial-gradient(1.5px 1.5px at 210px 168px, rgba(224,230,255,.75), transparent),
+    radial-gradient(1px 1px at 320px 58px, rgba(255,255,255,.45), transparent),
+    radial-gradient(1px 1px at 90px 244px, rgba(178,205,255,.58), transparent),
+    radial-gradient(1.5px 1.5px at 286px 286px, rgba(255,246,232,.5), transparent),
+    radial-gradient(1px 1px at 176px 20px, rgba(255,255,255,.55), transparent),
+    radial-gradient(1px 1px at 250px 210px, rgba(196,214,255,.5), transparent),
+    radial-gradient(1px 1px at 40px 330px, rgba(216,226,255,.6), transparent);
+  background-repeat:repeat;background-size:390px 390px;
+}
+.skymap-item{
+  position:absolute;transform:translate(-50%,-50%);z-index:1;
+  width:clamp(52px,8.4vw,116px);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit;
+  transition:transform .14s cubic-bezier(.34,1.5,.5,1), opacity .14s ease;
+}
+.skymap-item .sky{width:100%;aspect-ratio:1/1;display:block;}
+.skymap-item .nm{
+  font-size:clamp(9px,.78vw,13px);color:#eef2ff;white-space:nowrap;line-height:1.15;
+  text-shadow:0 1px 3px rgba(5,10,24,.8), 0 0 6px rgba(5,10,24,.6);
+}
+.skymap-item.done:hover{transform:translate(-50%,-50%) scale(1.1);z-index:3;}
+.skymap-item.done:active{transform:translate(-50%,-50%) scale(1.02);}
+.skymap-item.locked{opacity:.34;}          /* 아직 못 만난 별자리 — 아주 흐릿하게 */
+.skymap-item.locked:hover{opacity:.58;}
+@media (prefers-reduced-motion:reduce){ .skymap-item{transition:none;} }
+
+/* 크게 보기 — 완성이면 일기 카드, 아니면 잠김 안내 */
+.sky-modal{position:absolute;inset:0;z-index:5;background:rgba(6,9,26,.62);
+  display:flex;align-items:center;justify-content:center;padding:16px;}
+.sky-modal[hidden]{display:none;}
+.sky-card{
+  width:min(360px,92%);background:var(--panel);color:var(--ink);
+  border:2px solid var(--frame);border-radius:10px;overflow:hidden;
+  box-shadow:0 12px 32px rgba(6,9,26,.45);
+}
+.sky-card-sky{background:var(--skypanel);color:#ffeec2;padding:10px;height:150px;}
+.sky-card-body{padding:12px 14px 14px;}
+.sky-card-body h3{margin:0 0 5px;font-size:1.12rem;}
+.sky-card-body p{margin:0 0 7px;font-size:.86rem;}
+.sky-card-body .when{color:var(--dim);font-size:.8rem;}
+
+/* ─── 한 화면 셸을 포기하는 조건 ───
+   칸을 세로로 쌓아야 하거나(좁은 화면) 높이가 모자라면(낮은 창), 억지로 우겨넣는 대신
+   평범한 문서 스크롤로 되돌린다. 한 화면에 넣는 건 넓은 화면에서의 이득이지 규칙이 아니다. */
+@media (max-width:980px), (max-height:620px){
+  body{height:auto;overflow:visible;display:block;padding:12px 12px 32px;}
+  .skinbar--unused{white-space:normal;margin-bottom:10px;}
+  .win{display:block;}
+  .stage{overflow:visible;}
+  .screen{height:auto;}
+  .cols{height:auto;}
+  .cols > *{overflow:visible;}
+}
+@media (max-width:980px){
+  .cols.home,.cols.split{grid-template-columns:1fr;}
+  .banner{grid-template-columns:1fr;text-align:center;}
+  .banner-cat{margin:0 auto;max-width:120px;}
+  .gal{grid-template-columns:repeat(3,1fr);}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   앱 연결 — 위쪽(미리보기에서 그대로 가져온 부분)은 손대지 않는다.
+   여기서 하는 일은 셋뿐이다:
+     ① 라우터가 쓰는 .is-active 를 미리보기의 .is-on 자리에 연결
+     ② legacy.css가 참조하는 옛 토큰 이름을 미리보기 토큰의 별칭으로 잇기
+     ③ JS가 만들어 내는 조각(gc-·rh-·rw-·remind-·gp-dot)을 미리보기 언어로 다시 칠하기
+   ═══════════════════════════════════════════════════════════ */
+
+/* ① 화면 전환 — ui.js는 .is-active를 켜고 끈다 */
+.screen{ display:none; }
+.screen.is-active{ display:block; }
+.screen.is-on{ display:none; }   /* 미리보기 전용 클래스는 앱에서 쓰지 않는다 */
+
+/* ② 옛 토큰 → 미리보기 토큰 별칭.
+   legacy.css의 규칙들이 이 이름으로 색을 찾으므로, 여기서 이어 주면 팔레트·다크모드가
+   그대로 따라온다. 값을 새로 정하는 게 아니라 "가리키게만" 한다. */
+:root{
+  --muted:var(--dim);  --ink-soft:var(--dim);
+  --paper:var(--panel); --cream:var(--chip);
+  --moss:var(--accent); --moss-l:var(--accent-2); --moss-d:var(--accent);
+  --moss-dd:var(--ink); --moss-rgb:120,120,160; --moss-dd-rgb:90,90,130;
+  --sage:var(--dim); --sage-soft:var(--chip);
+  --honey:var(--star); --honey-rgb:255,207,135; --sun-soft:var(--chip);
+  --terra:var(--accent); --water-d:var(--accent-2); --dot-on:var(--accent);
+  --glow:140,150,220; --warm-glow:255,214,150; --gold-rgb:255,210,63;
+  --shade-rgb:60,60,110;
+  --grad-surface:var(--skypanel);
+  --grad-bar:repeating-linear-gradient(45deg,var(--accent) 0 7px,var(--accent-2) 7px 14px);
+  --cam-bg:#14112b; --scrim:rgba(16,12,34,.72); --scrim-2:rgba(16,12,34,.6);
+  --white-a35:rgba(255,255,255,.22);
+
+  /* 유리 → 미리보기의 납작한 판 */
+  --glass-bg-strong:var(--panel); --glass-blur:none;
+  --glass-border:2px solid var(--frame-2); --glass-rim:none; --glass-shadow:none;
+
+  /* 모양·간격·그림자 — 미리보기 규칙에 맞춘 값 */
+  --r-chip:6px; --r-sm:6px; --r-md:8px; --r-lg:8px; --r-card:8px; --r-pill:999px;
+  --sp-3xs:2px; --sp-2xs:4px; --sp-xs:6px; --sp-sm:8px; --sp:10px;
+  --sp-md:12px; --sp-lg:14px; --sp-xl:18px;
+  --shadow-sm:none; --shadow-inset:none; --shadow-badge:none;
+  --shadow-emoji:none; --ring:inset 0 0 0 2px var(--frame-2);
+  --ring-sage:inset 0 0 0 2px var(--frame-2); --ring-accent:inset 0 0 0 2px var(--accent);
+  --ring-white:inset 0 0 0 2px rgba(255,255,255,.5);
+  --btn-lift-sm:0px; --btn-pad-sm:8px 14px;
+  --lh:1.55;
+
+  /* 글자 크기 — 미리보기 본문 15px 기준 */
+  --fs-2xs:11px; --fs-xs:11.7px; --fs-sm:12.6px; --fs-base:13.5px;
+  --fs-md:15px; --fs-lg:16.8px; --fs-xl:19.5px;
+  --fs-num:24px; --fs-count:34px; --fs-emoji-sm:24px;
+}
+
+/* ③ JS가 만드는 조각들 — 미리보기 언어로 */
+
+/* 가이드 카드(운동 목록) = 점선으로 나뉜 행 */
+.guide-list{ background:var(--panel); border:2px solid var(--frame-2); border-radius:8px; overflow:hidden; }
+.guide-card{
+  display:flex; align-items:center; gap:12px; width:100%; padding:11px 14px;
+  background:none; border:0; border-bottom:1px dashed var(--line);
+  cursor:pointer; font:inherit; color:var(--ink); text-align:left;
+}
+.guide-card:last-child{ border-bottom:0; }
+.guide-card:hover{ background:var(--chip); }
+.gc-emoji{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0; font-size:1.15rem;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--chip); border:2px solid var(--frame-2);
+}
+.gc-name{ min-width:0; font-size:.92rem; font-weight:700; color:var(--ink); }
+.gc-tags{ margin-left:auto; display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.gc-badge, .gc-focus{
+  font-size:.74rem; padding:3px 10px; border-radius:999px;
+  background:var(--chip); color:var(--dim); border:2px solid var(--frame-2);
+}
+.gc-badge--done{ color:var(--ok); border-color:var(--ok); }
+
+/* 기록 목록(운동 완료·데일리 루틴) */
+.rec-history{ list-style:none; margin:0; padding:0; }
+.rh-item{
+  display:flex; align-items:center; gap:10px; padding:6px 4px;
+  border-bottom:1px dashed var(--line); font-size:.84rem;
+}
+.rec-history li:last-child .rh-item, .rh-item:last-child{ border-bottom:0; }
+.rh-date{
+  flex:none; font-size:.76rem; padding:2px 8px; border-radius:999px;
+  background:var(--accent); color:var(--accent-ink); font-weight:700;
+}
+.rh-name{ min-width:0; color:var(--ink); }
+.rh-more{ margin-left:auto; font-size:.76rem; color:var(--dim); }
+
+/* 최근 7일 컨디션 */
+.rec-week{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; text-align:center; margin-bottom:8px; }
+.rw-day{ padding:4px 0; border-radius:6px; }
+.rw-day.is-today{ outline:2px solid var(--accent); }
+.rw-label{ display:block; font-size:.7rem; color:var(--dim); }
+.rw-emoji{ display:block; font-size:1.15rem; }
+
+/* 리마인더 시간 칩 */
+.remind-presets{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+.remind-preset, .remind-chip{
+  font:inherit; font-size:.78rem; padding:5px 11px; border-radius:999px; cursor:pointer;
+  background:var(--chip); color:var(--ink); border:2px solid var(--frame-2);
+}
+.remind-preset.is-on, .remind-chip{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+.remind-selected{ display:flex; flex-wrap:wrap; gap:6px; margin:6px 0; }
+.remind-custom{ display:flex; align-items:center; gap:6px; margin:6px 0; font-size:.78rem; }
+.remind-custom input{
+  font:inherit; font-size:.82rem; padding:5px 8px; border-radius:6px;
+  background:var(--panel); color:var(--ink); border:2px solid var(--frame-2);
+}
+
+/* 루틴 진행 점(완료 패널) */
+.gp-routine-prog{ display:flex; justify-content:center; gap:6px; margin:8px 0; }
+.gp-dot{ width:10px; height:10px; border-radius:50%; background:var(--chip); border:2px solid var(--frame-2); }
+.gp-dot.on{ background:var(--accent); border-color:var(--accent); }
+
+/* 별자리 판 — 라이트에서도 어둡게(별은 어두운 하늘에서만 별로 보인다) */
+.sky-panel{ background:var(--skypanel); border:1px solid var(--frame-2); border-radius:6px; padding:6px; }
+.sky-panel .sky-stage{ margin:0; }
+
+/* ─── 앱 전용 조각의 크기 ─── 미리보기엔 없던 요소들(실제 렌더 대상)의 기하만 잡는다 */
+.wordmark{
+  background:none; border:0; padding:0; cursor:pointer; color:inherit;
+  font:inherit; font-size:inherit; font-weight:inherit; letter-spacing:inherit;
+}
+.win-top .streak{
+  display:inline; background:none; border:0; padding:0; margin:0;
+  color:inherit; font-size:inherit; box-shadow:none; animation:none;
+}
+/* 배너 마스코트 — 미리보기의 banner-cat 자리 */
+.banner .mascot-wrap{ position:static; width:auto; }
+.banner .mascot{ width:100%; max-width:108px; display:block; margin-right:auto; position:static; }
+
+/* 오늘의 별자리 판 — 판 크기를 여기서 정해야 SVG가 제 크기를 찾는다 */
+.sky-stage{
+  position:relative; width:100%; height:150px; margin:0;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+}
+/* sky.js가 만드는 SVG는 부모를 꽉 채운다 — 전역으로 묶지 않으면 도감 썸네일처럼
+   높이가 정해지지 않은 자리에서 화면 전체로 번진다(실제로 그렇게 됐다). */
+.sky-svg{ width:100%; height:100%; display:block; }
+/* sky.js의 SVG는 position:absolute라 기준이 될 부모가 필요하다 — 없으면 뷰포트 전체를
+   기준 삼아 화면을 덮는다(실제로 도감 썸네일 5개가 그렇게 번졌다). */
+.gal .th{ position:relative; overflow:hidden; }
+.gal .th > *{ width:100%; height:100%; }
+.sky-stage-wrap{ position:relative; }
+.sky-label{ text-align:center; margin:6px 0 0; font-weight:700; color:var(--ink); }
+.sky-label b{ color:inherit; }
+
+/* 추이 미니 그래프 */
+.trend{ margin-bottom:6px; }
+.soft{ margin:0; color:var(--dim); font-size:.8rem; }
+.empty{ margin:0; padding:14px 10px; color:var(--dim); font-size:.82rem; text-align:center; }
+.focus-name{ margin:0 0 3px; font-weight:700; color:var(--ink); }
+.focus-sub{ margin:0; color:var(--dim); font-size:.78rem; }
+.welcome-cat-sm{ width:64px; display:block; margin:0 auto 5px; }
+.welcome-box{ text-align:center; }
+.welcome-box .hi{ margin:0 0 8px; font-size:.88rem; font-weight:700; color:var(--ink); }
+.btn.ghost{ background:transparent; color:var(--ink); }
+
+/* 메뉴는 <a>가 아니라 <button>이다(라우터가 [data-nav]를 위임으로 받는다) */
+.menu li button{
+  display:flex; gap:8px; width:100%; padding:7px 5px; font:inherit; font-size:.86rem;
+  color:var(--ink); background:none; border:0; border-bottom:1px dashed var(--line);
+  cursor:pointer; text-align:left; border-radius:0;
+}
+.menu li:last-child button{ border-bottom:0; }
+.menu li button:hover{ background:var(--chip); }
+
+/* 도감 썸네일 판 — 실제 별자리를 그리므로 라이트에서도 밤하늘이어야 별이 보인다 */
+.gal .th{ background:var(--skypanel); }
+
+/* ─── 한 화면 셸 ─── 무대는 고정, 화면이 무대를 채우고 넘치는 칸만 안에서 스크롤.
+   미리보기의 규칙을 앱 화면들에 그대로 적용한다. */
+.screen.is-active{ height:100%; min-height:0; display:flex; flex-direction:column; }
+.screen.is-active > .screen-head, .screen.is-active > .m-disc{ flex:none; }
+.screen.is-active > .cols{ flex:1 1 auto; min-height:0; }
+.cols.home, .cols.split{ align-items:stretch; }
+.cols > .col{
+  display:flex; flex-direction:column; min-width:0; min-height:0; overflow-y:auto;
+  scrollbar-width:thin; scrollbar-color:var(--frame-2) transparent;
+}
+.cols > .col::-webkit-scrollbar{ width:7px; }
+.cols > .col::-webkit-scrollbar-thumb{ background:var(--frame-2); border-radius:999px; }
+.cols > .col::-webkit-scrollbar-track{ background:transparent; }
+.cols.split{ grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); }
+
+/* 화면 머리 — 탭이 있으니 크게 외치지 않는다 */
+.screen-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.screen-title{ margin:0; font-size:1.25rem; font-weight:700; color:var(--ink); }
+
+/* 밤하늘 도감 — 원래 뷰포트를 덮는 화면이었다. 창 안의 한 판으로 가둔다. */
+#screen-sky.is-active{
+  position:relative; inset:auto; z-index:auto; display:block;
+  height:100%; min-height:420px; overflow:hidden;
+  border:2px solid var(--frame-2); border-radius:8px; background:var(--skypanel);
+}
+#screen-sky .screen-title, #screen-sky .sky-dex-sub, #screen-sky .sky-map-name{ color:#eef2ff; }
+
+/* 기록 차트 — 칸 높이에 따라 늘어난다 */
+.rec-canvas{ display:block; width:100%; height:clamp(130px,20vh,240px); }
+
+/* 측정 카메라 — 칸을 채우되 4/3을 지킨다(세로로 늘리면 영상 양옆이 잘린다) */
+#screen-measure .cam-wrap{ aspect-ratio:4/3; width:100%; max-height:100%; margin:auto 0; }
+
+@media (max-width:1000px), (max-height:620px){
+  body{ height:auto; overflow:visible; display:block; padding:10px 10px 28px; }
+  .win{ display:block; }
+  .stage{ overflow:visible; }
+  .screen.is-active{ height:auto; display:block; }
+  .cols{ height:auto; }
+  .cols > .col{ overflow:visible; }
+  .cols.home, .cols.split{ grid-template-columns:1fr; }
+  #screen-sky.is-active{ height:auto; min-height:70vh; }
+}
+
+/* 판을 채우는 자리 — 박스 본문의 직계 버튼, 나란한 두 버튼, 환영 칸 */
+.box-body > .btn, .row-btn .btn, .welcome-box .btn, .hand button{ display:flex; width:100%; }
+.box-body > .btn{ margin-top:9px; }
+.row-btn{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.screen-head .btn{ padding:6px 12px; font-size:.84rem; }
