@@ -581,6 +581,61 @@ body{ font:15px/1.55 var(--font); }
 .app .remind-sub, .app .remind-note{ font-size:.76rem; color:var(--sh-dim); }
 .app .remind-custom label{ font-size:.78rem; color:var(--sh-dim); }
 
+/* ═══════════ 화면 안쪽도 미리보기의 박스로 ═══════════
+   미리보기의 기본 단위는 "제목바 + 본문"을 가진 판이다. 화면 안쪽 카드들은
+   이미 머리줄(.rec-card-head 등)을 갖고 있으므로, 그 줄을 카드 가장자리까지
+   끌어올려(음수 마진) 제목바로 만든다 — 마크업은 건드리지 않는다. */
+
+/* 2단 배치 — 미리보기의 .cols.split
+   ⚠ styles.css는 넓은 화면에서 #screen-records.is-active 자체를 2열 그리드로 만든다.
+     그대로 두면 우리 2단 묶음이 그 그리드의 한 칸에 들어가 반쪽만 쓰고, 면책이
+     옆 칸으로 밀린다. 배치는 안쪽 .cols가 맡으므로 바깥은 블록으로 되돌린다. */
+#screen-records.is-active{ display:block; }
+.screen .cols.split{
+  display:grid; grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);
+  gap:12px; align-items:start;
+}
+.screen .cols.split > .col{ display:flex; flex-direction:column; gap:0; min-width:0; }
+
+/* 기록 카드 = 박스 */
+.app .rec-card{ padding:0 12px 12px; overflow:hidden; }
+.app .rec-card-head{
+  margin:0 -12px 10px; padding:5px 11px; gap:8px;
+  background:var(--sh-head); border-bottom:1px solid var(--sh-line);
+}
+.app .rec-card-title{ font-size:.84rem; font-weight:700; color:var(--sh-head-ink); }
+.app .rec-range, .app .rec-count{ font-size:.76rem; color:var(--sh-head-ink); opacity:.75; }
+
+/* 측정 화면 판 = 박스 (카메라 왼쪽 / 안내·결과 오른쪽 2단은 styles.css가 이미 잡아 뒀다) */
+.app .mzone{
+  background:var(--sh-panel); border:2px solid var(--sh-frame2); border-radius:8px;
+  box-shadow:none; -webkit-backdrop-filter:none; backdrop-filter:none; padding:12px;
+}
+.app .m-result{ padding:0 12px 12px; overflow:hidden; }
+.app .m-result-title{
+  margin:0 -12px 10px; padding:5px 11px; text-align:left;
+  background:var(--sh-head); color:var(--sh-head-ink);
+  border-bottom:1px solid var(--sh-line); font-size:.84rem; font-weight:700;
+}
+
+/* 가이드 목록도 제목바를 갖는다 — 목록 판이 화면에 그냥 떠 있지 않게 */
+#screen-guide .guide-list{ position:relative; padding-top:0; }
+#screen-guide .guide-list::before{
+  content:'🎬 오늘의 루틴 · 누르면 시범이 재생돼요';
+  display:block; padding:5px 11px; font-size:.84rem; font-weight:700;
+  background:var(--sh-head); color:var(--sh-head-ink); border-bottom:1px solid var(--sh-line);
+}
+
+/* 빈 상태 — 큰 이모지·큰 여백을 미리보기 톤으로 줄인다 */
+.app .rec-empty, .app .placeholder{ padding:16px 10px; }
+.app .rec-empty-emoji, .app .placeholder-emoji{ font-size:1.8rem; margin:0 0 6px; }
+.app .rec-empty-text, .app .placeholder-text{ font-size:.84rem; color:var(--sh-dim); }
+.app .placeholder-sub{ font-size:.78rem; color:var(--sh-dim); }
+
+/* 화면 머리 — 뒤로 버튼 + 제목 한 줄. 탭이 있으니 크게 외칠 필요가 없다 */
+.screen-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.app .screen-head .btn-back{ padding:6px 12px; font-size:.82rem; }
+
 /* ═══════════ 좁거나 낮은 화면 ═══════════
    한 화면에 담는 건 넓은 화면에서의 이득이지 규칙이 아니다. 여기서는 평범한 문서 스크롤로. */
 @media (max-width:1000px), (max-height:620px){
