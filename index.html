@@ -73,7 +73,7 @@
 
       <!-- ─── 홈 — 3단 포털 ───
            좌=길잡이 / 가운데=오늘 할 일 / 우=상태 위젯.
-           박스는 전부 제목바를 가진 같은 단위(.pbox)다. 위계는 "가운데가 크다"로만 준다.
+           박스는 전부 제목바를 가진 같은 단위(.box)다. 위계는 "가운데가 크다"로만 준다.
            내용은 전부 실제 저장 데이터에서 온다(main.js renderHome* 계열). -->
       <section id="screen-home" class="screen is-active" data-screen="home">
         <div class="cols home">
@@ -128,7 +128,7 @@
               <h2 class="box-head">🎬 오늘의 루틴 <span class="more" data-nav="guide">운동 목록 ▸</span></h2>
               <div class="box-body">
                 <p class="home-hero-title" id="todayRoutine">1분, 손목 굽힘·폄부터 시작해요</p>
-                <div class="pbar"><i id="homeBar"></i></div>
+                <div class="bar"><i id="homeBar"></i></div>
                 <p id="rpText" class="rp-text"></p>
                 <ul class="rt" id="homeRoutineList"></ul>
                 <button class="btn btn-primary btn-hero" id="routineStart">시작하기 🚀</button>

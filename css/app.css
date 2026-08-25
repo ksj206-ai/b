@@ -191,14 +191,15 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 
 /* ─── 탭 내비 ─── */
 .tabs{flex:none;display:flex;flex-wrap:wrap;background:var(--panel);border-bottom:2px solid var(--frame);}
-.tabs a{
+.tabs a, .tabs button{
+  background:none;border:0;font:inherit;cursor:pointer;
   display:flex;align-items:center;gap:6px;padding:9px 18px;font-size:.88rem;
   color:var(--ink);text-decoration:none;border-right:1px solid var(--line);
   border-top:3px solid transparent;
 }
-.tabs a:hover{background:var(--chip);}
-.tabs a.on{background:var(--chip);border-top-color:var(--accent);color:var(--accent);font-weight:700;}
-.tabs a.off{opacity:.4;}
+.tabs a:hover, .tabs button:hover{background:var(--chip);}
+.tabs a.on, .tabs button.on{background:var(--chip);border-top-color:var(--accent);color:var(--accent);font-weight:700;}
+.tabs a.off, .tabs button[disabled]{opacity:.4;}
 
 /* ─── 화면 무대 ─── 탭·카드가 화면을 갈아끼운다(.screen 중 하나만 .is-on).
    무대는 남은 높이를 전부 차지하고, 넘치는 것은 각 칸이 자기 안에서 처리한다 —
