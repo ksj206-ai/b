@@ -143,7 +143,198 @@ function renderHome() {
   chip.textContent = need ? '📏 이번 주 체크 전이에요' : '✓ 이번 주 체크 완료';
   chip.classList.toggle('is-need', need);
 
+  // 포털 홈의 나머지 칸 — 전부 읽기 전용 렌더라 순서가 상태에 영향을 주지 않는다
+  renderHomeRoutine(r);
+  renderHomeFocus();
+  renderHomeHistory();
+  renderHomeDex();
+  renderHomeMeasure();
+  renderHomeCalendar();
+
+  // 반가워요 칸은 말풍선과 같은 말을 두 번 하지 않는다 — 짧은 인사만.
+  const greet = $('homeGreet');
+  if (greet) {
+    greet.textContent = complete ? '오늘 몴 끝! 내일 만나요 🌙'
+      : done > 0 ? '좀 전에 하던 거, 이어서 할까요?'
+      : '오늘도 만나서 반가워요!';
+  }
+
   renderRemindEntry();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 홈 위젯 — 3단 포털의 칸들을 실제 저장 데이터로 채운다.
+// 전부 "읽기 전용 렌더"다. 상태를 바꾸는 일은 하나도 하지 않는다(부수효과 금지).
+// 데이터가 없으면 각자 조용히 빈 상태를 그린다 — 홈에서 "없음"을 크게 말하지 않는다.
+// ═══════════════════════════════════════════════════════════
+
+/** 오늘의 루틴 6종 목록 + 진행바 — 완료한 것은 흐리게, 다음 것은 화살표로 가리킨다 */
+function renderHomeRoutine(r) {
+  const list = document.getElementById('homeRoutineList');
+  const bar = document.getElementById('homeBar');
+  if (!list) return;
+  const { done, total } = routineProgress(r);
+  if (bar) bar.style.width = `${total ? Math.round((done / total) * 100) : 0}%`;
+
+  const nextId = nextRoutineExercise(r);
+  list.innerHTML = '';
+  r.ids.forEach((id) => {
+    const g = getGuide(id);
+    if (!g) return;
+    const isDone = r.doneIds.includes(id);
+    const li = document.createElement('li');
+    li.className = isDone ? 'is-done' : (id === nextId ? 'is-next' : '');
+    li.innerHTML = `<span class="n">${g.emoji || '✋'}</span>`
+      + `<span class="name">${g.short || g.name}</span>`
+      + `<span class="rep">${isDone ? '완료 ✓' : (id === nextId ? '다음 →' : '')}</span>`;
+    list.appendChild(li);
+  });
+}
+
+/** 오늘의 포커스 — 적응형이 고른 방향이 있을 때만 나타난다 */
+function renderHomeFocus() {
+  const box = document.getElementById('homeFocusBox');
+  const name = document.getElementById('homeFocusName');
+  if (!box || !name) return;
+  const focus = getAdapt().focus;
+  const g = focus ? getGuide(focus) : null;
+  box.hidden = !g;
+  if (g) name.textContent = g.name;
+}
+
+/** 최근 기록 — 날짜별로 묶어 최근 5일. 운동은 개수로, 측정은 수치로 한 줄씩. */
+function renderHomeHistory() {
+  const table = document.getElementById('homeHistory');
+  const empty = document.getElementById('homeHistoryEmpty');
+  if (!table) return;
+  const s = load();
+  const byDate = new Map();                       // date → { guides, meas, cond }
+  const pick = (d) => byDate.get(d) || byDate.set(d, { guides: 0, meas: null, cond: null }).get(d);
+  for (const e of s.guideDone || []) pick(e.at).guides += 1;
+  for (const m of s.measurements || []) pick(String(m.at).slice(0, 10)).meas = m;
+  for (const c of s.conditions || []) pick(String(c.at).slice(0, 10)).cond = c.condition;
+
+  const dates = [...byDate.keys()].sort().reverse().slice(0, 5);
+  const has = dates.length > 0;
+  table.hidden = !has;
+  if (empty) empty.hidden = has;
+  if (!has) { table.innerHTML = ''; return; }
+
+  const CONDS = { good: '😊 좋음', soso: '🙂 보통', stiff: '😐 뻐근' };
+  const rows = dates.map((d) => {
+    const v = byDate.get(d);
+    const what = v.meas
+      ? `손목 체크${v.guides ? ` · 운동 ${v.guides}개` : ''}`
+      : `운동 ${v.guides}개`;
+    const num = v.meas
+      ? `굽힘 ${Math.round(v.meas.flex)}° · 폄 ${Math.round(v.meas.ext)}°`
+      : `${v.guides}개`;
+    return `<tr><td class="mono">${d.slice(5).replace('-', '.')}</td>`
+      + `<td>${what}</td><td class="num">${num}</td>`
+      + `<td>${v.cond ? CONDS[v.cond] || '—' : '—'}</td></tr>`;
+  }).join('');
+  table.innerHTML = '<thead><tr><th>날짜</th><th>한 일</th>'
+    + '<th class="num">회수·수치</th><th>컨디션</th></tr></thead><tbody>' + rows + '</tbody>';
+}
+
+/** 밤하늘 도감 미리보기 — 수집한 별자리를 앞에, 못 만난 자리는 흐린 잠김으로 채운다 */
+function renderHomeDex() {
+  const wrap = document.getElementById('homeDex');
+  if (!wrap) return;
+  const SLOTS = 8;
+  const done = [];
+  const seen = new Set();
+  for (const c of (getSky().constellations || []).slice().reverse()) {  // 최근 완성부터
+    if (seen.has(c.id)) continue;
+    seen.add(c.id);
+    const con = CONSTELLATIONS.find((x) => x.id === c.id);
+    if (con) done.push(con);
+    if (done.length >= SLOTS) break;
+  }
+  wrap.innerHTML = '';
+  for (let i = 0; i < SLOTS; i++) {
+    const con = done[i];
+    const fig = document.createElement('figure');
+    fig.className = con ? '' : 'lock';
+    const th = document.createElement('div');
+    th.className = 'th';
+    fig.appendChild(th);
+    const cap = document.createElement('figcaption');
+    cap.textContent = con ? con.name : '???';
+    fig.appendChild(cap);
+    wrap.appendChild(fig);
+    // 잠김 칸도 같은 크기로 자리를 잡아야 격자가 흔들리지 않는다 — 별은 안 그린다.
+    if (con) renderSky(th, con.id, con.stars.map((_, k) => k));
+  }
+}
+
+/** 손목 체크 — 최근 수치 + 미니 추이. 하락은 그리지 않는다(추세선만, 보이는_돌봄 §2②). */
+function renderHomeMeasure() {
+  const box = document.getElementById('homeMetrics');
+  const trend = document.getElementById('homeTrend');
+  if (!box) return;
+  const list = (load().measurements || []).slice(-6);
+  if (!list.length) {
+    box.innerHTML = '<p class="soft">아직 체크 기록이 없어요. 한 번 재두면 변화가 보여요.</p>';
+    if (trend) trend.hidden = true;
+    return;
+  }
+  const last = list[list.length - 1];
+  const dev = (last.radialDev != null && last.ulnarDev != null)
+    ? Math.round(Math.abs(last.radialDev) + Math.abs(last.ulnarDev)) : null;
+  box.innerHTML =
+    `<div class="pmetric"><span>굽힘</span><b>${Math.round(last.flex)}°</b></div>`
+    + `<div class="pmetric"><span>폄</span><b>${Math.round(last.ext)}°</b></div>`
+    + (dev != null ? `<div class="pmetric"><span>좌우 편위 합</span><b>${dev}°</b></div>` : '')
+    + (isImproving() ? '<div class="pgift">🎁 지난번보다 조금 늘었어요. 별 하나를 선물로 드릴게요 ✦</div>' : '');
+
+  // 미니 추이 — 점이 둘 이상일 때만. 값 범위에 맞춰 세로를 늘려 변화가 보이게 한다.
+  if (!trend) return;
+  if (list.length < 2) { trend.hidden = true; return; }
+  const ys = list.map((m) => m.flex);
+  const lo = Math.min(...ys), hi = Math.max(...ys), span = Math.max(6, hi - lo);
+  const pts = ys.map((v, i) => {
+    const x = 6 + (188 * i) / (ys.length - 1);
+    const y = 46 - ((v - lo) / span) * 34;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  trend.hidden = false;
+  trend.innerHTML =
+    `<svg viewBox="0 0 200 56" width="100%" height="50" role="img" aria-label="굽힘 추이">`
+    + `<polyline points="${pts}" fill="none" stroke="var(--sh-accent)" stroke-width="2.5" stroke-linecap="round"/>`
+    + `<circle cx="194" cy="${(46 - ((ys[ys.length - 1] - lo) / span) * 34).toFixed(1)}" r="3.5" fill="var(--sh-accent)"/>`
+    + `</svg>`;
+}
+
+/** 이번 달 출석 — 운동이나 측정을 한 날에 도장이 찍힌다 */
+function renderHomeCalendar() {
+  const cal = document.getElementById('homeCal');
+  const count = document.getElementById('homeCalCount');
+  if (!cal) return;
+  const s = load();
+  const active = new Set();
+  for (const e of s.guideDone || []) active.add(e.at);
+  for (const m of s.measurements || []) active.add(String(m.at).slice(0, 10));
+
+  const today = new Date();
+  const y = today.getFullYear(), mo = today.getMonth();
+  const first = new Date(y, mo, 1).getDay();          // 0=일
+  const days = new Date(y, mo + 1, 0).getDate();
+  const pad = (n) => String(n).padStart(2, '0');
+  const key = (d) => `${y}-${pad(mo + 1)}-${pad(d)}`;
+
+  let html = ['일', '월', '화', '수', '목', '금', '토']
+    .map((w) => `<span class="h">${w}</span>`).join('');
+  for (let i = 0; i < first; i++) html += '<span></span>';
+  let on = 0;
+  for (let d = 1; d <= days; d++) {
+    const hit = active.has(key(d));
+    if (hit) on++;
+    const isToday = d === today.getDate();
+    html += `<span class="${hit ? 'on' : ''}${isToday ? ' today' : ''}">${d}</span>`;
+  }
+  cal.innerHTML = html;
+  if (count) count.textContent = `${on}일 함께했어요`;
 }
 
 // ═══════════════════════════════════════════════════════════

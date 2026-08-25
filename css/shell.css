@@ -314,22 +314,6 @@ html[data-theme="dark"] .app-title-btn{ text-shadow:0 0 18px rgba(255,255,255,.2
 .pbox-body > :first-child{ margin-top:0; }
 .pbox-body > :last-child{ margin-bottom:0; }
 
-/* 좌: 환영 박스 */
-.welcome-box{ text-align:center; }
-.welcome-box .mascot-wrap{ position:static; width:auto; margin:0 auto 4px; }
-.welcome-box .mascot{ width:74px; height:auto; display:block; margin:0 auto; position:static; }
-.welcome-box .speech{
-  position:static; display:block; margin:0 0 6px; max-width:none;
-  font-size:.8rem; color:var(--sh-dim); background:none; border:0; box-shadow:none; padding:0;
-  animation:none;
-}
-.welcome-box .speech::after{ display:none; }
-.welcome-box .streak{
-  display:inline-block; margin:2px 0 4px; padding:3px 10px; border-radius:999px;
-  background:var(--sh-chip); border:2px solid var(--sh-frame2); color:var(--sh-ink);
-  font-size:.8rem; font-weight:700; box-shadow:none; animation:none;
-}
-
 /* 좌: 메뉴 목록 */
 .pmenu{ list-style:none; margin:0; padding:0; }
 .pmenu li button{
@@ -353,21 +337,6 @@ html[data-theme="dark"] .app-title-btn{ text-shadow:0 0 18px rgba(255,255,255,.2
 }
 .pbox .btn-hero:active{ transform:translate(1px,1px); box-shadow:1px 1px 0 var(--sh-frame2); }
 
-/* 중앙: 기능 카드 두 칸 — 카드 안쪽(오브·이름·배지 배치)은 styles.css가 이미 잘 잡아 뒀다.
-   여기서는 포털 크롬(면·테두리·모서리)만 입히고 안쪽 규칙은 건드리지 않는다. */
-#screen-home .sections{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0; }
-#screen-home .section-card{
-  background:var(--sh-chip); border:2px solid var(--sh-frame2); border-radius:8px;
-  padding:12px 10px; gap:5px; box-shadow:none; color:var(--sh-ink);
-}
-#screen-home .section-card:hover{ border-color:var(--sh-accent); background:var(--sh-chip); transform:none; }
-/* 칸 사이 절대배치 구분선 — 이제 카드마다 테두리가 있으니 겹친다 */
-#screen-home .sections > .section-card + .section-card::before{ display:none; }
-#screen-home .section-name{ color:var(--sh-ink); }
-#screen-home .section-badge{ border:1px solid var(--sh-line); color:var(--sh-dim); background:var(--sh-panel); }
-#screen-home .section-chip{ color:var(--sh-dim); }
-#screen-home .section-link{ color:var(--sh-dim); }
-
 /* 우: 오늘의 하늘 — 판은 라이트에서도 어둡게 둔다(별은 어두운 하늘에서만 별로 보인다) */
 .sky-panel{
   background:linear-gradient(160deg,#241c56,#453079);
@@ -389,6 +358,102 @@ html[data-palette="sky"] .sky-panel{ background:linear-gradient(160deg,#2c3468,#
 
 /* 홈 언덕은 포털 레이아웃에 자리가 없다 — 배너가 그 역할을 대신한다 */
 #screen-home .home-ground{ display:none; }
+
+/* ═══════════ 홈 위젯 ═══════════ 미리보기(preview/neomood.html)의 칸들을 그대로.
+   색은 전부 셸 토큰(--sh-*)이라 팔레트·다크모드를 따라간다. */
+
+/* 좌: 반가워요 */
+.welcome-box{ text-align:center; }
+.welcome-cat-sm{ width:66px; display:block; margin:0 auto 5px; }
+.welcome-box .hi{ margin:0 0 8px; font-size:.88rem; font-weight:700; color:var(--sh-ink); }
+
+/* 공용 작은 버튼 */
+.pbtn{
+  display:block; width:100%; padding:8px 10px; cursor:pointer;
+  font:inherit; font-size:.86rem; font-weight:700;
+  background:var(--sh-accent); color:var(--sh-accent-ink);
+  border:2px solid var(--sh-frame); border-radius:8px; box-shadow:2px 2px 0 var(--sh-frame2);
+}
+.pbtn.ghost{ background:transparent; color:var(--sh-ink); }
+.pbtn:active{ transform:translate(1px,1px); box-shadow:1px 1px 0 var(--sh-frame2); }
+.soft{ margin:0; color:var(--sh-dim); font-size:.8rem; }
+.empty{ margin:0; padding:12px 10px; color:var(--sh-dim); font-size:.8rem; text-align:center; }
+.focus-name{ margin:0 0 3px; font-weight:700; color:var(--sh-ink); }
+.focus-sub{ margin:0; color:var(--sh-dim); font-size:.78rem; }
+
+/* 가운데: 오늘의 루틴 진행바 + 6종 목록 */
+.pbar{
+  height:12px; margin:0 0 6px; border:2px solid var(--sh-frame2); border-radius:999px;
+  background:var(--sh-chip); overflow:hidden;
+}
+.pbar i{
+  display:block; height:100%; width:0;
+  background:repeating-linear-gradient(45deg,var(--sh-accent) 0 7px,var(--sh-frame2) 7px 14px);
+  transition:width .3s ease;
+}
+@media (prefers-reduced-motion:reduce){ .pbar i{ transition:none; } }
+#screen-home .rt{ list-style:none; margin:0 0 9px; padding:0; }
+#screen-home .rt li{
+  display:grid; grid-template-columns:24px 1fr auto; align-items:center; gap:8px;
+  padding:6px 4px; border-bottom:1px dashed var(--sh-line); font-size:.9rem; color:var(--sh-ink);
+}
+#screen-home .rt li:last-child{ border-bottom:0; }
+#screen-home .rt .n{ text-align:center; font-size:1rem; }
+#screen-home .rt .rep{ font-size:.78rem; color:var(--sh-dim); }
+#screen-home .rt li.is-done .name{ color:var(--sh-dim); text-decoration:line-through; }
+#screen-home .rt li.is-done .rep{ color:var(--ok,#5fae8d); font-weight:700; }
+#screen-home .rt li.is-next .name{ font-weight:700; }
+#screen-home .rt li.is-next .rep{ color:var(--sh-accent); font-weight:700; }
+
+/* 가운데: 최근 기록 표 */
+.ptable{ width:100%; border-collapse:collapse; }
+.ptable th,.ptable td{ padding:6px 9px; text-align:left; font-size:.84rem; color:var(--sh-ink); }
+.ptable th{
+  background:var(--sh-chip); color:var(--sh-dim); font-size:.74rem; font-weight:700;
+  border-bottom:2px solid var(--sh-line);
+}
+.ptable td{ border-bottom:1px dashed var(--sh-line); }
+.ptable tr:last-child td{ border-bottom:0; }
+.ptable .num{ text-align:right; font-variant-numeric:tabular-nums; }
+.mono{ font-family:ui-monospace,"D2Coding",Consolas,monospace; }
+
+/* 가운데: 도감 미리보기 */
+.pgal{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.pgal figure{ margin:0; text-align:center; }
+.pgal .th{
+  height:clamp(56px,7vh,84px);
+  border:2px solid var(--sh-frame2); border-radius:6px;
+  background:linear-gradient(160deg,#241c56,#453079);
+  position:relative; overflow:hidden;
+}
+html[data-palette="sky"] .pgal .th{ background:linear-gradient(160deg,#2c3468,#4b5497); }
+.pgal figcaption{ margin-top:4px; font-size:.74rem; color:var(--sh-dim); }
+.pgal .lock .th{ opacity:.3; }
+.pgal .lock figcaption{ opacity:.6; }
+/* 썸네일 안의 별자리는 sky.js가 그린다 — 판을 꽉 채우게만 잡아 준다 */
+.pgal .th .sky-svg,.pgal .th svg{ width:100%; height:100%; display:block; }
+
+/* 우: 손목 체크 */
+.ptrend{ margin-bottom:6px; }
+.pmetric{
+  display:flex; justify-content:space-between; padding:3px 0; font-size:.85rem;
+  border-bottom:1px dashed var(--sh-line); color:var(--sh-ink);
+}
+.pmetric:last-of-type{ border-bottom:0; }
+.pmetric b{ font-variant-numeric:tabular-nums; }
+.pgift{
+  margin-top:7px; padding:6px 8px; font-size:.78rem; line-height:1.45;
+  background:var(--sh-chip); border:2px solid var(--sh-frame2); border-radius:6px; color:var(--sh-ink);
+}
+#screen-home .section-chip{ display:block; margin:6px 0; font-size:.78rem; color:var(--sh-dim); }
+#screen-home .section-chip.is-need{ color:var(--sh-accent); }
+
+/* 우: 이번 달 출석 */
+.pcal{ display:grid; grid-template-columns:repeat(7,1fr); gap:1px; text-align:center; font-size:.74rem; }
+.pcal span{ padding:1px 0; line-height:1.6; border-radius:4px; color:var(--sh-dim); }
+.pcal .h{ font-weight:700; color:var(--sh-accent); }
+.pcal .on{ background:var(--sh-chip); color:var(--sh-ink); font-weight:700; }
+.pcal .today{ outline:2px solid var(--sh-accent); }
 
 /* ═══════════ 다른 화면들 ═══════════
    화면 안쪽 스타일은 styles.css 그대로 두되, 셸 안에서의 폭·여백만 맞춘다. */

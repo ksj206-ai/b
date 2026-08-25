@@ -73,12 +73,22 @@
 
       <!-- ─── 홈 — 3단 포털 ───
            좌=길잡이 / 가운데=오늘 할 일 / 우=상태 위젯.
-           박스는 전부 제목바를 가진 같은 단위(.pbox)다. 위계는 "가운데가 크다"로만 준다. -->
+           박스는 전부 제목바를 가진 같은 단위(.pbox)다. 위계는 "가운데가 크다"로만 준다.
+           내용은 전부 실제 저장 데이터에서 온다(main.js renderHome* 계열). -->
       <section id="screen-home" class="screen is-active" data-screen="home">
         <div class="cols">
 
           <!-- ── 좌: 길잡이 ── -->
           <aside class="col">
+            <section class="pbox">
+              <h2 class="pbox-head">🐾 반가워요</h2>
+              <div class="pbox-body welcome-box">
+                <img class="welcome-cat-sm" src="assets/cat-idle.png" alt="" aria-hidden="true">
+                <p class="hi" id="homeGreet">오늘도 만나서 반가워요!</p>
+                <button type="button" class="pbtn ghost" data-nav="guide">운동 목록 보기 ▸</button>
+              </div>
+            </section>
+
             <section class="pbox">
               <h2 class="pbox-head">🧭 메뉴</h2>
               <div class="pbox-body" style="padding:5px 8px;">
@@ -91,12 +101,20 @@
               </div>
             </section>
 
+            <!-- 오늘의 포커스 — 적응형이 고른 방향을 "부족"이 아니라 "오늘 여기"로 노출한다.
+                 고를 방향이 없는 날엔 통째로 숨는다(보이는_돌봄 §2③). -->
+            <section class="pbox" id="homeFocusBox" hidden>
+              <h2 class="pbox-head">🎯 오늘의 포커스</h2>
+              <div class="pbox-body">
+                <p class="focus-name" id="homeFocusName"></p>
+                <p class="focus-sub">오늘은 여기에 살짝 더 마음 써봐요. 천천히 함께 해요.</p>
+              </div>
+            </section>
+
             <section class="pbox">
               <h2 class="pbox-head">🩺 이것만 지켜요</h2>
               <div class="pbox-body">
-                <p style="margin:0;color:var(--sh-dim);font-size:.8rem;">
-                  통증이 있으면 즉시 멈추세요. 회수를 다 못 채워도 오늘 한 것으로 인정돼요.
-                </p>
+                <p class="soft">통증이 있으면 즉시 멈추세요. 회수를 다 못 채워도 오늘 한 것으로 인정돼요.</p>
               </div>
             </section>
           </aside>
@@ -110,38 +128,28 @@
               <h2 class="pbox-head">🎬 오늘의 루틴 <span class="more" data-nav="guide">운동 목록 ▸</span></h2>
               <div class="pbox-body">
                 <p class="home-hero-title" id="todayRoutine">1분, 손목 굽힘·폄부터 시작해요</p>
+                <div class="pbar"><i id="homeBar"></i></div>
                 <p id="rpText" class="rp-text"></p>
+                <ul class="rt" id="homeRoutineList"></ul>
                 <button class="btn btn-primary btn-hero" id="routineStart">시작하기 🚀</button>
               </div>
             </section>
 
-            <nav class="sections" aria-label="주요 기능">
-              <button class="section-card" data-nav="measure">
-                <span class="section-emoji">📊</span>
-                <span class="section-name">손목 체크·기록</span>
-                <span class="section-badge">가끔</span>
-                <span class="section-desc">손목 상태를 재고 변화를 봐요</span>
-                <span class="section-chip" id="measureChip"></span>
-                <span class="section-link" data-nav="records">기록 보기 →</span>
-              </button>
+            <section class="pbox">
+              <h2 class="pbox-head">📰 최근 기록 <span class="more" data-nav="records">전체 보기 ▸</span></h2>
+              <div class="pbox-body" style="padding:0;">
+                <table class="ptable" id="homeHistory"></table>
+                <p class="empty" id="homeHistoryEmpty" hidden>아직 기록이 없어요. 오늘의 루틴부터 시작해 봐요.</p>
+              </div>
+            </section>
 
-              <button class="section-card" data-nav="sky">
-                <span class="section-emoji">🌌</span>
-                <span class="section-name">밤하늘 도감</span>
-                <span class="section-badge" id="skyDexCount">0/16</span>
-                <span class="section-desc">완성한 별자리를 모아봐요</span>
-                <!-- 진척(0/16)은 위 배지가 이미 보여주므로 여기는 상태와 무관한 정적 응원 문구다 -->
-                <span class="section-chip">별을 모아 밤하늘을 채워요</span>
-              </button>
-
-              <!-- 게임: 이식 전까지 숨김 — hidden만 지우면 복구됨 -->
-              <button class="section-card" data-nav="game" hidden>
-                <span class="section-emoji">🎮</span>
-                <span class="section-name">게임</span>
-                <span class="section-badge">보조</span>
-                <span class="section-desc">미니게임으로 재미있게 한 번 더</span>
-              </button>
-            </nav>
+            <section class="pbox">
+              <h2 class="pbox-head">🌌 밤하늘 도감
+                <span class="more" data-nav="sky"><b id="skyDexCount">0/16</b> 수집 ▸</span></h2>
+              <div class="pbox-body">
+                <div class="pgal" id="homeDex"></div>
+              </div>
+            </section>
           </main>
 
           <!-- ── 우: 상태 위젯 ── -->
@@ -160,6 +168,23 @@
                   </div>
                 </div>
                 <p class="sky-label"><b id="skyName">밤하늘</b></p>
+              </div>
+            </section>
+
+            <section class="pbox">
+              <h2 class="pbox-head">📊 손목 체크 <span class="more" data-nav="records">추이 ▸</span></h2>
+              <div class="pbox-body">
+                <div id="homeTrend" class="ptrend" hidden></div>
+                <div id="homeMetrics"></div>
+                <p class="section-chip" id="measureChip"></p>
+                <button type="button" class="pbtn" data-nav="measure">체크하러 가기</button>
+              </div>
+            </section>
+
+            <section class="pbox">
+              <h2 class="pbox-head">📅 이번 달 <span class="more" id="homeCalCount"></span></h2>
+              <div class="pbox-body">
+                <div class="pcal" id="homeCal"></div>
               </div>
             </section>
 
