@@ -24,11 +24,46 @@
   ═══════════════════════════════════════════════════════════
 -->
 <style>
-/* ─── 색 토큰 ─── 색은 전부 여기서만 정의한다(레이아웃 규칙과 섞지 않는다).
-   라이트=시안9 파스텔 / 다크=현재 앱 밤하늘. 다크 블록이 두 번 나오는 건
-   ① 시스템이 다크일 때(사용자가 라이트로 덮어쓰지 않았다면) ② 스위치로 켰을 때
-   두 경우를 모두 받기 위해서다. 값은 한 글자도 다르면 안 된다 — 고칠 땐 둘 다. */
-:root{
+/* ═══ 색 토큰 ═══ 색은 전부 여기서만 정의한다(레이아웃 규칙과 섞지 않는다).
+   축이 둘이다:
+     · data-tone  = 어느 시안의 색을 쓸지 (c8 / c9)  ← 미리보기 전용 비교 스위치
+     · data-theme = 라이트 / 다크                     ← 실제 앱에 갈 다크모드
+   톤 블록은 라이트 값 + 두 모드 공통값을, [data-theme="dark"] 블록은 덮어쓸 값만 쓴다.
+   (톤 선택자는 모드와 무관하게 항상 걸리므로 공통값은 톤 블록에 두면 된다.)
+   두 속성은 <head> 스크립트가 로드 즉시 박아 넣는다 — 그래서 미디어쿼리 사본이 없다. */
+
+/* ─── 시안8 톤 — model/시안8.png 실측: 하늘색 #d6e6f0 · 페리윙클 #b2bbe9 ·
+       테두리 #7a82d3 · 창 흰색 #ffffff · 노을 크림 #e5d3c4 ─── */
+html[data-tone="c8"]{
+  --page:#d9e6f2;  --page-dot:#c1d1e9;
+  --frame:#7a82d3; --frame-2:#b2bbe9;
+  --win:#eef4fb;   --panel:#ffffff;
+  --head:linear-gradient(#e2e9f8,#c9d5ee);  --head-ink:#4d5490;
+  --ink:#3f467c;   --dim:#7b83ad;  --line:#d6dff2;
+  --accent:#7a82d3; --accent-2:#aab2e8; --accent-ink:#ffffff;
+  --chip:#e8eefb;  --ok:#5aa593;
+  --sky:linear-gradient(160deg,#b6c4ee 0%,#cfdcf2 45%,#e7eff9 100%);
+  --sky-ink:#3d447e; --star:#fff4d2; --note:rgba(255,255,255,.85);
+  --thumb:linear-gradient(160deg,#a3b0e6,#d3dff4);
+  --skypanel:linear-gradient(160deg,#2c3468,#4b5497);   /* 별자리 판 — 두 모드 공통 */
+  --warm:#e5d3c4;                                        /* 노을 크림 — 선물 칩 */
+}
+html[data-tone="c8"][data-theme="dark"]{
+  --page:#11152c;  --page-dot:#1e2444;
+  --frame:#5560ad; --frame-2:#333b6d;
+  --win:#191e3b;   --panel:#212848;
+  --head:linear-gradient(#2e3768,#262e58);  --head-ink:#dee5ff;
+  --ink:#dfe5ff;   --dim:#99a2ce;  --line:#343c70;
+  --accent:#8f9ae8; --accent-2:#5b66bb; --accent-ink:#0f1330;
+  --chip:#272e56;  --ok:#79c6b4;
+  --sky:linear-gradient(160deg,#1d2450 0%,#39407f 50%,#4a4f92 100%);
+  --sky-ink:#eef1ff; --star:#ffeec2; --note:rgba(17,21,44,.78);
+  --thumb:linear-gradient(160deg,#2b3364,#4b5296);
+  --warm:#4d4340;   /* 노을 크림의 다크 대응 — 차가운 판 위 유일한 따뜻한 자리 */
+}
+
+/* ─── 시안9 톤 — 파스텔 보라·핑크(처음 만든 것) ─── */
+html[data-tone="c9"]{
   --page:#e9e2f8;  --page-dot:#d9cef1;
   --frame:#9b85dc; --frame-2:#c9b7f1;
   --win:#f7f2fe;   --panel:#ffffff;
@@ -39,8 +74,10 @@
   --sky:linear-gradient(160deg,#c9b3ef 0%,#e0cbf3 45%,#fadfee 100%);
   --sky-ink:#4a3a72; --star:#fff7cf; --note:rgba(255,255,255,.82);
   --thumb:linear-gradient(160deg,#b9a4e8,#e6cff0);
+  --skypanel:linear-gradient(160deg,#241c56,#453079);
+  --warm:#f6e2cf;
 }
-html[data-theme="dark"]{
+html[data-tone="c9"][data-theme="dark"]{
   --page:#0b0a1c;  --page-dot:#181637;
   --frame:#6a5cae; --frame-2:#3b3169;
   --win:#141130;   --panel:#1b1740;
@@ -51,20 +88,7 @@ html[data-theme="dark"]{
   --sky:linear-gradient(160deg,#1c1646 0%,#2a2060 50%,#3d2a68 100%);
   --sky-ink:#f2ecff; --star:#ffe9a8; --note:rgba(16,13,42,.78);
   --thumb:linear-gradient(160deg,#2a2160,#4a3480);
-}
-@media (prefers-color-scheme:dark){
-  html:not([data-theme="light"]){
-    --page:#0b0a1c;  --page-dot:#181637;
-    --frame:#6a5cae; --frame-2:#3b3169;
-    --win:#141130;   --panel:#1b1740;
-    --head:linear-gradient(#2c2359,#241d4c);  --head-ink:#e9e2ff;
-    --ink:#e6e1ff;   --dim:#a79ed6;  --line:#37306a;
-    --accent:#f0c36a; --accent-2:#8d6bd8; --accent-ink:#2a1f05;
-    --chip:#241f4d;  --ok:#6fc7a5;
-    --sky:linear-gradient(160deg,#1c1646 0%,#2a2060 50%,#3d2a68 100%);
-    --sky-ink:#f2ecff; --star:#ffe9a8; --note:rgba(16,13,42,.78);
-    --thumb:linear-gradient(160deg,#2a2160,#4a3480);
-  }
+  --warm:#4a3c22;
 }
 
 *{box-sizing:border-box;}
@@ -83,9 +107,18 @@ body{
 
 /* ─── 미리보기 배너(창 밖) — 실제 앱이 아님을 계속 알린다 ─── */
 .skinbar{
-  max-width:1200px;margin:0 auto 12px;
+  max-width:1200px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:10px;
+  align-items:center;justify-content:space-between;
   font-size:.78rem;color:var(--dim);letter-spacing:.02em;
 }
+/* 톤 비교 스위치 — 창 밖에 둔다. 실제 앱에 갈 UI가 아니라 고르기 위한 발판이다. */
+.tonebar{display:flex;align-items:center;gap:6px;}
+.tonebar button{
+  font:inherit;font-size:.74rem;padding:5px 11px;cursor:pointer;
+  background:var(--panel);color:var(--ink);
+  border:2px solid var(--frame-2);border-radius:999px;
+}
+.tonebar button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;}
 
 /* ─── 창(win) — 시안9의 지배적 장치: 페이지 전체가 하나의 액자다 ─── */
 .win{
@@ -114,9 +147,6 @@ body{
   transition:transform .18s ease, background .18s ease;
 }
 html[data-theme="dark"] .tt-knob{transform:translateX(16px);background:#ffe9a8;}
-@media (prefers-color-scheme:dark){
-  html:not([data-theme="light"]) .tt-knob{transform:translateX(16px);background:#ffe9a8;}
-}
 @media (prefers-reduced-motion:reduce){ .tt-knob{transition:none;} }
 .win-foot{
   background:var(--frame);color:#fff;font-size:.7rem;padding:8px 12px;text-align:center;line-height:1.6;
@@ -139,10 +169,7 @@ html[data-theme="dark"] .tt-knob{transform:translateX(16px);background:#ffe9a8;}
   margin:0;font-size:2.5rem;line-height:1.15;letter-spacing:.02em;
   text-shadow:2px 2px 0 rgba(255,255,255,.45), 0 6px 18px rgba(60,30,110,.25);
 }
-html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(240,195,106,.35);}
-@media (prefers-color-scheme:dark){
-  html:not([data-theme="light"]) .banner-mark h1{text-shadow:0 0 18px rgba(240,195,106,.35);}
-}
+html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.22);}
 .banner-mark p{margin:6px 0 0;font-size:.8rem;opacity:.85;}
 .banner-cat{width:100%;max-width:170px;display:block;margin-right:auto;
   filter:drop-shadow(0 8px 14px rgba(40,20,80,.3));}
@@ -257,15 +284,15 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 /* 별자리 판은 라이트에서도 어둡게 둔다 — 밤하늘은 원래 어둡고,
    파스텔 배경에 크림색 별을 올리면 별이 안 보인다(--star를 이 안에서만 덮어쓴다). */
 .sky-box{
-  --star:#ffe9a8;
-  background:linear-gradient(160deg,#241c56,#453079);
+  --star:#ffeec2;
+  background:var(--skypanel);
   border:1px solid var(--frame-2);border-radius:6px;padding:6px;
 }
 .metric{display:flex;justify-content:space-between;font-size:.78rem;padding:4px 0;border-bottom:1px dashed var(--line);}
 .metric:last-of-type{border-bottom:0;}
 .metric b{font-variant-numeric:tabular-nums;}
 .gift{
-  margin-top:8px;background:var(--chip);border:2px solid var(--frame-2);border-radius:6px;
+  margin-top:8px;background:var(--warm);border:2px solid var(--frame-2);border-radius:6px;
   padding:7px 9px;font-size:.75rem;line-height:1.5;
 }
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:.68rem;}
@@ -291,12 +318,26 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   .gal{grid-template-columns:repeat(3,1fr);}
 }
 </style>
+<script>
+// 톤·모드 속성을 그리기 전에 박는다 — 이게 늦으면 라이트로 한 번 깜빡였다가 다크로 바뀐다.
+(function () {
+  var r = document.documentElement, s = {};
+  try { s.tone = localStorage.getItem('previewTone'); s.theme = localStorage.getItem('previewTheme'); } catch (e) {}
+  r.dataset.tone = (s.tone === 'c9' || s.tone === 'c8') ? s.tone : 'c8';
+  r.dataset.theme = (s.theme === 'dark' || s.theme === 'light') ? s.theme
+    : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+})();
+</script>
 </head>
 <body>
 
 <div class="skinbar">
-  🔍 레이아웃 미리보기 · model/시안9(Neomood) 구조 · 실제 앱에는 아직 반영하지 않음
-  — 색 전환은 창 오른쪽 위 <b>다크모드 스위치</b>로
+  <span>🔍 레이아웃 미리보기 · 골격은 <b>시안9</b>, 색은 아래에서 선택 · 실제 앱 미반영
+    — 라이트/다크는 창 오른쪽 위 스위치로</span>
+  <span class="tonebar">🎨 컬러톤
+    <button data-tone="c8">시안8 (하늘·페리윙클)</button>
+    <button data-tone="c9">시안9 (파스텔 보라)</button>
+  </span>
 </div>
 
 <div class="win">
@@ -521,37 +562,38 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 </div>
 
 <script>
-// ─── 다크모드 스위치 ───
-// 기준은 시스템 설정. 사용자가 스위치를 만지면 그때부터 그 선택이 이긴다(data-theme + 저장).
-// CSS 쪽은 "속성이 있으면 속성이, 없으면 prefers-color-scheme이" 이기게 짜여 있다.
+// ─── 다크모드 스위치(앱에 갈 것) + 컬러톤 비교 스위치(미리보기 전용) ───
+// 두 속성의 초기값은 <head>에서 이미 정해졌다. 여기서는 켜고 끄는 일만 한다.
 (function () {
   var root = document.documentElement;
   var sw = document.getElementById('themeToggle');
   var knob = sw.querySelector('.tt-knob');
-  var sysDark = window.matchMedia('(prefers-color-scheme: dark)');
+  var save = function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} };
 
-  function isDark() {
-    return root.dataset.theme ? root.dataset.theme === 'dark' : sysDark.matches;
-  }
-  function paint() {
-    var dark = isDark();
+  function paintTheme() {
+    var dark = root.dataset.theme === 'dark';
     sw.setAttribute('aria-checked', String(dark));
     knob.textContent = dark ? '🌙' : '☀';
   }
-
-  try {
-    var saved = localStorage.getItem('previewTheme');
-    if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
-  } catch (e) {}
-
   sw.addEventListener('click', function () {
-    root.dataset.theme = isDark() ? 'light' : 'dark';
-    try { localStorage.setItem('previewTheme', root.dataset.theme); } catch (e) {}
-    paint();
+    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+    save('previewTheme', root.dataset.theme);
+    paintTheme();
   });
-  // 아직 스위치를 안 만졌다면 시스템 설정 변화를 그대로 따라간다
-  sysDark.addEventListener('change', function () { if (!root.dataset.theme) paint(); });
-  paint();
+
+  var toneBtns = document.querySelectorAll('.tonebar button');
+  function paintTone() {
+    toneBtns.forEach(function (b) { b.classList.toggle('on', b.dataset.tone === root.dataset.tone); });
+  }
+  toneBtns.forEach(function (b) {
+    b.addEventListener('click', function () {
+      root.dataset.tone = b.dataset.tone;
+      save('previewTone', b.dataset.tone);
+      paintTone();
+    });
+  });
+
+  paintTheme(); paintTone();
 })();
 </script>
 </body>
