@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="ko" data-skin="pastel">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>레이아웃 미리보기 — 시안9(Neomood) 포털형</title>
+<!--
+  ═══════════════════════════════════════════════════════════
+  preview/neomood.html — 레이아웃 시안 미리보기 (실제 앱 미반영)
+
+  model/시안9.png("Neomood" — 카와이 레트로 포털)의 구조를 우리 앱 콘텐츠로 옮긴 것.
+  index.html·css/styles.css 는 전혀 건드리지 않는다. 이 파일 하나로 자립한다.
+
+  시안9에서 가져온 것 = 레이아웃 골격:
+    ① 페이지 전체를 감싸는 두꺼운 테두리 "창"(win)   ② 얇은 상태 띠
+    ③ 일러스트 배너(워드마크 + 마스코트 + 쪽지)      ④ 가로 탭 내비게이션
+    ⑤ 3단 컬럼(좌 사이드 / 본문 / 우 위젯)           ⑥ 제목바를 가진 박스 패널
+    ⑦ 표·썸네일 갤러리·달력 위젯                     ⑧ 얇은 푸터 띠
+
+  색은 두 벌을 넣어 토글한다(우상단 버튼) — 레이아웃만 볼지, 색까지 갈아탈지
+  눈으로 비교하고 고르라는 뜻:
+    · pastel = 시안9 그대로의 파스텔 보라
+    · night  = 현재 앱의 밤하늘 색을 이 레이아웃에 입힌 것
+  ═══════════════════════════════════════════════════════════
+-->
+<style>
+/* ─── 스킨 토큰 ─── 색은 전부 여기서만 정의한다(레이아웃 규칙과 섞지 않는다) */
+html[data-skin="pastel"]{
+  --page:#e9e2f8;  --page-dot:#d9cef1;
+  --frame:#9b85dc; --frame-2:#c9b7f1;
+  --win:#f7f2fe;   --panel:#ffffff;
+  --head:linear-gradient(#e7ddfb,#dbcef8);  --head-ink:#5b4a8c;
+  --ink:#4b3f6d;   --dim:#8a7cae;  --line:#ddd1f7;
+  --accent:#e58cbb; --accent-2:#f3bcd8; --accent-ink:#ffffff;
+  --chip:#fdeaf4;  --ok:#5fae8d;
+  --sky:linear-gradient(160deg,#c9b3ef 0%,#e0cbf3 45%,#fadfee 100%);
+  --sky-ink:#4a3a72; --star:#fff7cf; --note:rgba(255,255,255,.82);
+  --thumb:linear-gradient(160deg,#b9a4e8,#e6cff0);
+}
+html[data-skin="night"]{
+  --page:#0b0a1c;  --page-dot:#181637;
+  --frame:#6a5cae; --frame-2:#3b3169;
+  --win:#141130;   --panel:#1b1740;
+  --head:linear-gradient(#2c2359,#241d4c);  --head-ink:#e9e2ff;
+  --ink:#e6e1ff;   --dim:#a79ed6;  --line:#37306a;
+  --accent:#f0c36a; --accent-2:#8d6bd8; --accent-ink:#2a1f05;
+  --chip:#241f4d;  --ok:#6fc7a5;
+  --sky:linear-gradient(160deg,#1c1646 0%,#2a2060 50%,#3d2a68 100%);
+  --sky-ink:#f2ecff; --star:#ffe9a8; --note:rgba(16,13,42,.78);
+  --thumb:linear-gradient(160deg,#2a2160,#4a3480);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--page);
+  background-image:radial-gradient(var(--page-dot) 1px,transparent 1px);
+  background-size:12px 12px;
+  color:var(--ink);
+  font:15px/1.55 "Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  padding:14px 14px 40px;
+  -webkit-font-smoothing:antialiased;
+}
+/* 레트로 캡션용 — 픽셀 폰트가 있으면 쓰고 없으면 고정폭으로 자연스럽게 떨어진다 */
+.mono{font-family:"Galmuri11","DungGeunMo",ui-monospace,"D2Coding",Consolas,monospace;}
+
+/* ─── 미리보기 배너(창 밖) — 실제 앱이 아님을 계속 알린다 ─── */
+.skinbar{
+  max-width:1180px;margin:0 auto 12px;display:flex;flex-wrap:wrap;gap:8px;
+  align-items:center;justify-content:space-between;
+}
+.skinbar b{font-size:.78rem;color:var(--dim);letter-spacing:.02em;}
+.skinbar .btns{display:flex;gap:6px;}
+.skinbar button{
+  font:inherit;font-size:.76rem;padding:6px 12px;cursor:pointer;
+  background:var(--panel);color:var(--ink);
+  border:2px solid var(--frame-2);border-radius:999px;
+}
+.skinbar button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700;}
+
+/* ─── 창(win) — 시안9의 지배적 장치: 페이지 전체가 하나의 액자다 ─── */
+.win{
+  max-width:1180px;margin:0 auto;background:var(--win);
+  border:3px solid var(--frame);border-radius:14px;overflow:hidden;
+  box-shadow:0 14px 44px rgba(40,20,80,.22), 0 0 0 3px var(--frame-2) inset;
+}
+.win-top{
+  display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  background:var(--frame);color:#fff;font-size:.72rem;padding:5px 12px;letter-spacing:.02em;
+}
+.win-foot{
+  background:var(--frame);color:#fff;font-size:.7rem;padding:8px 12px;text-align:center;line-height:1.6;
+}
+
+/* ─── 배너 ─── */
+.banner{
+  position:relative;background:var(--sky);color:var(--sky-ink);
+  display:grid;grid-template-columns:210px 1fr 200px;align-items:center;gap:14px;
+  padding:18px 20px;border-bottom:2px solid var(--frame);overflow:hidden;
+}
+.banner-note{
+  background:var(--note);border:2px solid var(--frame);border-radius:8px;
+  padding:9px 11px;font-size:.76rem;line-height:1.5;color:var(--ink);
+  box-shadow:2px 2px 0 var(--frame-2);
+}
+.banner-note b{display:block;font-size:.72rem;color:var(--accent);margin-bottom:3px;}
+.banner-mark{text-align:center;}
+.banner-mark h1{
+  margin:0;font-size:2.5rem;line-height:1.15;letter-spacing:.02em;
+  text-shadow:2px 2px 0 rgba(255,255,255,.45), 0 6px 18px rgba(60,30,110,.25);
+}
+html[data-skin="night"] .banner-mark h1{text-shadow:0 0 18px rgba(240,195,106,.35);}
+.banner-mark p{margin:6px 0 0;font-size:.8rem;opacity:.85;}
+.banner-cat{width:100%;max-width:170px;display:block;margin-left:auto;
+  filter:drop-shadow(0 8px 14px rgba(40,20,80,.3));}
+/* 배너 별 데코 */
+.banner .deco{position:absolute;color:var(--star);pointer-events:none;font-size:.8rem;opacity:.9;}
+.banner .d1{top:12px;left:38%;} .banner .d2{top:44px;left:30%;font-size:1.1rem;}
+.banner .d3{bottom:18px;left:44%;} .banner .d4{top:20px;right:34%;font-size:1rem;}
+.banner .d5{bottom:30px;right:30%;}
+@media (prefers-reduced-motion:no-preference){
+  .banner .deco{animation:tw 3.2s ease-in-out infinite;}
+  .banner .d2{animation-delay:.7s;} .banner .d4{animation-delay:1.4s;} .banner .d5{animation-delay:2.1s;}
+  @keyframes tw{0%,100%{opacity:.35;transform:scale(.9);}50%{opacity:1;transform:scale(1.15);}}
+}
+
+/* ─── 탭 내비 ─── */
+.tabs{display:flex;flex-wrap:wrap;background:var(--panel);border-bottom:2px solid var(--frame);}
+.tabs a{
+  display:flex;align-items:center;gap:5px;padding:9px 15px;font-size:.8rem;
+  color:var(--ink);text-decoration:none;border-right:1px solid var(--line);
+  border-top:3px solid transparent;
+}
+.tabs a:hover{background:var(--chip);}
+.tabs a.on{background:var(--chip);border-top-color:var(--accent);color:var(--accent);font-weight:700;}
+.tabs a.off{opacity:.4;}
+
+/* ─── 3단 컬럼 ─── */
+.grid{display:grid;grid-template-columns:210px minmax(0,1fr) 236px;gap:12px;padding:12px;}
+
+/* ─── 박스 패널(시안9의 기본 단위) ─── */
+.box{
+  background:var(--panel);border:2px solid var(--frame-2);border-radius:8px;
+  overflow:hidden;margin-bottom:12px;
+}
+.box:last-child{margin-bottom:0;}
+.box-head{
+  margin:0;background:var(--head);color:var(--head-ink);
+  font-size:.76rem;font-weight:700;padding:6px 10px;
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;
+}
+.box-head .more{margin-left:auto;font-weight:400;font-size:.7rem;opacity:.75;}
+.box-body{padding:10px;font-size:.8rem;}
+.box-body p{margin:0 0 8px;}
+.box-body p:last-child{margin-bottom:0;}
+
+/* ─── 좌: 환영 박스 ─── */
+.welcome{text-align:center;}
+.welcome img{width:64px;display:block;margin:0 auto 6px;}
+.welcome .hi{font-size:.82rem;font-weight:700;margin-bottom:4px;}
+.welcome .sub{font-size:.74rem;color:var(--dim);line-height:1.5;}
+.streak{
+  display:inline-block;margin:8px 0 2px;padding:3px 10px;border-radius:999px;
+  background:var(--chip);border:2px solid var(--frame-2);font-size:.74rem;font-weight:700;
+}
+.btn{
+  display:block;width:100%;margin-top:9px;padding:9px 10px;cursor:pointer;
+  font:inherit;font-size:.82rem;font-weight:700;
+  background:var(--accent);color:var(--accent-ink);
+  border:2px solid var(--frame);border-radius:8px;box-shadow:2px 2px 0 var(--frame-2);
+}
+.btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--frame-2);}
+.btn.ghost{background:transparent;color:var(--ink);}
+
+/* ─── 좌: 메뉴 목록 ─── */
+.menu{list-style:none;margin:0;padding:0;}
+.menu li a{
+  display:flex;gap:7px;padding:6px 4px;font-size:.79rem;color:var(--ink);
+  text-decoration:none;border-bottom:1px dashed var(--line);
+}
+.menu li:last-child a{border-bottom:0;}
+.menu li a:hover{background:var(--chip);}
+
+/* ─── 중앙: 오늘의 루틴 ─── */
+.rt{list-style:none;margin:0 0 10px;padding:0;}
+.rt li{
+  display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;
+  padding:7px 4px;border-bottom:1px dashed var(--line);font-size:.81rem;
+}
+.rt li:last-child{border-bottom:0;}
+.rt .n{font-size:1rem;text-align:center;}
+.rt .rep{font-size:.74rem;color:var(--dim);}
+.rt li.done .name{color:var(--dim);text-decoration:line-through;}
+.rt li.done .rep{color:var(--ok);font-weight:700;text-decoration:none;}
+.bar{
+  height:14px;border:2px solid var(--frame-2);border-radius:999px;
+  background:var(--chip);overflow:hidden;margin-bottom:6px;
+}
+.bar i{
+  display:block;height:100%;width:66%;
+  background:repeating-linear-gradient(45deg,var(--accent) 0 7px,var(--accent-2) 7px 14px);
+}
+.bar-label{display:flex;justify-content:space-between;font-size:.74rem;color:var(--dim);margin-bottom:10px;}
+
+/* ─── 중앙: 표 ─── */
+table{width:100%;border-collapse:collapse;}
+th,td{padding:6px 7px;text-align:left;font-size:.78rem;}
+th{background:var(--chip);color:var(--dim);font-size:.72rem;font-weight:700;border-bottom:2px solid var(--line);}
+td{border-bottom:1px dashed var(--line);}
+tr:last-child td{border-bottom:0;}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+/* ─── 중앙: 도감 갤러리 ─── */
+.gal{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
+.gal figure{margin:0;text-align:center;}
+.gal .th{
+  aspect-ratio:1;border:2px solid var(--frame-2);border-radius:6px;background:var(--thumb);
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--star);
+}
+.gal figcaption{font-size:.68rem;margin-top:4px;color:var(--dim);}
+.gal .lock .th{filter:grayscale(1);opacity:.35;}
+
+/* ─── 우: 위젯 ─── */
+.sky-box{background:var(--sky);border-radius:6px;padding:6px;}
+.metric{display:flex;justify-content:space-between;font-size:.78rem;padding:4px 0;border-bottom:1px dashed var(--line);}
+.metric:last-of-type{border-bottom:0;}
+.metric b{font-variant-numeric:tabular-nums;}
+.gift{
+  margin-top:8px;background:var(--chip);border:2px solid var(--frame-2);border-radius:6px;
+  padding:7px 9px;font-size:.75rem;line-height:1.5;
+}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;font-size:.68rem;}
+.cal span{padding:3px 0;border-radius:4px;color:var(--dim);}
+.cal .h{font-weight:700;color:var(--accent);}
+.cal .on{background:var(--chip);color:var(--ink);font-weight:700;}
+.cal .today{outline:2px solid var(--accent);}
+.radio{display:flex;align-items:center;gap:8px;font-size:.76rem;}
+.radio .knob{
+  width:34px;height:34px;border-radius:50%;border:2px solid var(--frame);
+  background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;
+}
+.aff{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.aff span{
+  border:2px solid var(--frame-2);border-radius:5px;background:var(--chip);
+  font-size:.64rem;text-align:center;padding:8px 2px;color:var(--dim);
+}
+
+@media (max-width:980px){
+  .grid{grid-template-columns:1fr;}
+  .banner{grid-template-columns:1fr;text-align:center;}
+  .banner-cat{margin:0 auto;max-width:130px;}
+  .gal{grid-template-columns:repeat(3,1fr);}
+}
+</style>
+</head>
+<body>
+
+<div class="skinbar">
+  <b>🔍 레이아웃 미리보기 · model/시안9(Neomood) 구조 · 실제 앱에는 아직 반영하지 않음</b>
+  <div class="btns">
+    <button data-set="pastel" class="on">🌸 파스텔 (시안9 그대로)</button>
+    <button data-set="night">🌙 밤하늘 (현재 앱 색)</button>
+  </div>
+</div>
+
+<div class="win">
+
+  <!-- ① 얇은 상태 띠 -->
+  <div class="win-top">
+    <span class="mono">✦ 오늘의 별자리에 오신 걸 환영해요</span>
+    <span class="mono">🔥 12일째 · 🌌 도감 5/16 · 2026.08.25 (월)</span>
+  </div>
+
+  <!-- ② 배너 -->
+  <header class="banner">
+    <div class="banner-note">
+      <b>오늘의 한마디</b>
+      손목이 조금씩<br>부드러워지고 있어요.<br>오늘의 별도 함께 반짝여요 ✨
+    </div>
+    <div class="banner-mark">
+      <h1>오늘의 별자리</h1>
+      <p class="mono">✿ 하루 1분 손목 웰니스 · 별 모으기 ✿</p>
+    </div>
+    <img class="banner-cat" src="../assets/cat-idle.png" alt="" aria-hidden="true">
+    <span class="deco d1">✦</span><span class="deco d2">✧</span>
+    <span class="deco d3">·</span><span class="deco d4">✦</span><span class="deco d5">✧</span>
+  </header>
+
+  <!-- ③ 탭 내비 -->
+  <nav class="tabs" aria-label="주요 기능">
+    <a href="#" class="on">🏠 홈</a>
+    <a href="#">🎬 오늘의 루틴</a>
+    <a href="#">📊 손목 체크</a>
+    <a href="#">📈 기록</a>
+    <a href="#">🌌 밤하늘 도감</a>
+    <a href="#" class="off">🎮 게임</a>
+    <a href="#">ℹ️ 안내</a>
+  </nav>
+
+  <!-- ④ 3단 컬럼 -->
+  <div class="grid">
+
+    <!-- ───────── 좌: 사이드 ───────── -->
+    <aside>
+      <section class="box">
+        <h2 class="box-head">🐾 반가워요</h2>
+        <div class="box-body welcome">
+          <img src="../assets/cat-idle.png" alt="" aria-hidden="true">
+          <div class="hi">우주비행사 고양이</div>
+          <div class="sub">오늘도 만나서 반가워요!<br>손목, 잠깐 챙겨볼까요?</div>
+          <div class="streak">🔥 12일 연속</div>
+          <button class="btn">오늘의 루틴 시작 🚀</button>
+        </div>
+      </section>
+
+      <section class="box">
+        <h2 class="box-head">🧭 메뉴</h2>
+        <div class="box-body" style="padding:6px 8px;">
+          <ul class="menu">
+            <li><a href="#">🏠 <span>홈</span></a></li>
+            <li><a href="#">🎬 <span>오늘의 루틴</span></a></li>
+            <li><a href="#">📊 <span>손목 체크</span></a></li>
+            <li><a href="#">📈 <span>기록 보기</span></a></li>
+            <li><a href="#">🌌 <span>밤하늘 도감</span></a></li>
+            <li><a href="#">🔔 <span>리마인더 설정</span></a></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="box">
+        <h2 class="box-head">🎯 오늘의 포커스</h2>
+        <div class="box-body">
+          <p><b>손목 굽힘·폄</b></p>
+          <p style="color:var(--dim);font-size:.75rem;">오늘은 여기에 살짝 더 마음 써봐요. 천천히 함께 해요.</p>
+        </div>
+      </section>
+
+      <section class="box">
+        <h2 class="box-head">💜 함께 보기</h2>
+        <div class="box-body">
+          <div class="aff">
+            <span>손목 스트레칭<br>가이드</span>
+            <span>바른 자세<br>체크리스트</span>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ───────── 중앙: 본문 ───────── -->
+    <main>
+      <section class="box">
+        <h2 class="box-head">🎬 오늘의 루틴 <span class="more">매일 · 1~3분</span></h2>
+        <div class="box-body">
+          <div class="bar"><i></i></div>
+          <div class="bar-label"><span>오늘 4 / 6 완료</span><span>별 4개 점등 ✦✦✦✦</span></div>
+          <ul class="rt">
+            <li class="done"><span class="n">✋</span><span class="name">손목 굽힘·폄 스트레칭</span><span class="rep">10회 ✓</span></li>
+            <li class="done"><span class="n">🖐️</span><span class="name">손목 좌우 편위</span><span class="rep">10회 ✓</span></li>
+            <li class="done"><span class="n">🤚</span><span class="name">힘줄 활주 운동</span><span class="rep">5회 ✓</span></li>
+            <li class="done"><span class="n">🤏</span><span class="name">핀치 집기</span><span class="rep">20초 ✓</span></li>
+            <li><span class="n">✊</span><span class="name">악력 유지</span><span class="rep">20초</span></li>
+            <li><span class="n">🖐️</span><span class="name">손가락 벌리기</span><span class="rep">10회</span></li>
+          </ul>
+          <button class="btn">이어서 하기 (2개 남음) 🚀</button>
+        </div>
+      </section>
+
+      <section class="box">
+        <h2 class="box-head">📰 최근 기록 <span class="more">전체 보기 ▸</span></h2>
+        <div class="box-body" style="padding:0;">
+          <table>
+            <thead>
+              <tr><th>날짜</th><th>한 일</th><th class="num">회수·수치</th><th>컨디션</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">08.24</td><td>풀코스 6종 완주 · 백조자리 완성</td><td class="num">6 / 6</td><td>😊 좋음</td></tr>
+              <tr><td class="mono">08.23</td><td>풀코스 6종</td><td class="num">5 / 6</td><td>🙂 보통</td></tr>
+              <tr><td class="mono">08.22</td><td>손목 체크 (오른손)</td><td class="num">굽힘 62° · 폄 55°</td><td>—</td></tr>
+              <tr><td class="mono">08.21</td><td>풀코스 6종 완주 · 거문고자리 완성</td><td class="num">6 / 6</td><td>😊 좋음</td></tr>
+              <tr><td class="mono">08.20</td><td>풀코스 6종</td><td class="num">4 / 6</td><td>😐 뻐근</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="box">
+        <h2 class="box-head">🌌 밤하늘 도감 <span class="more">5 / 16 수집 ▸</span></h2>
+        <div class="box-body">
+          <div class="gal">
+            <figure><div class="th">✦</div><figcaption>큰곰자리</figcaption></figure>
+            <figure><div class="th">✧</div><figcaption>백조자리</figcaption></figure>
+            <figure><div class="th">✦</div><figcaption>거문고자리</figcaption></figure>
+            <figure><div class="th">✧</div><figcaption>카시오페이아</figcaption></figure>
+            <figure><div class="th">✦</div><figcaption>오리온자리</figcaption></figure>
+            <figure class="lock"><div class="th">🔒</div><figcaption>???</figcaption></figure>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ───────── 우: 위젯 ───────── -->
+    <aside>
+      <section class="box">
+        <h2 class="box-head">✦ 오늘의 하늘</h2>
+        <div class="box-body">
+          <div class="sky-box">
+            <svg viewBox="0 0 200 130" width="100%" height="120" role="img" aria-label="오늘의 별자리 백조자리">
+              <g stroke="var(--star)" stroke-width="1.4" opacity=".55">
+                <line x1="100" y1="18" x2="100" y2="66"/><line x1="100" y1="66" x2="100" y2="108"/>
+                <line x1="42" y1="60" x2="100" y2="66"/><line x1="100" y1="66" x2="158" y2="58"/>
+              </g>
+              <g fill="var(--star)">
+                <circle cx="100" cy="18" r="4"/><circle cx="100" cy="66" r="5"/>
+                <circle cx="42" cy="60" r="4"/><circle cx="158" cy="58" r="4"/>
+              </g>
+              <g fill="var(--star)" opacity=".28">
+                <circle cx="100" cy="108" r="3.5"/><circle cx="70" cy="92" r="3"/>
+              </g>
+            </svg>
+          </div>
+          <p style="text-align:center;margin-top:7px;font-weight:700;">백조자리</p>
+          <p style="text-align:center;font-size:.72rem;color:var(--dim);">4 / 6 점등 · 2개만 더!</p>
+        </div>
+      </section>
+
+      <section class="box">
+        <h2 class="box-head">📊 손목 체크 <span class="more">추이 ▸</span></h2>
+        <div class="box-body">
+          <svg viewBox="0 0 200 70" width="100%" height="62" role="img" aria-label="굽힘 추이">
+            <polyline points="6,52 44,48 82,44 120,38 158,34 194,28" fill="none"
+                      stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+            <g fill="var(--accent)">
+              <circle cx="6" cy="52" r="2.5"/><circle cx="82" cy="44" r="2.5"/><circle cx="194" cy="28" r="3.5"/>
+            </g>
+          </svg>
+          <div class="metric"><span>굽힘</span><b>62°</b></div>
+          <div class="metric"><span>폄</span><b>55°</b></div>
+          <div class="metric"><span>좌우 편위 합</span><b>41°</b></div>
+          <div class="gift">🎁 지난주보다 굽힘이 조금 늘었어요.<br>별 하나를 선물로 드릴게요 ✦</div>
+        </div>
+      </section>
+
+      <section class="box">
+        <h2 class="box-head">📅 8월 출석</h2>
+        <div class="box-body">
+          <div class="cal">
+            <span class="h">일</span><span class="h">월</span><span class="h">화</span><span class="h">수</span><span class="h">목</span><span class="h">금</span><span class="h">토</span>
+            <span></span><span></span><span></span><span></span><span></span><span>1</span><span>2</span>
+            <span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span>
+            <span>10</span><span>11</span><span>12</span><span class="on">13</span><span class="on">14</span><span class="on">15</span><span class="on">16</span>
+            <span class="on">17</span><span class="on">18</span><span class="on">19</span><span class="on">20</span><span class="on">21</span><span class="on">22</span><span class="on">23</span>
+            <span class="on">24</span><span class="on today">25</span><span>26</span><span>27</span><span>28</span><span>29</span><span>30</span>
+            <span>31</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="box">
+        <h2 class="box-head">🔔 리마인더</h2>
+        <div class="box-body">
+          <div class="radio">
+            <div class="knob">▶</div>
+            <div>
+              <div style="font-weight:700;">2시간마다 알림</div>
+              <div style="font-size:.72rem;color:var(--dim);">다음 알림 · 오후 4:00</div>
+            </div>
+          </div>
+          <button class="btn ghost" style="margin-top:9px;">알림 끄기</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- ⑤ 푸터 -->
+  <footer class="win-foot">
+    ⚠ 본 서비스는 의료기기가 아니며 질병의 진단·치료 목적이 아닙니다. 통증이 있으면 즉시 중단하고 의사와 상담하세요.<br>
+    <span class="mono">오늘의 별자리 · 영상은 저장하지 않아요 · 좌표·수치만 내 브라우저에 남습니다</span>
+  </footer>
+</div>
+
+<script>
+// 스킨 토글 — data-skin 한 줄만 바꾼다(레이아웃은 그대로, 색만 갈아입는다)
+const btns = document.querySelectorAll('.skinbar button');
+btns.forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.documentElement.dataset.skin = b.dataset.set;
+    btns.forEach(function (x) { x.classList.toggle('on', x === b); });
+    try { localStorage.setItem('previewSkin', b.dataset.set); } catch (e) {}
+  });
+});
+try {
+  var saved = localStorage.getItem('previewSkin');
+  var target = saved && document.querySelector('.skinbar button[data-set="' + saved + '"]');
+  if (target) target.click();
+} catch (e) {}
+</script>
+</body>
+</html>
