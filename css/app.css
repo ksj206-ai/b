@@ -20,8 +20,9 @@
 html[data-palette="sky"]{
   --page:#d9e6f2;  --page-dot:#c1d1e9;
   --frame:#7a82d3; --frame-2:#b2bbe9;
-  --win:#eef4fb;   --panel:#f3f7fc;   /* 판 안쪽 — model/시안8은 순백이 아니라 옅은 블루그레이다
-                                       (실측 #e6e7f2~#f2f5f5). 창과의 층은 남기고 순백만 걷었다 */
+  --win:#eef4fb;   --panel:#eef1f8;   /* 판 안쪽 — model/시안8 실측값(옅은 블루그레이).
+                                       창(#eef4fb)보다 아주 살짝 어두워서, 판을 나누는 건
+                                       밝기가 아니라 2px 테두리와 제목바다 — 시안의 방식이다 */
   --head:linear-gradient(#e2e9f8,#c9d5ee);  --head-ink:#4d5490;
   --ink:#3f467c;   --dim:#7b83ad;  --line:#d6dff2;
   --accent:#7a82d3; --accent-2:#aab2e8; --accent-ink:#ffffff;
