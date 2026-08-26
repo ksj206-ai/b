@@ -123,11 +123,16 @@ body{
 /* ─── 색 테마 스와치 ─── 다크모드 스위치 왼쪽. 점 두 개면 "색 고르는 곳"으로 읽힌다.
    스와치 색만은 토큰을 쓰지 않는다 — 이 점은 "지금 색"이 아니라 "누르면 갈 색"이라,
    현재 테마를 따라가면 두 점이 같아져 버린다. */
-.pal{display:inline-flex;align-items:center;gap:5px;}
+.pal{display:inline-flex;align-items:center;gap:10px;}
 .pal button{
+  position:relative;
   width:17px;height:17px;padding:0;cursor:pointer;border-radius:50%;
   border:2px solid rgba(255,255,255,.5);
 }
+/* 점은 17px 그대로 두고 누를 수 있는 판만 넓힌다(권장 최소 24px).
+   점을 키우면 상단 띠의 인상이 달라지므로 안 보이는 판을 덧댄다.
+   위 gap을 5 → 10으로 올린 건 이 판 둘이 서로 겹치지 않게 하려는 것이다. */
+.pal button::after{ content:''; position:absolute; inset:-5px; border-radius:50%; }
 .pal button[aria-pressed="true"]{box-shadow:0 0 0 2px #fff;border-color:transparent;}
 .pal .sw-sky{background:linear-gradient(135deg,#cfdcf2 45%,#7a82d3);}
 .pal .sw-lavender{background:linear-gradient(135deg,#f3bcd8 45%,#9b85dc);}
@@ -142,15 +147,17 @@ body{
   background:none;border:0;padding:2px 0;color:#fff;font:inherit;font-size:.72rem;
 }
 .tt-track{
-  position:relative;display:inline-block;width:38px;height:20px;border-radius:999px;
+  position:relative;display:inline-block;width:44px;height:24px;border-radius:999px;
   background:rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.55);
 }
+/* 손잡이 안의 ☀/🌙 — 미리보기는 9px였는데 확대가 안 걸리는 화면에서 너무 작았다.
+   스위치를 한 치수 키워(38×20 → 44×24) 글자도 같이 올렸다. */
 .tt-knob{
-  position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;
-  background:#fff;color:#6b5a9c;font-size:9px;line-height:14px;text-align:center;
+  position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:#fff;color:#6b5a9c;font-size:11px;line-height:16px;text-align:center;
   transition:transform .18s ease, background .18s ease;
 }
-html[data-theme="dark"] .tt-knob{transform:translateX(16px);background:#ffe9a8;}
+html[data-theme="dark"] .tt-knob{transform:translateX(20px);background:#ffe9a8;}
 @media (prefers-reduced-motion:reduce){ .tt-knob{transition:none;} }
 .win-foot{
   flex:none;
@@ -803,7 +810,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 }
 .m-how-chip:hover{ border-color:var(--accent); color:var(--accent); }
 .m-how-q{
-  width:15px; height:15px; border-radius:50%; font-size:.66rem; line-height:15px;
+  width:18px; height:18px; border-radius:50%; font-size:.76rem; line-height:18px;
   background:var(--accent); color:var(--accent-ink); text-align:center; font-weight:700;
 }
 /* 선택된 손 — .hand button.on을 JS가 쓰는 is-on에도 물린다 */
@@ -925,3 +932,31 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 @media (min-width:2350px) and (min-height:1340px){ .win{ zoom:1.35; } }
 @media (min-width:2800px) and (min-height:1600px){ .win{ zoom:1.55; } }
 @media (min-width:3300px) and (min-height:1900px){ .win{ zoom:1.75; } }
+
+/* ═══════════════════════════════════════════════════════════
+   ⑦ 키보드 초점 표시
+   미리보기에는 :focus 규칙이 하나도 없었다. 마우스로만 보면 티가 안 나지만
+   탭 키로 다니면 지금 어디에 있는지 알 수 없다. 브라우저 기본 링에 기대기엔
+   .btn이 accent 배경 + 2px 테두리 + 그림자라 링이 묻힌다.
+
+   :focus-visible만 쓴다 — 마우스 클릭에는 안 뜨고 키보드로 왔을 때만 뜬다.
+   색은 토큰이라 팔레트·다크모드를 그대로 따라간다.
+   ═══════════════════════════════════════════════════════════ */
+:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+  border-radius:4px;
+}
+/* 판 폭을 꽉 채우는 것들은 링을 안쪽으로 — .box가 overflow:hidden이라
+   바깥으로 그리면 판 경계에서 잘린다. */
+.tabs button:focus-visible,
+.menu li button:focus-visible,
+.guide-card:focus-visible,
+.remind-entry-chip:focus-visible,
+.rh-item button:focus-visible{ outline-offset:-3px; }
+/* 상단 띠는 --frame 위라 accent가 묻힌다 — 흰 링으로 */
+.win-top :focus-visible{ outline-color:#fff; }
+/* 밤하늘 판 위(도감 별자리·홈 썸네일)는 별빛 색으로 */
+.sky-map-item:focus-visible,
+.gal figure:focus-visible,
+.gal button:focus-visible{ outline-color:var(--star); outline-offset:3px; }
