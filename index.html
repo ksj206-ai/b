@@ -240,78 +240,81 @@
 
         <!-- 플레이어 -->
         <section class="box" id="guidePlayer" hidden>
-          <div class="gp-top">
+          <!-- 재생기도 다른 판과 같은 박스다 — 운동 이름·진행이 제목바에 올라간다 -->
+          <h2 class="box-head">
             <span id="gpName" class="gp-name">운동</span>
             <!-- 오늘의 포커스 — 루틴 모드에서 focus 방향 운동에만 (약함이 아니라 "여기 신경 써봐요") -->
             <span id="gpFocus" class="gp-focus" hidden>🎯 오늘의 포커스</span>
-            <span id="gpStep" class="gp-step">1/3</span>
-          </div>
+            <span id="gpStep" class="more">1/3</span>
+          </h2>
+          <div class="box-body">
 
-          <div class="gp-stage" id="gpStage">
-            <canvas id="guideCanvas" class="guide-canvas" width="340" height="272"></canvas>
-            <!-- 시범 손 애니(굽힘·폄·편위) — 스켈레톤 손 대신 얹히는 APNG.
-                 위치·크기는 handSprite.js가 손목=호 중심에 맞춰 계산한다.
-                 장식용이라 alt는 비움(동작 설명은 아래 안내 문구가 담당). -->
-            <img id="gpAnim" class="gp-anim" alt="" hidden>
-            <div class="gp-pip" id="gpPip">
-              <video id="guideVideo" class="cam-video" playsinline muted></video>
-              <canvas id="gpLm" class="gp-lm"></canvas>
-              <span id="gpCam" class="gp-cam"><span id="gpCamIco" class="gp-cam-ico"></span><span id="gpCamTxt" class="gp-cam-txt"></span></span>
+            <div class="gp-stage" id="gpStage">
+              <canvas id="guideCanvas" class="guide-canvas" width="340" height="272"></canvas>
+              <!-- 시범 손 애니(굽힘·폄·편위) — 스켈레톤 손 대신 얹히는 APNG.
+                   위치·크기는 handSprite.js가 손목=호 중심에 맞춰 계산한다.
+                   장식용이라 alt는 비움(동작 설명은 아래 안내 문구가 담당). -->
+              <img id="gpAnim" class="gp-anim" alt="" hidden>
+              <div class="gp-pip" id="gpPip">
+                <video id="guideVideo" class="cam-video" playsinline muted></video>
+                <canvas id="gpLm" class="gp-lm"></canvas>
+                <span id="gpCam" class="gp-cam"><span id="gpCamIco" class="gp-cam-ico"></span><span id="gpCamTxt" class="gp-cam-txt"></span></span>
+              </div>
             </div>
-          </div>
 
-          <!-- 카메라 켜기 전/여는 중 안심 안내 (스트리밍 시작되면 JS가 숨김) -->
-          <p class="priv-note" id="gpPriv" hidden>🔒 분석은 이 기기 안에서만 이루어지며, 영상은 저장되거나 외부로 전송되지 않습니다.</p>
+            <!-- 카메라 켜기 전/여는 중 안심 안내 (스트리밍 시작되면 JS가 숨김) -->
+            <p class="priv-note" id="gpPriv" hidden>🔒 분석은 이 기기 안에서만 이루어지며, 영상은 저장되거나 외부로 전송되지 않습니다.</p>
 
-          <p id="gpText" class="gp-text">준비 중…</p>
+            <p id="gpText" class="gp-text">준비 중…</p>
 
-          <!-- 회수: 큰 숫자 + 진행 점(보조) -->
-          <div id="gpCount" class="gp-count" hidden><b id="gpCountNum" class="gp-count-num">0/5</b><span class="gp-count-unit">회</span></div>
-          <div id="gpDots" class="gp-dots"></div>
-          <p id="gpHint" class="gp-hint"></p>
+            <!-- 회수: 큰 숫자 + 진행 점(보조) -->
+            <div id="gpCount" class="gp-count" hidden><b id="gpCountNum" class="gp-count-num">0/5</b><span class="gp-count-unit">회</span></div>
+            <div id="gpDots" class="gp-dots"></div>
+            <p id="gpHint" class="gp-hint"></p>
 
-          <div id="gpIdle" class="gp-idle" hidden>
-            <span>인식이 잘 안되나요?</span>
-            <div class="gp-idle-btns">
-              <button class="btn btn-back" id="gpRetry">계속 시도</button>
-              <button class="btn btn-back" id="gpProceed">손동작 없이 진행</button>
+            <div id="gpIdle" class="gp-idle" hidden>
+              <span>인식이 잘 안되나요?</span>
+              <div class="gp-idle-btns">
+                <button class="btn btn-back" id="gpRetry">계속 시도</button>
+                <button class="btn btn-back" id="gpProceed">손동작 없이 진행</button>
+              </div>
             </div>
-          </div>
 
-          <!-- 재생 중 조작. "이전 운동"은 오늘의 루틴 순서에서 한 칸 앞 — 첫 운동이거나
-               코스 밖 운동이면 main.js가 숨긴다(운동 전환일 뿐 history는 안 쌓는다). -->
-          <div class="gp-btns">
-            <button class="btn btn-back" id="gpPrev" hidden>← 이전 운동</button>
-            <button class="btn btn-back" id="gpQuit">그만두기</button>
-            <button class="btn btn-back" id="gpSkip">건너뛰기</button>
-          </div>
-
-          <!-- 통증 안내 — 상시 유지하되 차분한 회색 작은 글씨로 하단에 -->
-          <p class="gp-safe">통증이 느껴지면 무리하지 말고 편하게 멈춰요</p>
-
-          <!-- 컨디션 기록 — 탭 1번, 10초 데이터 (통증 언어 금지: 컨디션·피로 표현만) -->
-          <div id="gpCondition" class="gp-condition" hidden>
-            <p class="gp-cond-q">지금 손목 어때요?</p>
-            <div class="gp-cond-btns">
-              <button class="gp-cond-btn" data-cond="good">😊<span>좋아요</span></button>
-              <button class="gp-cond-btn" data-cond="soso">😐<span>보통이에요</span></button>
-              <button class="gp-cond-btn" data-cond="stiff">😣<span>뻐근해요</span></button>
+            <!-- 재생 중 조작. "이전 운동"은 오늘의 루틴 순서에서 한 칸 앞 — 첫 운동이거나
+                 코스 밖 운동이면 main.js가 숨긴다(운동 전환일 뿐 history는 안 쌓는다). -->
+            <div class="gp-btns">
+              <button class="btn btn-back" id="gpPrev" hidden>← 이전 운동</button>
+              <button class="btn btn-back" id="gpQuit">그만두기</button>
+              <button class="btn btn-back" id="gpSkip">건너뛰기</button>
             </div>
-            <button class="btn btn-back" id="gpCondSkip">건너뛰기</button>
-          </div>
 
-          <div id="gpDone" class="gp-done" hidden>
-            <p class="gp-done-emoji" id="gpDoneEmoji">🌟</p>
-            <p class="gp-done-text" id="gpDoneText">잘하셨어요! 오늘도 손목을 돌봤어요.</p>
-            <!-- 격려 한 줄 (스트릭/따뜻한 톤) — 숫자 리포트는 체크 결과의 몫 -->
-            <p class="gp-done-sub" id="gpDoneSub" hidden></p>
-            <p class="gp-rest" id="gpRest" hidden>오늘은 무리하지 않아도 괜찮아요. 뻐근함이 계속되면 충분히 쉬어주세요.</p>
-            <div id="gpRoutineProg" class="gp-routine-prog" hidden></div>
-            <button class="btn" id="gpNext" hidden>다음 운동 →</button>
-            <button class="btn" id="gpMeasureGo" data-nav="measure" hidden>📏 손목 상태도 기록해 볼까요?</button>
-            <div class="gp-done-btns">
-              <button class="btn btn-back" id="gpToList">다른 운동 보기</button>
-              <button class="btn btn-back" data-nav="home">홈으로</button>
+            <!-- 통증 안내 — 상시 유지하되 차분한 회색 작은 글씨로 하단에 -->
+            <p class="gp-safe">통증이 느껴지면 무리하지 말고 편하게 멈춰요</p>
+
+            <!-- 컨디션 기록 — 탭 1번, 10초 데이터 (통증 언어 금지: 컨디션·피로 표현만) -->
+            <div id="gpCondition" class="gp-condition" hidden>
+              <p class="gp-cond-q">지금 손목 어때요?</p>
+              <div class="gp-cond-btns">
+                <button class="gp-cond-btn" data-cond="good">😊<span>좋아요</span></button>
+                <button class="gp-cond-btn" data-cond="soso">😐<span>보통이에요</span></button>
+                <button class="gp-cond-btn" data-cond="stiff">😣<span>뻐근해요</span></button>
+              </div>
+              <button class="btn btn-back" id="gpCondSkip">건너뛰기</button>
+            </div>
+
+            <div id="gpDone" class="gp-done" hidden>
+              <p class="gp-done-emoji" id="gpDoneEmoji">🌟</p>
+              <p class="gp-done-text" id="gpDoneText">잘하셨어요! 오늘도 손목을 돌봤어요.</p>
+              <!-- 격려 한 줄 (스트릭/따뜻한 톤) — 숫자 리포트는 체크 결과의 몫 -->
+              <p class="gp-done-sub" id="gpDoneSub" hidden></p>
+              <p class="gp-rest" id="gpRest" hidden>오늘은 무리하지 않아도 괜찮아요. 뻐근함이 계속되면 충분히 쉬어주세요.</p>
+              <div id="gpRoutineProg" class="gp-routine-prog" hidden></div>
+              <button class="btn" id="gpNext" hidden>다음 운동 →</button>
+              <button class="btn" id="gpMeasureGo" data-nav="measure" hidden>📏 손목 상태도 기록해 볼까요?</button>
+              <div class="gp-done-btns">
+                <button class="btn btn-back" id="gpToList">다른 운동 보기</button>
+                <button class="btn btn-back" data-nav="home">홈으로</button>
+              </div>
             </div>
           </div>
         </section>
@@ -372,27 +375,8 @@
                안 건드린다). 홈으로 나가는 건 좌상단 뒤로 버튼의 몫.
                ⚠ mActions 안에 두지 말 것 — 그쪽은 캡처 단계에만 보이는데 이 버튼은
                중립 단계에도 보여야 한다. 카메라 위에 겹치지 않게 안내 문구 아래 별도 줄. -->
-          <button class="btn ghost" id="mCancel" hidden>그만두기</button>
-          </div>
-        </section>
-        </div>
-
-        <div class="col">
-          <!-- idle: 체크할 손 선택 + 시작 -->
-          <section class="box" id="mIdle">
-            <h2 class="box-head">✋ 어느 손을 재나요</h2>
-            <div class="box-body">
-            <div id="mHandSel" class="m-hand-sel" role="group" aria-label="체크할 손 선택">
-              <button class="m-hand-btn" data-hand="left">🫲 왼손</button>
-              <button class="m-hand-btn" data-hand="right">🫱 오른손</button>
-            </div>
-            <!-- 카메라 켜기 전 안심 안내 (권한 거부 방지) -->
-            <p class="priv-note">🔒 분석은 이 기기 안에서만 이루어지며, 영상은 저장되거나 외부로 전송되지 않습니다.</p>
-            <button class="btn" id="mStart">체크 시작하기</button>
-            </div>
-          </section>
-
-          <!-- 측정 중 캡처 칩 2개 — 단계에 따라 라벨이 바뀐다(옆모습: 굽힘·폄 / 정면: 엄지쪽·새끼쪽) -->
+          <!-- 측정 중 캡처 칩 2개 — 단계에 따라 라벨이 바뀐다(옆모습: 굽힘·폄 / 정면: 엄지쪽·새끼쪽).
+               미리보기처럼 카메라와 같은 판 안에 둔다 — 보는 것과 읽는 것이 한 자리다. -->
           <div id="mCapture" class="m-caps" hidden>
             <div id="capFlex" class="m-cap"><span id="capFlexK" class="m-cap-k">굽힘</span><b id="capFlexV" class="m-cap-v">–</b></div>
             <div id="capExt" class="m-cap"><span id="capExtK" class="m-cap-k">폄</span><b id="capExtV" class="m-cap-v">–</b></div>
@@ -404,14 +388,32 @@
             <button class="btn" id="mFinish">체크 완료</button>
           </div>
 
+          <button class="btn ghost" id="mCancel" hidden>그만두기</button>
+          </div>
+        </section>
+        </div>
+
+        <div class="col">
+          <!-- idle: 체크할 손 선택 + 시작 -->
+          <section class="box" id="mIdle">
+            <h2 class="box-head">✋ 어느 손을 재나요</h2>
+            <div class="box-body">
+            <div id="mHandSel" class="hand" role="group" aria-label="체크할 손 선택">
+              <button class="m-hand-btn" data-hand="left">🫲 왼손</button>
+              <button class="m-hand-btn" data-hand="right">🫱 오른손</button>
+            </div>
+            <!-- 카메라 켜기 전 안심 안내 (권한 거부 방지) -->
+            <p class="priv-note">🔒 분석은 이 기기 안에서만 이루어지며, 영상은 저장되거나 외부로 전송되지 않습니다.</p>
+            <button class="btn" id="mStart">체크 시작하기</button>
+            </div>
+          </section>
+
           <!-- 결과 -->
           <section class="box" id="mResult" hidden>
             <h2 class="box-head">🎯 오늘의 손목 가동범위</h2>
             <div class="box-body">
-            <div class="m-result-grid">
-              <div><span>굽힘</span><b id="rFlex">–</b></div>
-              <div><span>폄</span><b id="rExt">–</b></div>
-            </div>
+            <div class="metric"><span>굽힘</span><b id="rFlex">–</b></div>
+            <div class="metric"><span>폄</span><b id="rExt">–</b></div>
             <!-- 기능 기준 진척(일상생활 참고) — 부족 표현·정상인 대비 % 금지 -->
             <p id="rFunc" class="m-func"></p>
             <p id="rDelta" class="m-delta"></p>
@@ -420,9 +422,9 @@
                  진척률(개별 방향 라벨이 아직 잠정이라 합이 안전), 개별 각도는 보조. -->
             <div id="rDevBlock" class="m-dev" hidden>
               <p id="rDevFunc" class="m-func m-func--sub"></p>
-              <div id="rDevGrid" class="m-result-grid m-result-grid--sub">
-                <div><span id="rDevAK">엄지쪽</span><b id="rDevA">–</b></div>
-                <div><span id="rDevBK">새끼쪽</span><b id="rDevB">–</b></div>
+              <div id="rDevGrid">
+                <div class="metric"><span id="rDevAK">엄지쪽</span><b id="rDevA">–</b></div>
+                <div class="metric"><span id="rDevBK">새끼쪽</span><b id="rDevB">–</b></div>
               </div>
               <p id="rDevDelta" class="m-delta"></p>
             </div>
@@ -458,10 +460,19 @@
           <button class="btn btn-back" data-back>← 뒤로</button>
           <h2 class="screen-title">🎮 미니게임</h2>
         </div>
-        <div class="placeholder">
-          <p class="placeholder-emoji">🎮</p>
-          <p class="placeholder-text">미니게임은 곧 이곳으로 이식됩니다.</p>
-          <p class="placeholder-sub">운동 동작을 활용한 보조 콘텐츠입니다.</p>
+        <div class="cols wide">
+          <div class="col">
+            <section class="box">
+              <h2 class="box-head">🎮 미니게임 <span class="more">준비 중</span></h2>
+              <div class="box-body">
+                <div class="placeholder">
+                  <p class="placeholder-emoji">🎮</p>
+                  <p class="placeholder-text">미니게임은 곧 이곳으로 이식됩니다.</p>
+                  <p class="placeholder-sub">운동 동작을 활용한 보조 콘텐츠입니다.</p>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
       </section>
 
@@ -472,109 +483,109 @@
           <h2 class="screen-title">📈 내 손목 기록</h2>
         </div>
 
-        <!-- 미리보기와 같은 2단 — 왼쪽은 추이(긴 그림), 오른쪽은 기록 목록 -->
+        <!-- 미리보기와 같은 2단 — 왼쪽은 추이(긴 그림), 오른쪽은 기록 목록.
+             칸 안의 단위는 미리보기의 박스(제목바 + 본문) 하나로 통일한다. -->
         <div class="cols split">
         <div class="col">
-        <!-- ROM 추이 -->
-        <div class="rec-card">
-          <div class="rec-card-head">
-            <span class="rec-card-title">손목 굽힘·폄 추이</span>
-            <span class="rec-range" id="recRange"></span>
-          </div>
 
-          <div id="recTrendWrap" class="rec-trend" hidden>
-            <div class="rec-stats">
-              <div class="rec-stat rec-stat--dual"><span>최근</span><b id="recLatest">–</b></div>
-              <div class="rec-stat rec-stat--dual"><span>지난 대비</span><b id="recDelta">–</b></div>
-              <div class="rec-stat rec-stat--dual"><span>최고 기록</span><b id="recBest">–</b></div>
+          <!-- ROM 추이 -->
+          <section class="box">
+            <h2 class="box-head">📈 손목 굽힘·폄 추이 <span class="more" id="recRange"></span></h2>
+            <div class="box-body">
+              <div id="recTrendWrap" class="rec-trend" hidden>
+                <div class="metric"><span>최근</span><b id="recLatest">–</b></div>
+                <div class="metric"><span>지난 대비</span><b id="recDelta">–</b></div>
+                <div class="metric"><span>최고 기록</span><b id="recBest">–</b></div>
+                <div class="rec-legend">
+                  <span><i class="rec-dot rec-dot--flex"></i>굽힘</span>
+                  <span><i class="rec-dot rec-dot--ext"></i>폄</span>
+                </div>
+                <canvas id="recCanvas" class="rec-canvas"></canvas>
+                <p id="recTrendHint" class="rec-hint"></p>
+              </div>
+
+              <div id="recTrendEmpty" class="rec-empty" hidden>
+                <p class="rec-empty-emoji">⭐</p>
+                <p class="rec-empty-text">아직 체크 기록이 없어요.<br>손목 상태를 재고 변화를 지켜봐요.</p>
+                <button class="btn" data-nav="measure">체크하러 가기</button>
+              </div>
             </div>
-            <div class="rec-legend">
-              <span><i class="rec-dot rec-dot--flex"></i>굽힘</span>
-              <span><i class="rec-dot rec-dot--ext"></i>폄</span>
+          </section>
+
+          <!-- 좌우 편위 추이 — 요측+척측 '합'만 그린다(개별 방향 라벨이 잠정이라 합이 안전).
+               편위를 잰 체크가 하나도 없으면 박스째 감춘다(빈 판이 자리 차지 않게). -->
+          <section class="box" id="recDevCard" hidden>
+            <h2 class="box-head">↔️ 손목 좌우 편위 추이 <span class="more" id="recDevRange"></span></h2>
+            <div class="box-body">
+              <div class="metric"><span>최근 합</span><b id="recDevLatest">–</b></div>
+              <div class="metric"><span>지난 대비</span><b id="recDevDelta">–</b></div>
+              <div class="metric"><span>최고 기록</span><b id="recDevBest">–</b></div>
+              <!-- 진척 헤드라인 — 결과 화면(.m-func)과 같은 긍정 프레이밍. 합 기준이라
+                   요측/척측 부호와 무관(부호 확정 전에도 안전). 하락은 여기 안 나오고
+                   '지난 대비' 값에만 숫자로(부정 문구 금지). -->
+              <p id="recDevFunc" class="m-func"></p>
+              <div class="rec-legend">
+                <span><i class="rec-dot rec-dot--dev"></i>요측+척측 합</span>
+              </div>
+              <canvas id="recDevCanvas" class="rec-canvas"></canvas>
+              <p id="recDevHint" class="rec-hint"></p>
             </div>
-            <canvas id="recCanvas" class="rec-canvas"></canvas>
-            <p id="recTrendHint" class="rec-hint"></p>
-          </div>
-
-          <div id="recTrendEmpty" class="rec-empty" hidden>
-            <p class="rec-empty-emoji">⭐</p>
-            <p class="rec-empty-text">아직 체크 기록이 없어요.<br>손목 상태를 재고 변화를 지켜봐요.</p>
-            <button class="btn" data-nav="measure">체크하러 가기</button>
-          </div>
-        </div>
-
-        <!-- 좌우 편위 추이 — 요측+척측 '합'만 그린다(개별 방향 라벨이 잠정이라 합이 안전).
-             편위를 잰 체크가 하나도 없으면 카드 자체를 감춘다(빈 카드로 자리 차지 않게). -->
-        <div class="rec-card" id="recDevCard" hidden>
-          <div class="rec-card-head">
-            <span class="rec-card-title">손목 좌우 편위 추이</span>
-            <span class="rec-range" id="recDevRange"></span>
-          </div>
-          <div class="rec-stats">
-            <div class="rec-stat"><span>최근 합</span><b id="recDevLatest">–</b></div>
-            <div class="rec-stat"><span>지난 대비</span><b id="recDevDelta">–</b></div>
-            <div class="rec-stat"><span>최고 기록</span><b id="recDevBest">–</b></div>
-          </div>
-          <!-- 진척 헤드라인 — 결과 화면(.m-func)과 같은 긍정 프레이밍. 합 기준이라
-               요측/척측 부호와 무관(부호 확정 전에도 안전). 하락은 여기 안 나오고
-               '지난 대비' 값에만 숫자로(부정 문구 금지). -->
-          <p id="recDevFunc" class="m-func"></p>
-          <div class="rec-legend">
-            <span><i class="rec-dot rec-dot--dev"></i>요측+척측 합</span>
-          </div>
-          <canvas id="recDevCanvas" class="rec-canvas"></canvas>
-          <p id="recDevHint" class="rec-hint"></p>
-        </div>
+          </section>
 
         </div>
         <div class="col">
-        <!-- 데일리 루틴 기록 (N/6) -->
-        <div class="rec-card">
-          <div class="rec-card-head">
-            <span class="rec-card-title">데일리 루틴</span>
-            <span class="rec-count" id="recRoutineCount"></span>
-          </div>
-          <p id="recFreeze" class="rec-freeze" hidden>🧊 이번 주 프리즈 사용됨 — 하루 쉬었지만 스트릭이 이어졌어요</p>
-          <div id="recWeek" class="rec-week" aria-label="최근 7일 손목 컨디션"></div>
-          <ul id="recRoutine" class="rec-history"></ul>
-          <div id="recRoutineEmpty" class="rec-empty" hidden>
-            <p class="rec-empty-emoji">⭐</p>
-            <p class="rec-empty-text">아직 루틴 기록이 없어요.<br>오늘의 풀코스를 시작해 봐요.</p>
-          </div>
-        </div>
 
-        <!-- 가이드 완료 히스토리 -->
-        <div class="rec-card">
-          <div class="rec-card-head">
-            <span class="rec-card-title">운동 완료 기록</span>
-            <span class="rec-count" id="recGuideCount"></span>
-          </div>
-          <ul id="recHistory" class="rec-history"></ul>
-          <div id="recHistoryEmpty" class="rec-empty" hidden>
-            <p class="rec-empty-emoji">🎬</p>
-            <p class="rec-empty-text">아직 완료한 운동이 없어요.<br>가이드를 따라 첫 운동을 해봐요.</p>
-            <button class="btn" data-nav="guide">가이드 보러 가기</button>
-          </div>
-        </div>
+          <!-- 데일리 루틴 기록 (N/6) -->
+          <section class="box">
+            <h2 class="box-head">🔥 데일리 루틴 <span class="more" id="recRoutineCount"></span></h2>
+            <div class="box-body">
+              <p id="recFreeze" class="rec-freeze" hidden>🧊 이번 주 프리즈 사용됨 — 하루 쉬었지만 스트릭이 이어졌어요</p>
+              <div id="recWeek" class="rec-week" aria-label="최근 7일 손목 컨디션"></div>
+              <ul id="recRoutine" class="rec-history"></ul>
+              <div id="recRoutineEmpty" class="rec-empty" hidden>
+                <p class="rec-empty-emoji">⭐</p>
+                <p class="rec-empty-text">아직 루틴 기록이 없어요.<br>오늘의 풀코스를 시작해 봐요.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- 가이드 완료 히스토리 -->
+          <section class="box">
+            <h2 class="box-head">📋 운동 완료 기록 <span class="more" id="recGuideCount"></span></h2>
+            <div class="box-body">
+              <ul id="recHistory" class="rec-history"></ul>
+              <div id="recHistoryEmpty" class="rec-empty" hidden>
+                <p class="rec-empty-emoji">🎬</p>
+                <p class="rec-empty-text">아직 완료한 운동이 없어요.<br>가이드를 따라 첫 운동을 해봐요.</p>
+                <button class="btn" data-nav="guide">가이드 보러 가기</button>
+              </div>
+            </div>
+          </section>
 
         </div>
         </div>
         <p class="m-disc">본 수치는 웹캠 기반 자가 참고값입니다. 질병의 진단·판정 목적이 아닙니다.</p>
       </section>
 
-      <!-- 밤하늘 도감 — 완성한 별자리 수집 (렌더는 sky.js 재사용, main.js renderSkyDex) -->
+      <!-- 밤하늘 도감 — 완성한 별자리 수집 (렌더는 sky.js 재사용, main.js renderSkyDex)
+           미리보기 구조 그대로 — 창을 덮는 full-bleed가 아니라 제목바를 가진 박스 한 판이다.
+           칸에 박스가 하나뿐이라 .cols.wide 규칙이 남는 높이를 이 박스에 전부 준다. -->
       <section id="screen-sky" class="screen" data-screen="sky">
-        <!-- 상단 바 — 밤하늘 위에 떠 있음(스크림으로 가독성만 살짝). 뒤로가기·N/16만 유지 -->
-        <div class="sky-dex-top">
-          <div class="screen-head">
-            <button class="btn btn-back" data-back>← 뒤로</button>
-            <h2 class="screen-title">🌌 밤하늘 도감</h2>
-            <span class="sky-dex-progress" id="skyDexProgress">0/16</span>
-          </div>
-          <p class="sky-dex-sub">완성한 별자리가 밤하늘에 모여요. 매일 하나씩 채워봐요 🌙</p>
+        <div class="screen-head">
+          <button class="btn btn-back" data-back>← 뒤로</button>
+          <h2 class="screen-title">🌌 밤하늘 도감</h2>
         </div>
-        <!-- 밤하늘: 화면 전체(full-bleed). 별자리는 con.pos대로 뷰포트 전체에 흩뿌려짐 -->
-        <div id="skyMap" class="sky-map" aria-label="완성한 별자리 밤하늘"></div>
+        <div class="cols wide">
+          <div class="col">
+            <section class="box">
+              <h2 class="box-head">🌌 밤하늘 도감
+                <span class="more"><b id="skyDexProgress">0/16</b> 수집 · 별자리를 눌러보세요</span></h2>
+              <div class="box-body sky-body">
+                <div id="skyMap" class="sky-map" aria-label="완성한 별자리 밤하늘"></div>
+              </div>
+            </section>
+          </div>
+        </div>
       </section>
 
     </main>

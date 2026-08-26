@@ -617,6 +617,9 @@ function boot() {
 
   onScreenChange((name, view) => {
     syncTabs(name);
+    // 화면을 벗어나면 그 화면이 띄운 오버레이도 같이 닫는다. 뷰포트에 고정된 판이라
+    // 그냥 두면 다음 화면 위에 그대로 떠 있는다(측정 안내 팝업 -> 루틴 화면).
+    closeScreenOverlays(name);
     if (name !== SCREENS.MEASURE) stopMeasure();
     if (name !== SCREENS.GUIDE) stopGuide();
     if (name === SCREENS.HOME) renderHome();
@@ -699,6 +702,17 @@ function wireMeasureIntro() {
   els.modal.addEventListener('click', (e) => { if (e.target === els.modal) hide(); }); // 배경 탭 → 닫기
   measureIntroEls = els;
   return els;
+}
+
+/** 화면에 매인 오버레이 정리 — 그 화면을 떠날 때만 닫는다.
+ *  (측정 안내 팝업은 measure에서만, 도감 일기 카드는 sky에서만 의미가 있다) */
+function closeScreenOverlays(name) {
+  const owner = { measureIntroModal: SCREENS.MEASURE, skyDexModal: SCREENS.SKY };
+  for (const [id, screen] of Object.entries(owner)) {
+    if (name === screen) continue;
+    const el = document.getElementById(id);
+    if (el && !el.hidden) el.hidden = true;
+  }
 }
 
 /** 방법 팝업 열기 — reduced-motion이면 정지 프레임으로 이미지를 바꾼다.
@@ -1174,8 +1188,10 @@ const GP_DESKTOP_MQ = window.matchMedia('(min-width:960px)');
 function layoutPip() {
   const g = guide; if (!g || !g.els) return;
   const { pip, player, stage, text, video } = g.els;
+  // 재생기가 박스가 된 뒤로 형제들은 .box-body 안에 있다 — 끼워 넣을 부모도 그쪽이다.
+  const body = player.querySelector('.box-body') || player;
   if (GP_DESKTOP_MQ.matches) {
-    if (pip.parentElement !== player) player.insertBefore(pip, text); // 오른쪽 열 상단
+    if (pip.parentElement !== body) body.insertBefore(pip, text); // 시범 위가 아니라 판 안 위쪽
   } else if (pip.parentElement !== stage) {
     stage.appendChild(pip); // 시범 캔버스 위 PiP
   }
