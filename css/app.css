@@ -847,3 +847,27 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   padding:4px 0; border-bottom:1px dashed var(--line);
 }
 .sky-dex-diary-row:last-child{ border-bottom:0; }
+
+/* ═══════════════════════════════════════════════════════════
+   ⑤ 홈 3열 비율 — 미리보기에서 의도적으로 벗어난 곳
+   미리보기는 240px / 1fr / 268px 이다. 창이 1700px까지 넓어지면 가운데가
+   1138px가 되는데, 루틴 행의 글씨는 50~65px뿐이라 행의 95%가 빈칸이었다.
+   그래서 가운데에 상한을 두고 남는 폭을 양옆이 나눠 먹게 한다.
+   (되돌리려면 아래 @media 블록만 지우면 미리보기 비율로 돌아간다)
+   ═══════════════════════════════════════════════════════════ */
+
+/* 상한이 걸릴 만큼 넓을 때만 — 240+760+268에 여백·간격을 더한 값이 경계다.
+   그보다 좁으면 미리보기 비율 그대로 두는 게 낫다(양옆이 최소폭 밑으로 눌린다). */
+@media (min-width:1400px){
+  .cols.home{ grid-template-columns:minmax(240px,1fr) minmax(0,760px) minmax(268px,1fr); }
+}
+
+/* 홈의 별자리 도감 줄 — 미리보기의 .gal은 8칸이지만 홈은 5개만 그린다(renderHomeDex).
+   8칸을 그대로 두면 오른쪽 3칸이 죽은 자리로 남았다. 칸 수를 그리는 수에 맞추고,
+   좁아진 만큼 높이를 올려 별자리 판이 찌그러져 보이지 않게 한다
+   (도감 화면의 .gal.dex와 같은 어림 — 별을 그리는 판이라 정사각형에 가까워야 한다). */
+#homeDex{ grid-template-columns:repeat(5,1fr); gap:8px; }
+#homeDex .th{ height:clamp(74px,11vh,124px); }
+@media (max-width:980px){
+  #homeDex{ grid-template-columns:repeat(3,1fr); }
+}
