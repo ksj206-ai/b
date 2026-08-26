@@ -17,15 +17,19 @@
   function read(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function write(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
-  // ── 즉시 확정 ── 저장값 > (다크모드는) 시스템 설정 > 기본값
-  // 기본값은 미리보기(preview/neomood.html 머리 스크립트)와 같아야 한다 —
-  // 팔레트는 하늘, 다크는 시스템이 dark라고 말할 때만. 예전엔 팔레트가 라벤더고
-  // 다크 판정이 뒤집혀 있어서(light 매치 여부로 봄) 첫 화면이 미리보기와 달랐다.
+  // ── 즉시 확정 ── 저장값이 있으면 그것, 없으면 기본값(하늘 · 라이트)
+  // 팔레트 기본값은 미리보기와 같은 '하늘'.
+  //
+  // 다크는 시스템 설정을 따르지 않고 라이트로 시작한다 — 이건 미리보기와
+  // 다른 유일한 지점이다(미리보기는 prefers-color-scheme를 본다). 처음 들어온
+  // 사람에게 보여줄 얼굴을 라이트로 정했기 때문이고, 시스템이 다크인 사람도
+  // 첫 화면은 라이트로 본다. 한 번이라도 스위치를 만지면 그 선택이 저장돼
+  // 계속 이긴다(아래 write). 시스템을 따르게 되돌리려면 다음 한 줄로 바꾼다:
+  //   : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
   var pal = read(KEY_PAL);
   root.dataset.palette = (pal === 'sky' || pal === 'lavender') ? pal : 'sky';
   var th = read(KEY_THEME);
-  root.dataset.theme = (th === 'dark' || th === 'light') ? th
-    : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  root.dataset.theme = (th === 'dark' || th === 'light') ? th : 'light';
 
   // ── 스위치 연결 ── (요소는 파싱이 끝나야 있으므로 여기서만 지연)
   function wire() {

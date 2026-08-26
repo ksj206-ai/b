@@ -24,7 +24,8 @@ html[data-palette="sky"]{
   --head:linear-gradient(#e2e9f8,#c9d5ee);  --head-ink:#4d5490;
   --ink:#3f467c;   --dim:#7b83ad;  --line:#d6dff2;
   --accent:#7a82d3; --accent-2:#aab2e8; --accent-ink:#ffffff;
-  --chip:#e8eefb;  --ok:#5aa593;
+  --chip:#e8eefb;  --ok:#407568;   /* 완료 초록 — 라이트가 기본 얼굴이 된 뒤 어둡게 잡았다
+                                       (미리보기 #5aa593은 흰 판 위 2.9:1로 흐렸다 → 5.3:1) */
   --sky:linear-gradient(160deg,#b6c4ee 0%,#cfdcf2 45%,#e7eff9 100%);
   --sky-ink:#3d447e; --star:#fff4d2; --note:rgba(255,255,255,.85);
   --thumb:linear-gradient(160deg,#a3b0e6,#d3dff4);
@@ -55,7 +56,7 @@ html[data-palette="lavender"]{
   --head:linear-gradient(#e7ddfb,#dbcef8);  --head-ink:#5b4a8c;
   --ink:#4b3f6d;   --dim:#8a7cae;  --line:#ddd1f7;
   --accent:#e58cbb; --accent-2:#f3bcd8; --accent-ink:#ffffff;
-  --chip:#fdeaf4;  --ok:#5fae8d;
+  --chip:#fdeaf4;  --ok:#417660;   /* 위와 같은 이유 — 2.7:1 → 5.3:1 */
   --sky:linear-gradient(160deg,#c9b3ef 0%,#e0cbf3 45%,#fadfee 100%);
   --sky-ink:#4a3a72; --star:#fff7cf; --note:rgba(255,255,255,.82);
   --thumb:linear-gradient(160deg,#b9a4e8,#e6cff0);
