@@ -656,6 +656,20 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   display:flex; flex-direction:column; min-width:0; min-height:0; overflow-y:auto;
   scrollbar-width:thin; scrollbar-color:var(--frame-2) transparent;
 }
+/* 칸을 flex로 만든 건 앱 쪽 사정이다(미리보기의 홈 칸은 그냥 블록이다).
+   그 바람에 박스가 flex 항목이 되어 기본값 flex-shrink:1로 눌렸다 —
+   높이가 모자라면 박스가 제 내용보다 작아지고, .box는 overflow:hidden이라
+   넘친 부분이 잘린다(달력 아랫줄이 리마인더와 겹쳐 보이던 원인).
+   박스는 제 크기를 지키고, 모자라면 칸이 스크롤하는 게 맞다.
+   ※ 칸에 박스가 하나뿐일 때 늘어나는 규칙(.box:only-child)은 선택자가 더
+     구체적이라 그대로 이긴다 — 시범 무대·카메라는 계속 칸을 채운다. */
+.cols > .col > .box{ flex:none; }
+/* 칸에 박스가 하나뿐이면 미리보기 규칙이 flex:1 1 auto를 준다 — 늘어나는 건 맞는데
+   줄어드는 것까지 허용해서, 카메라(4:3)처럼 폭을 따라 커지는 내용이 들어가면
+   박스가 눌려 잘렸다. 늘어나되 제 내용 밑으로는 줄지 않게 한다.
+   (선택자를 미리보기 것보다 한 단계 구체적으로 잡아야 이긴다) */
+.cols.split > .col > .box:only-child,
+.cols.wide > .col > .box:only-child{ flex-shrink:0; }
 .cols > .col::-webkit-scrollbar{ width:7px; }
 .cols > .col::-webkit-scrollbar-thumb{ background:var(--frame-2); border-radius:999px; }
 .cols > .col::-webkit-scrollbar-track{ background:transparent; }
@@ -877,3 +891,36 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 @media (max-width:980px){
   #homeDex{ grid-template-columns:repeat(3,1fr); }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   ⑥ 큰 화면에서 틀 통째로 확대
+   창은 1700px에 묶여 있다(미리보기 값). 2880px 같은 화면에서는 41%가 창 밖
+   여백으로 남는데, 창을 넓히면 여백이 사라지는 게 아니라 열 안으로 옮겨간다.
+   그래서 비율은 하나도 건드리지 않고 틀을 통째로 키운다 — 글자·판·간격이
+   같은 비율로 커지므로 안쪽 배치는 지금 그대로다.
+
+   zoom을 .win에만 건다. body에 걸면 height:100dvh가 확대돼 세로로 넘친다.
+   .win은 flex 자식이라 높이를 부모에게 받으므로 확대해도 세로는 그대로다.
+   (position:fixed 오버레이도 확대 좌표계 밖에서 뷰포트를 그대로 덮는다 — 확인함)
+
+   배수는 "창이 화면을 거의 채우되 넘지 않는" 값이다. 이보다 더 키우면 창이
+   1700px 안쪽으로 되레 좁아져서(가용폭 ÷ 배수) 열이 눌린다.
+   높이 조건을 같이 거는 건 넓고 낮은 화면(울트라와이드) 때문이다 — 폭만 보고
+   키우면 세로가 눌려 칸마다 스크롤이 생긴다.
+   ═══════════════════════════════════════════════════════════ */
+/* 배수의 천장은 폭이 아니라 세로 내용량이 정한다. 창을 아무리 키워도 홈 칸의
+   내용(약 1080px)이 들어갈 높이가 있어야 하므로, 배수 Z는 대략 뷰포트높이/1080이
+   한계다. 그래서 조건에 높이를 폭보다 빡빡하게 건다.
+   실측(2880×1350): 1.25까지는 잘림도 스크롤도 거의 없고, 1.35부터 세 화면에서
+   칸 스크롤이 생긴다. 더 키우고 싶으면 세로가 더 긴 화면이어야 한다. */
+/* 폭 조건은 "1700 × 배수 + 여백"보다 커야 한다 — 그보다 좁으면 창이 1700px
+   안쪽으로 되레 좁아져서(가용폭 ÷ 배수) 열이 눌린다.
+   높이 조건은 실측으로 잡았다. 리마인더를 왼쪽 칸으로 옮긴 뒤 홈은 1.35까지
+   스크롤 없이 버틴다. 남은 병목은 차트 둘이 세로로 긴 기록 화면인데, 그 칸은
+   스크롤이 자연스러운 자리라 여기까지는 올린다. */
+@media (min-width:1900px) and (min-height:1000px){ .win{ zoom:1.10; } }
+@media (min-width:2050px) and (min-height:1150px){ .win{ zoom:1.18; } }
+@media (min-width:2150px) and (min-height:1250px){ .win{ zoom:1.25; } }
+@media (min-width:2350px) and (min-height:1340px){ .win{ zoom:1.35; } }
+@media (min-width:2800px) and (min-height:1600px){ .win{ zoom:1.55; } }
+@media (min-width:3300px) and (min-height:1900px){ .win{ zoom:1.75; } }
