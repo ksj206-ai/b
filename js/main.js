@@ -751,7 +751,7 @@ async function wireMeasure() {
 
   const $ = (id) => document.getElementById(id);
   const els = {
-    camVideo: $('camVideo'), camBadge: $('camBadge'),
+    camVideo: $('camVideo'), camBadge: $('camBadge'), camIdle: $('camIdle'),
     mLive: $('mLive'), mLiveVal: $('mLiveVal'), mLiveCap: $('mLiveCap'),
     mProg: $('mProg'), mProgBar: $('mProgBar'), mGuide: $('mGuide'), mHowChip: $('measureHowChip'),
     mIdle: $('mIdle'), mStart: $('mStart'), mCancel: $('mCancel'),
@@ -810,6 +810,7 @@ async function startMeasure() {
   const gen = ++m.startGen; // 이 시작 시도의 세대 — 로딩 중 이탈하면 stopMeasure가 세대를 올림
   try {
     els.camBadge.textContent = '모델 로딩…'; els.mStart.disabled = true;
+    if (els.camIdle) els.camIdle.hidden = true;   // 여는 중부터 감춘다(깜빡임 방지)
     await tracking.initModels();
     if (m.startGen !== gen) return;                         // 로딩 중 화면 이탈 → 조용히 중단
     els.camBadge.textContent = '카메라 여는 중…';
@@ -830,6 +831,7 @@ async function startMeasure() {
   } catch (e) {
     if (m.startGen !== gen) return;                         // 이미 이탈했으면 안내 표시 안 함
     els.camBadge.textContent = '카메라 꺼짐'; els.mStart.disabled = false;
+    if (els.camIdle) els.camIdle.hidden = false; // 실패했으면 다시 안내를 세운다
     els.mGuide.textContent = cameraErrorMessage(e);         // 원인별 한국어 안내 (원문은 콘솔로만)
     console.error('[measure] 시작 실패:', e);
   }
@@ -1139,6 +1141,7 @@ function setMeasurePhase(phase) {
     e.mGuide.textContent = '손목을 옆에서 보이게 하고(팔꿈치까지 나오면 더 좋아요), 체크를 시작하세요.';
     e.mStart.disabled = false; setProg(0);
     e.camBadge.textContent = m.running ? '인식 중' : '카메라 꺼짐';
+    if (e.camIdle) e.camIdle.hidden = m.running;
   } else if (phase === 'neutral') {
     show(e.mGuide, true);
     e.mGuide.textContent = '손목을 곧게 편 중립 자세로 잠깐 유지해요.';
@@ -1377,10 +1380,13 @@ function refreshGuideBadges() {
       if (focusTag) focusTag.hidden = true; // 오늘 코스에 없는 운동엔 태그도 안 붙인다
       continue;
     }
+    // 완료한 것만 표시한다. 목록 전체가 오늘의 루틴이라(화면 제목도 그렇다)
+    // 미완료에까지 "오늘의 루틴"을 달면 여섯 줄이 다 같은 칩이 되어 아무것도
+    // 구분해 주지 못한다 — 비워 둬야 완료 표시가 눈에 들어온다.
     const done = isSlotDone(r, slot);
-    badge.textContent = done ? '완료 ✨' : '오늘의 루틴';
+    badge.textContent = done ? '완료 ✨' : '';
     badge.classList.toggle('gc-badge--done', done);
-    badge.hidden = false;
+    badge.hidden = !done;
     // 끝낸 운동엔 숨긴다 — 태그는 "여기 신경 써봐요"라는 권유라 완료 후엔 소음이 된다
     if (focusTag) focusTag.hidden = done || card.dataset.guideId !== focusId;
   }
@@ -1909,15 +1915,20 @@ function renderWeek(e, conditions, freezeAt) {
   const byDate = Object.fromEntries(conditions.map((c) => [c.at, c.condition]));
   const dayName = ['일', '월', '화', '수', '목', '금', '토'];
   const cells = [];
+  let any = false;                       // 이번 주에 보여줄 게 하나라도 있는가
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const key = todayStr(d);
-    const emoji = COND_EMOJI[byDate[key]] || (key === freezeAt ? '🧊' : '·');
+    const mark = COND_EMOJI[byDate[key]] || (key === freezeAt ? '🧊' : null);
+    if (mark) any = true;
     cells.push(`<div class="rw-day${i === 0 ? ' is-today' : ''}">` +
                `<span class="rw-label">${dayName[d.getDay()]}</span>` +
-               `<span class="rw-emoji">${emoji}</span></div>`);
+               `<span class="rw-emoji">${mark || '·'}</span></div>`);
   }
+  // 아무 기록도 없으면 통째로 감춘다 — 점 일곱 개짜리 줄이 빈 상태 문구 위에
+  // 덩그러니 남으면 그게 뭔지 알 수 없다(요일만 있고 뜻이 없다).
+  e.week.hidden = !any;
   e.week.innerHTML = cells.join('');
 }
 

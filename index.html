@@ -359,6 +359,14 @@
           <div class="box-body">
           <div class="cam-wrap">
             <video id="camVideo" class="cam-video" playsinline muted></video>
+            <!-- 카메라를 켜기 전 이 자리는 그냥 검은 판이었다. 무슨 화면인지 알려주는
+                 자리로 쓴다 — 켜지면 setMeasurePhase/startMeasure가 감춘다. -->
+            <div id="camIdle" class="cam-idle">
+              <img class="cam-idle-img" src="assets/guide-flexext-static.png" alt="" aria-hidden="true">
+              <p class="cam-idle-title">여기에 손목이 비쳐요</p>
+              <p class="cam-idle-text">팔꿈치를 책상에 대고 <b>옆모습</b>이 보이게 두세요.<br>
+                오른쪽 <b>체크 시작하기</b>를 누르면 카메라가 켜집니다.</p>
+            </div>
             <span id="camBadge" class="cam-badge">카메라 꺼짐</span>
             <!-- 측정 중 손 표시 + 탭하면 왼손↔오른손 전환 -->
             <button id="mHandChip" class="m-hand-chip" hidden>🫱 오른손 체크 중 · 바꾸기</button>
