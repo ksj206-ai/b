@@ -53,6 +53,11 @@
         <b>오늘의 한마디</b>
         <span id="mascotSpeech">오늘도 만나서 반가워요! 🐾</span>
       </div>
+      <!-- 배너 잔별 — 워드마크 뒤에 흩뿌려 서로 다른 박자로 반짝인다.
+           자리·크기·박자는 전부 CSS(.banner .d1~.d5)가 쥔다. 장식이라 화면 낭독기는
+           지나가야 하고(aria-hidden), reduced-motion에서는 애니메이션만 꺼진다. -->
+      <span class="deco d1" aria-hidden="true">✦</span><span class="deco d2" aria-hidden="true">✧</span>
+      <span class="deco d3" aria-hidden="true">·</span><span class="deco d4" aria-hidden="true">✦</span><span class="deco d5" aria-hidden="true">✧</span>
     </header>
 
     <!-- ─── ③ 탭 내비 ───
