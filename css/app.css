@@ -20,7 +20,8 @@
 html[data-palette="sky"]{
   --page:#d9e6f2;  --page-dot:#c1d1e9;
   --frame:#7a82d3; --frame-2:#b2bbe9;
-  --win:#eef4fb;   --panel:#ffffff;
+  --win:#eef4fb;   --panel:#f3f7fc;   /* 판 안쪽 — model/시안8은 순백이 아니라 옅은 블루그레이다
+                                       (실측 #e6e7f2~#f2f5f5). 창과의 층은 남기고 순백만 걷었다 */
   --head:linear-gradient(#e2e9f8,#c9d5ee);  --head-ink:#4d5490;
   --ink:#3f467c;   --dim:#7b83ad;  --line:#d6dff2;
   --accent:#7a82d3; --accent-2:#aab2e8; --accent-ink:#ffffff;
@@ -52,7 +53,7 @@ html[data-palette="sky"][data-theme="dark"]{
 html[data-palette="lavender"]{
   --page:#e9e2f8;  --page-dot:#d9cef1;
   --frame:#9b85dc; --frame-2:#c9b7f1;
-  --win:#f7f2fe;   --panel:#ffffff;
+  --win:#f7f2fe;   --panel:#f6eff7;   /* 위와 같은 이유 — model/시안9 실측 #f1e9f2 */
   --head:linear-gradient(#e7ddfb,#dbcef8);  --head-ink:#5b4a8c;
   --ink:#4b3f6d;   --dim:#8a7cae;  --line:#ddd1f7;
   --accent:#e58cbb; --accent-2:#f3bcd8; --accent-ink:#ffffff;
