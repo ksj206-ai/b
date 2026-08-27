@@ -11,12 +11,9 @@
 [hidden]{ display:none !important; }
 
 
-/* ③ 반짝이는 별 — 밝고 큰 소수만 천천히. opacity 애니라 GPU 합성이고,
-   prefers-reduced-motion에서는 전역 규칙(*{animation:none}
-
-
-@keyframes sway{ 0%,100%{ transform:rotate(-7deg); } 50%{ transform:rotate(7deg); } }
-
+/* 모달 등장 — 살짝 떠오르며 나타난다. 쓰는 곳은 세 곳:
+   .sky-dex-modal(도감 크게 보기) · .m-intro-modal(측정 안내) · .welcome-modal(첫 실행).
+   prefers-reduced-motion에서는 맨 아래 전역 규칙(*{animation:none})이 알아서 끈다. */
 @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px) scale(.98); } to{ opacity:1; transform:none; } }
 
 /* 별자리가 주인공 — 무대가 위, 이름은 그 아래 캡션 (DOM 순서 그대로라 order 불필요) */
