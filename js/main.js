@@ -622,9 +622,11 @@ function boot() {
     closeScreenOverlays(name);
     if (name !== SCREENS.MEASURE) stopMeasure();
     if (name !== SCREENS.GUIDE) stopGuide();
+    if (name !== SCREENS.GAME) stopGame();
     if (name === SCREENS.HOME) renderHome();
     if (name === SCREENS.MEASURE) initMeasure();
     if (name === SCREENS.GUIDE) enterGuide(view);
+    if (name === SCREENS.GAME) enterGame();
     if (name === SCREENS.RECORDS) renderRecords();
     if (name === SCREENS.SKY) renderSkyDex();
   });
@@ -2101,4 +2103,211 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', boot);
 } else {
   boot();
+}
+
+// ═══════════════════════════════════════════════════════════
+// 게임 화면: 미니게임 ① 별 따기 (지연 로드)
+//
+// 설계: docs/미니게임_별따기_설계.md
+// 게임은 새 보상 체계가 아니라 pinch_hold 운동의 두 번째 얼굴이다. 완주하면
+// markRoutineDone('pinch_hold') 하나를 부르고 끝 — 별자리 점등은 홈에서
+// syncStarsToProgress가 기존 경로로 처리한다(점등 주체를 하나로 유지).
+//
+// 그래서 여기서 지키는 것:
+//   · 반복수는 getRoutineGuide가 준 값 그대로 — 게임이 강도를 따로 정하면
+//     적응형(adapt.doseLevel)을 우회하는 샛길이 된다.
+//   · 판정기도 가이드와 같은 createDetector('pinchHold') — 임계값을 안 건드린다.
+//   · 순한 날엔 코스에 pinch_hold가 없으므로 시작을 막는다.
+// ═══════════════════════════════════════════════════════════
+const GAME_GUIDE_ID = 'pinch_hold';
+let game = null;
+
+async function wireGame() {
+  if (game) return game;
+  const tracking = await import('./tracking.js');
+  const { createStarPick } = await import('./games/starPick.js');
+  const { createDetector } = await import('./guide/stepEngine.js');
+  const { createWristTracker } = await import('./measurement.js');
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    canvas: $('gmCanvas'), idle: $('gmIdle'), pip: $('gmPip'), video: $('gmVideo'),
+    camIco: $('gmCamIco'), camTxt: $('gmCamTxt'), priv: $('gmPriv'),
+    hint: $('gmHint'), lead: $('gmLead'), slot: $('gmSlot'),
+    count: $('gmCount'), countNum: $('gmCountNum'),
+    countOf: document.querySelector('#gmCount .gm-count-of'),
+    start: $('gmStart'), quit: $('gmQuit'),
+  };
+
+  game = {
+    tracking, els, mods: { createStarPick, createDetector, createWristTracker },
+    sp: null, tracker: null, running: false, practice: false, reps: 0,
+    startGen: 0, // 시작 세대 — 로딩 중 이탈 시 in-flight 시작 무효화 (카메라 누수 방지)
+  };
+
+  els.start.addEventListener('click', () => startGameSession());
+  els.quit.addEventListener('click', () => { stopGameSession(); renderGameIdle(); });
+  return game;
+}
+
+function setGameCam(ico, txt) {
+  if (!game?.els) return;
+  game.els.camIco.textContent = ico;
+  game.els.camTxt.textContent = txt;
+}
+
+/** 오늘 이 게임이 어떤 상태인지 — 순한 날 / 이미 완료 / 할 수 있음 */
+function gameStatus() {
+  const s = load();
+  const r = getTodayRoutine(s);
+  if (!r.ids.includes(GAME_GUIDE_ID)) return { kind: 'absent', r };
+  if (r.doneIds.includes(GAME_GUIDE_ID)) return { kind: 'done', r };
+  return { kind: 'ready', r };
+}
+
+/** 반복수는 게임이 정하지 않는다 — 적응형 dose가 얹힌 루틴 가이드에서 읽는다 */
+function gameReps() {
+  const g = getRoutineGuide(GAME_GUIDE_ID);
+  const step = g?.steps.find((st) => st.type === 'follow' && st.reps != null);
+  return step?.reps ?? 5;
+}
+
+function renderGameIdle() {
+  if (!game?.els) return;
+  const e = game.els, st = gameStatus();
+  e.idle.hidden = false;
+  e.pip.hidden = true;
+  e.priv.hidden = true;
+  e.hint.textContent = '';
+  e.quit.hidden = true;
+  e.start.hidden = false;
+  game.reps = gameReps();
+
+  if (st.kind === 'absent') {
+    // 순한 날 — gentleCourse에 pinch_hold가 없다. 루틴에 없는 운동을 시키지 않는다.
+    e.slot.textContent = '오늘은 쉬어요';
+    e.lead.textContent = '오늘은 순한 코스라 핀치 집기가 루틴에 없어요. 내일 다시 만나요 🌙';
+    e.count.hidden = true;
+    e.start.disabled = true;
+    return;
+  }
+  e.count.hidden = false;
+  e.start.disabled = false;
+  e.countNum.textContent = '0';
+  if (e.countOf) e.countOf.textContent = `/ ${game.reps}`;
+
+  if (st.kind === 'done') {
+    // 여분 판은 연습 모드 — 보상을 새로 만들지 않는다(설계서 §5)
+    game.practice = true;
+    e.slot.textContent = '오늘 몫 완료';
+    e.lead.textContent = '오늘 몫은 다 했어요. 이건 그냥 재미로 🌠';
+    e.start.textContent = '한 번 더';
+  } else {
+    game.practice = false;
+    e.slot.textContent = '오늘의 루틴 중 하나';
+    e.lead.textContent = '엄지와 검지로 별을 집어 보세요. 다 모으면 오늘의 핀치 집기를 한 것으로 기록돼요.';
+    e.start.textContent = '시작하기';
+  }
+}
+
+async function startGameSession() {
+  if (!game || game.running) return;
+  const st = gameStatus();
+  if (st.kind === 'absent') return;
+  const e = game.els;
+  const gen = ++game.startGen;
+
+  game.practice = st.kind === 'done';
+  game.reps = gameReps();
+  if (e.countOf) e.countOf.textContent = `/ ${game.reps}`;
+  e.countNum.textContent = '0';
+  e.start.hidden = true;
+  e.quit.hidden = false;
+  e.idle.hidden = true;
+  e.pip.hidden = false;
+  e.priv.hidden = false;
+  setGameCam('📷', '카메라 여는 중…');
+
+  const tracker = game.mods.createWristTracker('live');
+  game.tracker = tracker;
+  // 판정기는 가이드와 같은 것 — 임계값·유지시간을 게임이 따로 정하지 않는다
+  const detector = game.mods.createDetector('pinchHold');
+
+  const sp = game.mods.createStarPick({
+    canvas: e.canvas,
+    reps: game.reps,
+    detector,
+    onCount: (n) => { e.countNum.textContent = String(n); },
+    onHint: (h) => { e.hint.textContent = h; },
+    onDone: () => onGameDone(),
+  });
+  game.sp = sp;
+
+  try {
+    await game.tracking.initModels();
+    if (game.startGen !== gen) return;                                  // 이탈 → 중단
+    await game.tracking.startCamera(e.video);
+    if (game.startGen !== gen) { game.tracking.stopCamera(); return; }  // 이탈 사이 열렸으면 끄기
+  } catch (err) {
+    console.warn('[game] 카메라/모델 시작 실패', err);
+    e.hint.textContent = '카메라를 열지 못했어요. 권한을 확인해 주세요.';
+    stopGameSession(); renderGameIdle();
+    return;
+  }
+
+  e.priv.hidden = true;
+  setGameCam('🖐', '손을 보여주세요');
+  game.running = true;
+  sp.start();
+  // 핀치는 rel(각도)을 쓰지 않아 중립 잡기가 필요 없다 — 손만 보이면 바로 판정된다.
+  game.tracking.startLoop(({ hand, pose, now }) => {
+    const snap = tracker.update(hand, pose, { usePose: false });
+    sp.feed(snap, now);
+  });
+}
+
+function onGameDone() {
+  if (!game) return;
+  const e = game.els;
+  if (game.practice) {
+    e.hint.textContent = '다 모았어요! 오늘 몫은 이미 끝나 있어요 🌠';
+  } else {
+    markRoutineDone(GAME_GUIDE_ID);
+    recordActivity();
+    e.hint.textContent = '다 모았어요! 오늘의 핀치 집기 완료 ✨ 홈에서 별을 확인해 보세요.';
+  }
+  stopGameSession();
+  e.start.hidden = false;
+  e.start.textContent = '한 번 더';
+  e.quit.hidden = true;
+}
+
+function stopGameSession() {
+  if (!game) return;
+  game.startGen++;                 // 진행 중이던 시작(모델 로딩·카메라 열기)을 무효화
+  game.tracking.stopTracking();    // 로딩 중 이탈이라도 카메라를 확실히 끈다
+  // destroy까지 부른다 — 세션마다 createStarPick가 새 무대(ResizeObserver 포함)를
+  // 만들므로 stop()만 하면 관찰자가 세션 수만큼 쌓인다.
+  game.sp?.destroy();
+  game.sp = null; game.tracker = null;
+  game.running = false;
+  if (game.els) { game.els.pip.hidden = true; game.els.priv.hidden = true; setGameCam('📷', '카메라'); }
+}
+
+async function enterGame() {
+  // 라우터가 sync로 부르는 자리 — 실패해도 조용히 삼키면 빈 화면만 남는다.
+  // 지연 로드가 깨진 경우(네트워크·경로) 자리 안내에 이유를 남긴다.
+  try {
+    await wireGame();
+    renderGameIdle();
+  } catch (err) {
+    console.error('[game] 게임 모듈을 불러오지 못했습니다', err);
+    const t = document.querySelector('#gmIdle .gm-idle-text');
+    if (t) t.textContent = '게임을 불러오지 못했어요. 새로고침해 주세요.';
+  }
+}
+
+function stopGame() {
+  if (!game) return;
+  stopGameSession();
 }

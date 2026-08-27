@@ -69,7 +69,7 @@
       <button type="button" data-nav="measure">📊 손목 체크</button>
       <button type="button" data-nav="records">📈 기록</button>
       <button type="button" data-nav="sky">🌌 밤하늘 도감</button>
-      <button type="button" disabled>🎮 게임</button>
+      <button type="button" data-nav="game">🎮 게임</button>
     </nav>
 
     <!-- ─── 화면 컨테이너 ─── -->
@@ -468,22 +468,51 @@
         </div>
       </section>
 
-      <!-- 게임 (후속 단계) -->
+      <!-- 게임 — 미니게임 ① 별 따기 (설계: docs/미니게임_별따기_설계.md)
+           게임은 pinch_hold 운동의 두 번째 얼굴이다. 완주하면 그 운동을 한 것으로
+           기록되고(markRoutineDone), 별자리 점등은 홈에서 기존 경로로 이뤄진다. -->
       <section id="screen-game" class="screen" data-screen="game">
         <div class="screen-head">
           <button class="btn btn-back" data-back>← 뒤로</button>
           <h2 class="screen-title">🎮 미니게임</h2>
         </div>
-        <div class="cols wide">
+
+        <div class="cols split">
           <div class="col">
             <section class="box">
-              <h2 class="box-head">🎮 미니게임 <span class="more">준비 중</span></h2>
+              <h2 class="box-head">🌠 별 따기 <span class="more" id="gmSlot"></span></h2>
               <div class="box-body">
-                <div class="placeholder">
-                  <p class="placeholder-emoji">🎮</p>
-                  <p class="placeholder-text">미니게임은 곧 이곳으로 이식됩니다.</p>
-                  <p class="placeholder-sub">운동 동작을 활용한 보조 콘텐츠입니다.</p>
+                <div class="gm-stage">
+                  <canvas id="gmCanvas" class="gm-canvas"></canvas>
+                  <!-- 시작 전 자리 안내 — 검은 판만 남지 않게 (measure의 cam-idle과 같은 뜻) -->
+                  <div id="gmIdle" class="gm-idle">
+                    <p class="gm-idle-emoji">🌠</p>
+                    <p class="gm-idle-title">여기에 별이 떠요</p>
+                    <p class="gm-idle-text">떠도는 별을 <b>엄지와 검지로 집어</b> 잠깐 들고 있으면<br>
+                      별이 고양이에게 모입니다. 오른쪽 <b>시작하기</b>를 누르면 카메라가 켜집니다.</p>
+                  </div>
+                  <div class="gp-pip" id="gmPip" hidden>
+                    <video id="gmVideo" class="cam-video" playsinline muted></video>
+                    <span id="gmCam" class="gp-cam"><span id="gmCamIco" class="gp-cam-ico"></span><span id="gmCamTxt" class="gp-cam-txt"></span></span>
+                  </div>
                 </div>
+                <p class="priv-note" id="gmPriv" hidden>🔒 분석은 이 기기 안에서만 이루어지며, 영상은 저장되거나 외부로 전송되지 않습니다.</p>
+                <p id="gmHint" class="gm-hint"></p>
+              </div>
+            </section>
+          </div>
+
+          <div class="col">
+            <section class="box">
+              <h2 class="box-head">🤏 오늘의 핀치 집기</h2>
+              <div class="box-body">
+                <p id="gmLead" class="gm-lead">엄지와 검지로 별을 집어 보세요.</p>
+                <p id="gmCount" class="gm-count"><span id="gmCountNum">0</span> <span class="gm-count-of">/ 0</span></p>
+                <div class="gm-btns">
+                  <button type="button" class="btn btn-primary" id="gmStart">시작하기</button>
+                  <button type="button" class="btn" id="gmQuit" hidden>그만하기</button>
+                </div>
+                <p class="gm-note">아프면 바로 멈추세요. 손이 잘 안 잡혀도 괜찮아요 — 언제든 그만둘 수 있습니다.</p>
               </div>
             </section>
           </div>
