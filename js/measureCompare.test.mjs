@@ -197,12 +197,14 @@ const st = (...measurements) => ({ measurements });
 // 결과 화면의 prev는 손만 맞추고 자세는 안 봐서, 신호는 옛 신뢰 기록으로 나는데 방향
 // 라벨은 못 믿을 기록으로 계산됐다. 아래는 두 쌍이 서로 '다른 방향'을 가리키는 조건이다.
 {
-  const p = signalPair(st(rec('2026-01-01', 'right', 50, 50), rec('2026-01-08', 'right', 40, 40)));
+  // 박는 날짜는 전부 픽스처의 최신 at — 첫째 링크(오늘↔최신)가 관여하지 않는 상태를
+  // 만들어 두고, 각 단언이 원래 이유(공급원 선택·자세·둘째 링크)로 성립하는지를 본다.
+  const p = signalPair(st(rec('2026-01-01', 'right', 50, 50), rec('2026-01-08', 'right', 40, 40)), '2026-01-08');
   ok(p && p.last.at === '2026-01-08' && p.prev.at === '2026-01-01', '11 정상 쌍을 그대로 돌려준다');
-  ok(signalPair(st()) === null, '11 측정 0회면 null');
-  ok(signalPair(st(rec('2026-01-01', 'right', 50, 50))) === null, '11 그 손 첫 측정이면 null');
+  ok(signalPair(st(), '2026-01-08') === null, '11 측정 0회면 null');
+  ok(signalPair(st(rec('2026-01-01', 'right', 50, 50)), '2026-01-01') === null, '11 그 손 첫 측정이면 null');
   ok(signalPair(st(rec('2026-01-01', 'right', 50, 50),
-                   rec('2026-01-08', 'right', 40, 40, 'off'))) === null, '11 최신이 off면 null');
+                   rec('2026-01-08', 'right', 40, 40, 'off')), '2026-01-08') === null, '11 최신이 off면 null');
 
   // ★이음매 재현: 자세가 무너진 직전 기록과 그 앞 신뢰 기록이 '다른 방향'을 가리킨다
   const untrusted = rec('2026-01-08', 'right', 30, 60, 'off'); // 손은 맞지만 자세가 무너진 것
@@ -211,7 +213,7 @@ const st = (...measurements) => ({ measurements });
   const state = st(trusted, untrusted, now);
 
   ok(isImproving(state, '2026-01-15') === true, '11 개선 신호는 난다(신뢰 쌍 기준)');
-  const pair = signalPair(state);
+  const pair = signalPair(state, '2026-01-15');
   ok(pair.prev.at === trusted.at, '11 공급원은 못 믿을 직전이 아니라 그 앞 신뢰 기록을 준다');
 
   // 방향 라벨은 grantGiftStar가 이 쌍으로 계산한다 — 어느 쌍을 쓰느냐로 단어가 갈린다
@@ -246,15 +248,40 @@ const st = (...measurements) => ({ measurements });
   const skipped = st(rec('2026-01-01', 'right', 50, 50),
                      rec('2026-02-20', 'right', 20, 20, 'off'),  // 자세 무너짐 → 건너뜀
                      rec('2026-03-01', 'right', 40, 40));
-  ok(signalPair(skipped) === null,
+  ok(signalPair(skipped, '2026-03-01') === null,   // 오늘=최신 → 첫째 링크 미발동, 둘째만 본다
      '12 중간 off를 건너뛴 결과 간격이 상한을 넘으면 신호를 안 낸다');
 
   // 날짜를 못 읽으면 간격을 확인할 수 없다 → 신호 없음(안전 방향).
   // 실제 저장본은 makeMeasurement가 항상 YYYY-MM-DD를 쓰므로 손상된 데이터에서만 나온다.
   const broken = st({ at: '???', hand: 'right', flex: 50, ext: 50, rom: 100 },
                     { at: '???', hand: 'right', flex: 40, ext: 40, rom: 80 });
-  ok(signalPair(broken) === null, '12 날짜를 못 읽으면 신호를 내지 않는다');
+  ok(signalPair(broken, '2026-01-08') === null, '12 날짜를 못 읽으면 신호를 내지 않는다');
   ok(isRedSignal(broken, '2026-01-08') === false, '12 손상된 날짜로 순한 코스가 발동하지 않는다');
+}
+
+// ─── 첫째 링크: 오늘 ↔ 최신 (같은 상수 30일) ────────────────
+// 쌍이 아무리 촘촘해도 통째로 낡았으면 오늘을 말할 자격이 없다. 이게 없으면 측정을
+// 멈춘 사용자가 순한 3종 코스를 영구히 받는다 — 이유를 알 방법도 없이 조용히.
+{
+  const tight = st(rec('2026-01-01', 'right', 50, 50), rec('2026-01-15', 'right', 40, 40));
+
+  ok(isRedSignal(tight, '2026-01-15') === true, '13 쌍 14일 · 오늘이 최신 → red 정상 발동');
+  ok(isRedSignal(tight, '2026-02-14') === true, '13 최신이 30일 전이면 아직 통과(경계 포함)');
+  ok(isRedSignal(tight, '2026-02-15') === false, '13 최신이 31일 전이면 침묵');
+  ok(isRedSignal(tight, '2026-09-02') === false,
+     '13 쌍 14일 · 최신 8개월 전 → red 침묵 (영구 순한 코스 구멍)');
+
+  // 개선도 같은 링크에 걸린다 — 옛 기록으로 칭찬하지 않는다
+  const up = st(rec('2026-01-01', 'right', 40, 40), rec('2026-01-15', 'right', 50, 50));
+  ok(isImproving(up, '2026-01-15') === true, '13 개선도 신선하면 발동');
+  ok(isImproving(up, '2026-09-02') === false, '13 개선도 낡으면 침묵(대칭)');
+
+  // 둘째 링크와 독립 — 최신은 오늘인데 직전이 멀면 여전히 침묵한다
+  const farPrev = st(rec('2026-01-01', 'right', 50, 50), rec('2026-09-02', 'right', 40, 40));
+  ok(isRedSignal(farPrev, '2026-09-02') === false, '13 최신은 오늘이어도 직전이 8개월 전이면 침묵');
+
+  // 오늘 날짜를 못 읽어도 안전 방향
+  ok(signalPair(tight, '???') === null, '13 오늘 날짜를 못 읽으면 신호를 내지 않는다');
 }
 
 // ─── 표시는 막지 않는다 ─────────────────────────────────────

@@ -164,33 +164,42 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
   const red = [{ at: '2026-07-15', flex: 40, ext: 40, rom: 80 }, { at: '2026-07-22', flex: 30, ext: 40, rom: 70 }]; // flex -10 → red
   const okMeas = [{ at: '2026-07-15', flex: 30, ext: 40, rom: 70 }, { at: '2026-07-22', flex: 40, ext: 41, rom: 81 }]; // 회복 → red 아님
   const followReps = (g) => g.steps.find((s) => s.type === 'follow').reps;
+  // ★날짜를 명시적으로 넘긴다. signalPair가 '오늘↔최신'도 보므로, 안 넘기면 실제 시계가
+  //   기준이 되어 픽스처(7월)가 낡은 것으로 판정된다 — 그러면 red가 신선도 때문에 침묵하고,
+  //   "red 아닌 날 8로 복귀"류 단언이 '회복'이 아니라 '낡음'으로 통과하는 공허한 테스트가 된다.
+  //   D는 픽스처의 최신 at과 같은 날이라 신선도 링크가 관여하지 않는다.
+  const D = '2026-07-22';
 
   // R1: red 날 flex_ext는 base(5)로 클램프(focus +2 · dose +1 모두 무시)
   {
     const s = mkR(red);
-    eq(computeDose(s, 'flex_ext').reps, 5, 'R1 red 날 base 5로 클램프');
+    eq(computeDose(s, 'flex_ext', D).reps, 5, 'R1 red 날 base 5로 클램프');
     // ★상태 불변: doseLevel·toleratedStreak·focusSoft 그대로
     eq(s.adapt.doseLevel.flex_ext, 1, 'R1 doseLevel 불변');
     eq(s.adapt.toleratedStreak, 3, 'R1 toleratedStreak 불변');
     eq(s.adapt.focusSoft, false, 'R1 focusSoft 불변');
   }
   // R2: red 아닌 날(같은 dose 상태) → 조정값(5+2+1=8)으로 복귀 — 상태를 안 깎았으므로
-  eq(computeDose(mkR(okMeas), 'flex_ext').reps, 8, 'R2 red 걷히면 조정값 8 복귀');
+  eq(computeDose(mkR(okMeas), 'flex_ext', D).reps, 8, 'R2 red 걷히면 조정값 8 복귀');
   // R3: getRoutineGuide도 동일 — red면 base 5, 아니면 8
-  eq(followReps(getRoutineGuide('flex_ext', mkR(red))), 5, 'R3 red 날 재생 reps 5');
-  eq(followReps(getRoutineGuide('flex_ext', mkR(okMeas))), 8, 'R3 red 아닌 날 재생 reps 8');
+  eq(followReps(getRoutineGuide('flex_ext', mkR(red), D)), 5, 'R3 red 날 재생 reps 5');
+  eq(followReps(getRoutineGuide('flex_ext', mkR(okMeas), D)), 8, 'R3 red 아닌 날 재생 reps 8');
   // R4: focusSoft·더 높은 dose여도 red면 base로 — 그리고 focusSoft 원본 불변
   {
     const s = mkR(red, { flex_ext: 2 }, { focusSoft: true });
-    eq(computeDose(s, 'flex_ext').reps, 5, 'R4 soft+dose2여도 red면 base 5');
+    eq(computeDose(s, 'flex_ext', D).reps, 5, 'R4 soft+dose2여도 red면 base 5');
     eq(s.adapt.focusSoft, true, 'R4 focusSoft 원본 불변');
     eq(s.adapt.doseLevel.flex_ext, 2, 'R4 doseLevel 원본 불변');
   }
   // R5: red 날이어도 focus 대상 아닌 운동(deviation)은 기존과 동일(클램프 대상 아님)
-  eq(computeDose(mkR(red), 'deviation').reps, 5, 'R5 비대상 운동은 그대로(base 5)');
+  eq(computeDose(mkR(red), 'deviation', D).reps, 5, 'R5 비대상 운동은 그대로(base 5)');
 }
 
-// ── C1(정확도): 측정 신선도 가드 — 오래된 측정만 있으면 긍정 신호 안 뜸(red 신선도는 범위 밖) ──
+// ── C1(정확도): improve 표시의 추가 신선도 가드(maxMeasureAgeDays=14) ──
+// ★"오래된" 케이스는 15~30일 사이여야 한다. 31일을 넘기면 store.PAIR_MAX_GAP_DAYS(30)가
+//   먼저 걸려서, 이 블록이 검증하려는 14일 가드가 없어도 통과하는 공허한 테스트가 된다.
+//   21일은 그 사이 — 첫째 링크는 통과하고 14일 가드만 발동한다. 이 간격 자체가
+//   "improve는 red보다 엄격하게 거른다"는 의도적 비대칭의 실행 가능한 문서다.
 {
   const st = (measurements) => ({
     adapt: { focus: 'flex', focusSoft: false, doseLevel: {}, toleratedStreak: 2, lastImproveShownAt: null, lastAdaptedAt: null, lastDoseAction: null },
@@ -199,7 +208,8 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
   const rising = (p, l) => [{ at: p, flex: 30, ext: 30, rom: 60 }, { at: l, flex: 40, ext: 32, rom: 72 }]; // flex +10 개선
   const MSG = '손목이 부드러워지고 있어요 ✨';
   eq(improveSignal(st(rising('2026-07-21', '2026-07-22')), '2026-07-22'), MSG, 'C1 신선한 측정 → 표시');
-  eq(improveSignal(st(rising('2026-06-01', '2026-06-02')), '2026-07-22'), null, 'C1 오래된 측정(14일 초과) → 억제');
+  eq(improveSignal(st(rising('2026-06-30', '2026-07-01')), '2026-07-22'), null,
+     'C1 21일 된 측정 → 억제 (첫째 링크 30일은 통과, 14일 가드만 발동)');
 }
 
 // ── C2(정확도): 컨디션 간격 가드 — 사흘 이상 공백이면 하강·상승 없이 유지 + streak 0 ──

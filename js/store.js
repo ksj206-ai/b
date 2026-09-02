@@ -539,7 +539,18 @@ export function refreshFocus(state = load(), date = todayStr()) {
   return res;
 }
 
-// 비교 쌍의 두 기록이 이 일수를 넘게 벌어져 있으면 신호를 내지 않는다.
+// 신호가 서려면 사슬의 링크 '둘 다' 이 일수 안이어야 한다:
+//   ① 오늘 ↔ 최신 기록   — 그 쌍이 오늘에 대해 말할 자격이 있는가
+//   ② 최신 ↔ 직전 기록   — 두 기록이 서로 비교될 만큼 가까운가
+// 어느 링크든 끊기면 침묵한다.
+//
+// ①이 없으면: 반년 전에 촘촘히 찍힌 두 기록으로 오늘도 red가 나서, 측정을 멈춘
+// 사용자가 순한 3종 코스를 영구히 받는다 — 이유를 알 방법도 없이 조용히.
+// 낡은 red는 안전한 게 아니라 자의적이다. 8개월 전 데이터는 오늘에 대해 아무 말도
+// 하지 않는다. 그리고 더 직접적이고 신선한 안전 채널(사용자 본인의 stiff 보고)은
+// 그대로 순한 코스를 발동시키므로, 여기서 끄는 건 자의적인 채널 하나뿐이다.
+//
+// ②가 없으면: RED_DROP_DEG 8°는 '급락' 판정인데 두 달에 걸친 8° 하락도 급락이 된다.
 // red(RED_DROP_DEG 8°)는 '급락' 판정인데 두 달에 걸친 8° 하락은 급성이 아니다.
 // 30일인 이유: measureEveryDays(7)의 3~4주기까지는 "인접 측정"으로 봐줄 만하고,
 // FOCUS_STALE_DAYS와 같은 값이라 "한 달 넘으면 옛날"이라는 시간 감각이 코드에서 하나로
@@ -561,23 +572,30 @@ const PAIR_MAX_GAP_DAYS = 30;
  * 기준을 나쁜 값에 두지 않는 쪽이 안전하다. 다만 그렇게 건너뛰면 비교 간격이 벌어지므로
  * PAIR_MAX_GAP_DAYS로 상한을 둔다(손 필터도 같은 이유로 간격을 넓힌다).
  *
- * ⚠ 이 가드는 '쌍이 서로 얼마나 떨어졌나'만 본다. '그 쌍이 오늘로부터 얼마나 오래됐나'는
- *   아직 안 본다 — 반년 전에 가깝게 찍힌 두 기록으로 오늘 red가 날 수 있다(isRedSignal은
- *   날짜를 아예 안 읽는다). improve 쪽은 routine.improveSignal의 maxMeasureAgeDays(14)가
- *   표시 단계에서 막아주지만 red엔 대응물이 없다. 별개 정책이라 여기서 확장하지 않는다.
+ * 신선도는 두 링크 모두 여기서 본다(위 PAIR_MAX_GAP_DAYS 주석 참고). improve 표시는
+ * routine.improveSignal의 maxMeasureAgeDays(14)가 그 위에서 더 엄격하게 한 번 더 거른다 —
+ * 구멍이 아니라 정책이다: 칭찬 도배 방지는 빡빡하게, red발 조심은 30일까지 관용.
  * 이 함수가 red·개선 판정의 **유일한 쌍 공급원**이다. 밖에서도 쓸 수 있게 export한 이유:
  * 예전엔 측정 결과 화면이 "지난 기록"을 따로 골라 grantGiftStar에 넘겼는데, 그쪽은 손만
  * 맞추고 자세는 안 봐서 isImproving이 쓰는 쌍과 갈라졌다 — 신호는 옛 신뢰 기록으로 나는데
  * 방향 라벨("굽힘"/"폄")은 못 믿을 기록으로 계산되는 어긋남. 쌍을 고르는 곳이 둘이면
  * 언제든 다시 갈라지므로, 고르는 곳을 하나로 두고 여기서만 꺼내 쓴다.
+ * @param {object} state 저장 상태
+ * @param {string} date 오늘(YYYY-MM-DD). 시계를 함수 안에서 읽지 않고 받는다 —
+ *   isRedSignal·isImproving이 이미 date를 받으므로 그대로 흘려보내면 판정 전체가
+ *   결정적으로 유지된다(테스트가 날짜를 박을 수 있다).
  * @returns {{last:object, prev:object}|null}
  */
-export function signalPair(state) {
+export function signalPair(state, date = todayStr()) {
   const ms = sameHandSeries(state.measurements || []);
   const last = ms[ms.length - 1];
   if (!isTrusted(last)) return null;
+  // ① 오늘 ↔ 최신 — 낡은 쌍은 오늘을 말할 자격이 없다
+  const age = dayDiff(last.at, date);
+  if (Number.isNaN(age) || age > PAIR_MAX_GAP_DAYS) return null;
   for (let i = ms.length - 2; i >= 0; i--) {
     if (!isTrusted(ms[i])) continue;
+    // ② 최신 ↔ 직전 — 너무 벌어진 두 기록은 서로 비교되지 않는다
     const gap = dayDiff(ms[i].at, last.at);
     // 날짜를 못 읽으면(NaN) 간격을 확인할 수 없다 → 신호를 내지 않는다(안전 방향).
     if (Number.isNaN(gap) || gap > PAIR_MAX_GAP_DAYS) return null;
@@ -598,7 +616,7 @@ const RED_DROP_DEG = 8;
  * 노출하지 않는다(조용히). 순한 코스는 안전 방향이라 red면 그날만 부드럽게 갈 뿐.
  */
 export function isRedSignal(state = load(), date = todayStr()) {
-  const pair = signalPair(state);   // 같은 손 + 자세 게이트 통과분만
+  const pair = signalPair(state, date);   // 같은 손 + 자세 게이트 + 신선도(양 링크)
   if (!pair) return false;
   const { last, prev } = pair;
   const flexDrop = (Number(prev.flex) || 0) - (Number(last.flex) || 0);
@@ -617,7 +635,7 @@ export function isRedSignal(state = load(), date = todayStr()) {
  * 결정한다(사용자에겐 개선일 때만 긍정 문구를 보이고, 하락·정체는 아무것도 노출 안 함).
  */
 export function isImproving(state = load(), date = todayStr()) {
-  const pair = signalPair(state);   // 같은 손 + 자세 게이트 통과분만
+  const pair = signalPair(state, date);   // 같은 손 + 자세 게이트 + 신선도(양 링크)
   if (!pair) return false;
   const { last, prev } = pair;
   const rise = ROUTINE.adaptImprove.riseDeg;
