@@ -1290,7 +1290,7 @@ function setCount(count, reps) {
 async function initGuide() {
   if (guide && guide.wired) { consumeAutoStart(); return; }
   const tracking = await import('./tracking.js');
-  const { GUIDES, getGuide } = await import('./guide/guideData.js');
+  const { GUIDES, getGuide, needsCamera } = await import('./guide/guideData.js');
   const { drawGuideHand } = await import('./guide/guideHand.js');
   const { createAnimPlayer } = await import('./guide/animPlayer.js');
   const { createHandSprite } = await import('./guide/handSprite.js');
@@ -1306,6 +1306,7 @@ async function initGuide() {
     count: $('gpCount'), countNum: $('gpCountNum'),
     priv: $('gpPriv'),
     text: $('gpText'), dots: $('gpDots'), hint: $('gpHint'), idle: $('gpIdle'),
+    prog: $('gpProg'), progBar: $('gpProgBar'),
     prev: $('gpPrev'), skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
     retry: $('gpRetry'), proceed: $('gpProceed'),
     doneEmoji: $('gpDoneEmoji'), doneText: $('gpDoneText'), rest: $('gpRest'),
@@ -1316,7 +1317,9 @@ async function initGuide() {
   };
 
   guide = {
-    wired: true, tracking, mods: { drawGuideHand, createAnimPlayer, createStepEngine, createWristTracker, getGuide },
+    wired: true, tracking,
+    mods: { drawGuideHand, createAnimPlayer, createStepEngine, createWristTracker, getGuide, needsCamera },
+    frameRaf: null,   // 카메라 없는 프레임 루프 핸들 (needsCamera=false일 때만)
     els, ctx: els.canvas.getContext('2d'),
     sprite: createHandSprite(els.anim), // 시범 손 APNG — 맵에 없는 운동은 스켈레톤 유지
     spriteOn: false,                    // = drawGuideHand의 hideHand
@@ -1507,6 +1510,8 @@ async function startGuide(id, routineMode = false) {
   els.btns.hidden = false;
   els.idle.hidden = true;
   els.name.textContent = `${g.emoji} ${g.name}`;
+  // PIP·안심 안내는 일단 카메라 기준으로 세우고, 카메라 없는 가이드면 아래 분기에서 감춘다
+  // (매 시작마다 다시 세우므로 timed 가이드를 거친 뒤 follow 가이드로 와도 복원된다)
   els.pip.hidden = false;
   els.priv.hidden = chaining; // 카메라 여는 중엔 안심 안내 노출 (연속 재생은 이미 켜져 있어 생략)
   layoutPip();
@@ -1521,9 +1526,11 @@ async function startGuide(id, routineMode = false) {
       els.text.textContent = step.text;
       els.hint.textContent = '';
       els.idle.hidden = true;
-      const reps = step.type === 'follow' ? step.reps : 0;
+      // timed도 라운드를 센다(양쪽 손 스트레칭 = 2라운드) — dots·카운트 UI를 그대로 쓴다
+      const reps = (step.type === 'follow' || step.type === 'timed') ? (step.reps ?? 1) : 0;
       buildDots(reps);
       setCount(0, reps);
+      setStepProgress(0);
       guide.anim = step.type === 'follow' && step.anim
         ? mods.createAnimPlayer(step.anim, step.base || {})
         : null;
@@ -1545,10 +1552,13 @@ async function startGuide(id, routineMode = false) {
     },
     onCount: (count, reps) => { fillDots(count, reps); setCount(count, reps); if (count > 0) repFeedback(count); },
     // comp는 힌트를 덮지 않는다 — 감지만 집계(관대한 판정, 코칭 힌트는 추후)
-    onStatus: ({ hint, idle }) => {
+    onStatus: ({ hint, idle, progress }) => {
       els.hint.textContent = hint || '';
       els.hint.classList.remove('warn');
       els.idle.hidden = !idle;
+      // 유지 진행 바 — 엔진은 예전부터 progress를 내보냈지만 그리는 쪽이 없었다.
+      // timed(라운드 유지)와 pinch/grip(유지 카운트)이 같은 배관을 쓴다.
+      setStepProgress(progress ?? 0);
     },
     // ⓑ 중립 견고화: 고정 타이머 대신 "손이 보이는 프레임"이 충분히 모이면
     //   루프에서 commit (미감지 시 타임아웃까지 연기 — 허공 중립 방지)
@@ -1561,7 +1571,20 @@ async function startGuide(id, routineMode = false) {
   });
   guide.engine = engine;
 
+  // ★프레임 구동 경로는 여기 '한 곳'에서만 갈린다. 두 루프가 같이 돌면 engine.update가
+  //   프레임마다 두 번 불려 timed 타이머가 2배속으로 흐른다 — 육안으로는 "좀 빠른데?"
+  //   정도라 알아채기 어려운 종류의 버그다. 분기를 하나로 두고, 두 시작 함수 중 정확히
+  //   하나만 부른다. stopGuideSession은 둘 다 무조건 정지시킨다(비대칭 정리 금지).
+  const wantsCamera = guide.mods.needsCamera(g);
+
   try {
+    if (!wantsCamera) {
+      // 카메라 없는 가이드(timed 전용) — 권한 프롬프트조차 뜨지 않는다.
+      // 연속 재생 중 여기로 들어오면 앞 운동이 켜 둔 카메라를 끈다(켜진 채 방치 금지).
+      if (chaining) guide.tracking.stopTracking();
+      startCameraFreeGuide(g, engine);
+      return;
+    }
     if (!chaining) {
       await guide.tracking.initModels();
       if (guide.startGen !== gen) return;                          // 로딩 중 화면 이탈 → 중단
@@ -1577,6 +1600,11 @@ async function startGuide(id, routineMode = false) {
     setCamChip('🖐', '손을 화면에 보여주세요', false);
     guide.running = true;
     engine.start(performance.now());
+    // 대칭 방어: 카메라 없는 루프가 남아 있으면 먼저 끈다. 반대쪽(startCameraFreeGuide)도
+    // 트래킹 루프를 먼저 끈다 — 두 시작 경로가 서로를 정지시키므로, 위 분기가 깨져 둘 다
+    // 불리더라도 engine.update가 두 번 돌지는 않는다(timed 2배속 방지). 분기는 의도를,
+    // 이 대칭은 안전을 담당한다. 플레인 node 스위트가 rAF·DOM을 못 도는 자리라 더더욱.
+    stopFrameLoop();
     guide.tracking.startLoop(({ hand, pose, handLabel, now }) => {
       // 시범 손 그리기 (정적 스텝 진입 직후엔 직전 자세에서 모핑)
       let params = guide.anim ? guide.anim.sample(now) : (guide.staticPose || {});
@@ -1753,6 +1781,65 @@ function startArcDemo(g) {
   return anim;
 }
 
+/**
+ * 카메라 없는 프레임 루프 — timed 전용 가이드용.
+ *
+ * 왜 필요한가: 지금까지 프레임 구동이 트래킹 콜백에 세들어 살았다. 시범 손 drawStage도,
+ * engine.update도 전부 그 안에서만 불린다. 그래서 "카메라를 안 켠다"만 해서는 스텝이
+ * 진행되지도 시범이 그려지지도 않는다 — 화면이 그냥 멈춘다. 프레임 구동과 인식은
+ * 원래 별개 관심사였고, 여기서 분리한다.
+ *
+ * 트래킹 루프와 정확히 하나만 돈다(startGuide의 wantsCamera 분기). 혹시 남아 있는
+ * 루프가 있으면 먼저 끈다 — 두 개가 겹치면 engine.update가 두 번 불려 타이머가 빨라진다.
+ */
+function startCameraFreeGuide(g, engine) {
+  const { els, ctx, mods } = guide;
+  stopFrameLoop();                 // 재진입 방어: 남은 루프 위에 또 얹지 않는다
+  guide.tracking.stopLoop();       // 트래킹 쪽도 확실히 (연속 재생 경로 대비)
+
+  // 카메라 UI를 통째로 감춘다 — 없는 기능의 자리를 남겨두지 않는다
+  els.pip.hidden = true;
+  els.priv.hidden = true;
+  guide.handSeen = false; guide.seenN = 0; guide.lostN = 0;
+  guide.neutralWait = null; guide.baseWrist = null;
+  // comp는 카메라가 있어야 관측되는 지표다. 이 세션은 관측 자체가 없으므로 집계하지 않고,
+  // lastCompRatio도 건드리지 않는다 — "0%"가 아니라 "측정 안 함"이 맞다.
+  guide.compN = 0; guide.frameN = 0;
+
+  guide.running = true;
+  engine.start(performance.now());
+  const tick = (now) => {
+    let params = guide.anim ? guide.anim.sample(now) : (guide.staticPose || {});
+    if (!guide.anim && guide.poseBlend) params = blendPose(guide, params, now);
+    guide.lastParams = params;
+    if (!guide.spriteOn) drawStage(ctx, els.canvas, mods.drawGuideHand, params, g.view, now);
+    engine.update(now, NO_SNAP);
+    guide.frameRaf = requestAnimationFrame(tick);
+  };
+  guide.frameRaf = requestAnimationFrame(tick);
+}
+
+/** 유지 진행 바 갱신 — 0이면 숨긴다(유지 중이 아닐 땐 빈 바가 남지 않게).
+ *  els가 아직 없거나(초기화 전) 요소가 없으면 조용히 무시한다. */
+function setStepProgress(p) {
+  const e = guide && guide.els;
+  if (!e || !e.prog || !e.progBar) return;
+  const v = Math.max(0, Math.min(1, Number(p) || 0));
+  e.prog.hidden = v <= 0;
+  e.progBar.style.width = (v * 100) + '%';
+}
+
+/** 인식 없는 스냅샷 — timed 스텝은 snap을 읽지 않으므로 상수 하나면 충분하다. */
+const NO_SNAP = { detected: false, rel: 0, comp: false, fingers: null };
+
+/** 카메라 없는 프레임 루프 정지 (세션 종료·전환 시). */
+function stopFrameLoop() {
+  if (guide && guide.frameRaf != null) {
+    cancelAnimationFrame(guide.frameRaf);
+    guide.frameRaf = null;
+  }
+}
+
 /** 호 데모 루프 정지 (follow 이탈·운동 종료·전환 시). 마지막 호 프레임이 캔버스에 남지
  *  않게 클리어한다 — intro/outro는 호 없이 정지 프레임만 보여야 하므로. */
 function stopArcDemo() {
@@ -1793,6 +1880,7 @@ function onGuideComplete(g) {
   e.btns.hidden = true;
   e.idle.hidden = true;
   e.dots.innerHTML = '';
+  e.prog.hidden = true;   // 유지 바 잔상 제거 (완료·컨디션 화면에 남지 않게)
   e.hint.textContent = '';
   e.text.textContent = '';
   e.pip.hidden = true; e.count.hidden = true;
@@ -1864,6 +1952,7 @@ function askCondition(r) {
   e.btns.hidden = true;
   e.idle.hidden = true;
   e.dots.innerHTML = '';
+  e.prog.hidden = true;   // 유지 바 잔상 제거 (완료·컨디션 화면에 남지 않게)
   e.hint.textContent = '';
   e.text.textContent = '';
   e.pip.hidden = true; e.count.hidden = true;
@@ -1887,6 +1976,7 @@ function showRoutineDone(r, condition = null) {
   e.btns.hidden = true;
   e.idle.hidden = true;
   e.dots.innerHTML = '';
+  e.prog.hidden = true;   // 유지 바 잔상 제거 (완료·컨디션 화면에 남지 않게)
   e.hint.textContent = '';
   e.text.textContent = '';
   e.pip.hidden = true; e.count.hidden = true;
@@ -1920,6 +2010,9 @@ function stopGuideSession() {
   clearTimeout(guide.neutralTimer);
   clearTimeout(guide.autoNextTimer);
   guide.tracking.stopTracking(); // 로딩 중 이탈이라도 카메라를 확실히 끈다 (백그라운드 점등 방지)
+  stopFrameLoop();               // 카메라 없는 프레임 루프 정지 — 어느 경로로 시작했든 무조건.
+                                 // 정지는 비대칭이면 안 된다: 한쪽만 끄면 다음 세션에서 루프가
+                                 // 둘 겹쳐 engine.update가 두 번 불린다(timed 2배속).
   guide.sprite?.hide();          // 시범 손 APNG 숨김·재생 중단 (안 보이는 동안 디코딩 낭비 방지)
   stopArcDemo();                 // 호 데모 rAF 정지
   guide.spriteOn = false;

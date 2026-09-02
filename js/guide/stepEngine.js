@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════
 // stepEngine.js — 스텝 진행·텍스트·인식 카운트·완료 처리 (명세서 §5·§6)
 // 스텝 type: intro(자동 dur초) / follow(인식 카운트로 진행, 건너뛰기) / outro(자동)
+//            timed(카메라 없이 holdSec초 × reps라운드 — 스트레칭·유지 동작용)
 // 인식은 measurement.js 지표(rel/grip/tipMCP/pinch/fanSpan)를 재사용해 판정.
 // UX(명세서 §6): 시범과 카운트 독립, 관대한 목표, 조용한 피드백,
 //                15초 인식0 시 탈출구, 보상동작은 안내만(카운트 막지 않음… 단 flexExt는 무효화).
@@ -195,9 +196,12 @@ export function createDetector(type, opts) {
 //   }
 // 컨트롤러가 매 프레임 update(now, snap) 호출.
 // ═══════════════════════════════════════════════════════════
+/** timed 스텝의 라운드 수 — 없으면 1회. 양쪽 손을 번갈아 하는 스트레칭이 reps:2다. */
+const timedReps = (step) => Math.max(1, step.reps ?? 1);
+
 export function createStepEngine(guide, handlers = {}) {
   const steps = guide.steps;
-  let i = -1, stepStart = 0, detector = null, count = 0;
+  let i = -1, stepStart = 0, detector = null, count = 0, roundStart = 0;
   let armed = false, lastCountAt = 0, idleShown = false;
   let done = false; // onComplete 1회 보장 (완료 후 update가 매 프레임 재발화하는 것 방지)
 
@@ -205,12 +209,16 @@ export function createStepEngine(guide, handlers = {}) {
     i = index;
     const step = steps[i];
     stepStart = now;
-    count = 0; armed = false; idleShown = false; lastCountAt = now;
+    count = 0; armed = false; idleShown = false; lastCountAt = now; roundStart = now;
     detector = step.type === 'follow' ? createDetector(step.detect, step.detectOpts) : null;
     handlers.onEnterStep?.(step, i, steps.length);
     if (step.type === 'follow') {
       handlers.onCount?.(0, step.reps);
       handlers.onNeedNeutral?.(step); // 중립 잡은 뒤 arm()
+    } else if (step.type === 'timed') {
+      // 중립도 인식도 없다 — 타이머는 스텝에 들어온 순간부터 흐른다(arm 불필요).
+      handlers.onCount?.(0, timedReps(step));
+      armed = true;
     }
   }
 
@@ -236,6 +244,28 @@ export function createStepEngine(guide, handlers = {}) {
 
     if (step.type === 'intro' || step.type === 'outro') {
       if ((now - stepStart) >= (step.dur ?? 3) * 1000) next(now);
+      return;
+    }
+
+    // timed — holdSec초를 reps라운드. 인식이 없으므로 15초 탈출구도 없다(§6의 탈출구는
+    // "인식이 안 된다"에 대한 구제책인데, 여기엔 인식 실패라는 개념 자체가 없다).
+    // snap은 쓰지 않는다 — 카메라가 없는 세션에서도 그대로 도는 이유.
+    if (step.type === 'timed') {
+      const reps = timedReps(step);
+      const holdMs = Math.max(0, (step.holdSec ?? 3) * 1000);
+      const held = now - roundStart;
+      if (held >= holdMs) {
+        count++;
+        handlers.onCount?.(count, reps);
+        if (count >= reps) { next(now); return; }
+        roundStart = now;   // 다음 라운드(반대쪽 손 등)
+        handlers.onStatus?.({ hint: step.hint || '', comp: false, idle: false, progress: 0 });
+        return;
+      }
+      handlers.onStatus?.({
+        hint: step.hint || '', comp: false, idle: false,
+        progress: holdMs > 0 ? Math.min(1, held / holdMs) : 1,
+      });
       return;
     }
 

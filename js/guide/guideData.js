@@ -98,3 +98,16 @@ export const GUIDES = [
 ];
 
 export const getGuide = (id) => GUIDES.find((g) => g.id === id) || null;
+
+/**
+ * 이 가이드가 카메라를 필요로 하는가 — follow(인식 카운트) 스텝이 하나라도 있으면 true.
+ *
+ * timed 전용 가이드(스트레칭 등)는 카메라를 아예 안 켠다. 권한 프롬프트도 뜨지 않는다:
+ * 사무실에서 카메라를 켜는 건 사회적 비용이 커서, 그것만으로 안 하게 되는 종류의 마찰이다.
+ *
+ * ★프레임 구동 경로를 고르는 유일한 기준이기도 하다(main.startGuide). 카메라 루프와
+ *  카메라 없는 루프가 동시에 돌면 engine.update가 프레임마다 두 번 불려 timed 타이머가
+ *  2배속으로 흐른다 — 육안으로는 "좀 빠른데?" 정도라 알아채기 어렵다. 그래서 시작 지점을
+ *  하나로 두고 이 술어로만 분기한다.
+ */
+export const needsCamera = (g) => !!g && (g.steps || []).some((s) => s.type === 'follow');

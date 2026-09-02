@@ -166,6 +166,8 @@ export function estimateGuideSec(g) {
     if (s.type === 'follow') {
       const cycle = s.anim?.length ? s.anim[s.anim.length - 1][0] : 5;
       sec += (s.reps || 1) * cycle;
+    } else if (s.type === 'timed') {
+      sec += (s.reps || 1) * (s.holdSec || 0); // 라운드 × 유지시간
     } else {
       sec += s.dur || 3;
     }
@@ -192,38 +194,76 @@ export function estimateRoutineSec(r) {
 const CONDITION_RANK = { good: 2, soso: 1, stiff: 0 };
 
 /**
+ * dose 조정 대상 스텝인가 — follow(인식 반복)와 timed(타이머 유지) 둘 다.
+ *
+ * ★doseAtLevel과 getRoutineGuide가 **같은 술어**를 써야 한다. 갈라지면 한쪽은 "조정할
+ *  스텝이 있다"고 보고 다른 쪽은 못 찾아, 계산된 dose가 재생에 반영되지 않는다.
+ *  그리고 timed를 빠뜨리면 focusGuide가 timed 운동을 가리킬 때 doseAtLevel이 null 쌍을
+ *  돌려주고 → canProgress가 false → decideDose가 'cap'으로 **조용히 정지**한다.
+ *  방향 특이적 강화를 켜려고 만든 배관이 새 자리에서 no-op을 재현하는 셈이라, 한 곳에 둔다.
+ */
+const isDosable = (s) => (s.type === 'follow' || s.type === 'timed') && s.reps != null;
+
+/**
  * dose 단계·focus 보정을 base reps/hold에 분배 — 순수 계산(저장·부수효과 없음).
  * 규칙(§4.3): reps를 cap까지 먼저 소진, 그다음 hold를 올린다(한 단계 = 한 변수만).
  * 상한(repCap / holdCap)을 절대 초과하지 않으며, hold 없는(reps 기반) 운동은 hold=null 유지.
  * @returns {{ reps:number, holdSec:(number|null) }}
  */
-function distributeDose({ baseReps, baseHoldSec = null, focusBonus = 0, levels = 0 }) {
+function distributeDose({
+  baseReps, baseHoldSec = null, focusBonus = 0, levels = 0, doseAxis = 'reps', holdCap = null,
+}) {
   const dz = ROUTINE.adaptDose;
   const repCap = ROUTINE.adaptReps.cap;
   let reps = Math.min(baseReps + focusBonus, repCap);   // focus 보정(§4.2) 먼저, cap clamp
   let remaining = Math.max(0, levels | 0);
-  // ① reps를 cap까지 소진
-  const repRoom = Math.max(0, repCap - reps);
-  const repLevels = Math.min(remaining, Math.floor(repRoom / dz.repStep));
-  reps = Math.min(reps + repLevels * dz.repStep, repCap);
-  remaining -= repLevels;
-  // ② 남은 단계는 hold로 (hold 기반 운동만 — 현재 focus 대상 flex_ext는 reps 기반이라 미발동)
   let holdSec = baseHoldSec;
-  if (baseHoldSec != null) holdSec = Math.min(baseHoldSec + remaining * dz.holdStepSec, dz.holdCapSec);
+
+  // 유효 hold 상한 — 스텝이 직접 정한 값이 우선, 없으면 config. 어느 쪽이든 base 아래로는
+  // 못 내려간다. 이 Math.max가 없으면 base 20 · cap 15인 운동이 **level 0에서 이미** 15로
+  // 잘린다(진행하기도 전에 처방이 깎인다). 상한을 base보다 작게 잘못 적은 설정도 함께 막는다.
+  const holdCapEff = baseHoldSec == null
+    ? null : Math.max(holdCap ?? dz.holdCapSec, baseHoldSec);
+
+  // 축 하나에 levels를 붓는다.
+  //   last=false(첫 축): 상한에 닿는 데 필요한 만큼만 쓰고 나머지는 다음 축으로 넘긴다.
+  //   last=true(마지막 축): 남은 것을 전부 흡수한 뒤 상한으로 clamp (기존 동작 보존).
+  const spendReps = (last) => {
+    const room = Math.max(0, repCap - reps);
+    const lv = last ? remaining : Math.min(remaining, Math.ceil(room / dz.repStep));
+    reps = Math.min(reps + lv * dz.repStep, repCap);
+    remaining = last ? 0 : remaining - lv;
+  };
+  const spendHold = (last) => {
+    if (baseHoldSec == null) { if (last) remaining = 0; return; }
+    const room = Math.max(0, holdCapEff - baseHoldSec);
+    const lv = last ? remaining : Math.min(remaining, Math.ceil(room / dz.holdStepSec));
+    holdSec = Math.min(baseHoldSec + lv * dz.holdStepSec, holdCapEff);
+    remaining = last ? 0 : remaining - lv;
+  };
+
+  // doseAxis(§4.3 "한 단계 = 한 변수만")가 어느 축부터 소진할지 정한다.
+  // 'reps'(기본)는 기존 동작 그대로. 'hold'는 유지 기반 운동용 — 스트레칭을 10회
+  // 반복하는 쪽이 아니라 더 오래 유지하는 쪽으로 진행해야 임상적으로 맞다.
+  if (doseAxis === 'hold') { spendHold(false); spendReps(true); }
+  else { spendReps(false); spendHold(true); }
   return { reps, holdSec };
 }
 
 /** 지정 doseLevel에서의 reps/hold — canProgress(상한 도달) 판정과 computeDose가 공유하는 순수 계산 */
 function doseAtLevel(state, guideId, level) {
   const g = getGuide(guideId);
-  const step = g && g.steps.find((s) => s.type === 'follow' && s.reps != null);
+  const step = g && g.steps.find((s) => isDosable(s));
   if (!step) return { reps: null, holdSec: null };
   const { focus, focusSoft } = getAdapt(state);
   const cfg = ROUTINE.adaptReps;
   const target = focus ? cfg.focusGuide[focus] : null;
   const focusBonus = target === guideId ? (focusSoft ? cfg.bonusSoft : cfg.bonus) : 0;
-  const baseHoldSec = step.holdSec ?? null; // 현재 가이드엔 없음(reps 기반) — 향후 hold 운동 대비
-  return distributeDose({ baseReps: step.reps, baseHoldSec, focusBonus, levels: level });
+  const baseHoldSec = step.holdSec ?? null; // timed는 항상 있고, follow는 유지 기반 운동만
+  return distributeDose({
+    baseReps: step.reps, baseHoldSec, focusBonus, levels: level,
+    doseAxis: step.doseAxis, holdCap: step.holdCapSec ?? null,
+  });
 }
 
 /**
@@ -267,7 +307,7 @@ export function getRoutineGuide(guideId, state = load(), date = todayStr()) {
   const dose = computeDose(state, guideId, date);
   let changed = false;
   const steps = g.steps.map((s) => {
-    if (s.type !== 'follow' || s.reps == null) return s;
+    if (!isDosable(s)) return s;
     const next = {};
     if (dose.reps != null && dose.reps !== s.reps) next.reps = dose.reps;
     if (dose.holdSec != null && s.holdSec != null && dose.holdSec !== s.holdSec) next.holdSec = dose.holdSec;

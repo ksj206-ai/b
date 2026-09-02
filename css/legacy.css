@@ -405,6 +405,13 @@
 
 .m-prog-bar{ height:100%; width:0; border-radius:var(--r-pill); background:var(--grad-bar); transition:width .1s linear; }
 
+/* 가이드 유지 진행 바 — 측정의 .m-prog와 같은 어휘. 저기는 스테이지 위 절대배치라
+   여기서는 흐름 배치만 다르게 두고 나머지(높이·라운드·그라디언트)는 그대로 빌린다. */
+.gp-prog{ margin:6px auto 0; max-width:220px; height:6px; border-radius:var(--r-pill); background:var(--white-a35); overflow:hidden; }
+.gp-prog-bar{ height:100%; width:0; border-radius:var(--r-pill); background:var(--grad-bar); transition:width .1s linear; }
+/* 모션 최소화 설정에서는 폭이 뛰는 대신 즉시 반영 — 남은 시간 정보는 유지된다 */
+@media (prefers-reduced-motion: reduce){ .gp-prog-bar{ transition:none; } }
+
 
 /* 측정 방법 안내 팝업 — 앱 톤 그대로(밤하늘 scrim · 글라스 카드). sky-dex-modal과 같은 오버레이. */
 .m-intro-modal{
