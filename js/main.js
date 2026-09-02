@@ -8,6 +8,7 @@ import {
   load, save, update, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky, lightStars,
   isTodayComplete, completeTodayConstellation, refreshFocus, freshComp, sameHandSeries,
+  signalPair,
   makeMeasurement, deviationProgress, isImproving, getAdapt,
 } from './store.js';
 import { renderSky } from './sky.js';
@@ -1058,7 +1059,7 @@ function finishMeasure() {
   renderDevResult(e, rec, prev);
 
   // 선물 프레이밍 — 개선한 체크에만 한 줄(사건성). 하락·정체는 아무것도 노출하지 않는다.
-  const gift = grantGiftStar(s, prev, rec);
+  const gift = grantGiftStar(s, rec);
   e.rGift.hidden = !gift;
   if (gift) e.rGift.textContent = gift;
 
@@ -1088,12 +1089,20 @@ function finishMeasure() {
  * · 선물 별은 syncStarsToProgress가 지우지 않는다 — 그 함수는 루틴 진행분까지 '부족분만'
  *   채우는(target > cur) 구조라 덤으로 켜진 별은 그대로 남는다.
  *
+ * · 비교 쌍은 **store.signalPair에서만** 꺼낸다. 화면이 따로 고른 "지난 기록"을 받아
+ *   쓰면 isImproving이 내부에서 쓰는 쌍과 갈라진다 — 실제로 그랬다: 그쪽은 손만 맞추고
+ *   자세(view)는 안 봐서, 신호는 옛 신뢰 기록으로 나는데 방향 라벨은 못 믿을 기록으로
+ *   계산됐다. 판정과 라벨이 같은 쌍을 보게 공급원을 하나로 묶는다.
+ *   (결과 화면의 "지난 체크 대비" 델타는 여전히 자기 prev를 쓴다 — 그건 표시라서
+ *    자세가 무너진 체크도 보여줘야 하고, 판정과 기준이 달라야 맞다.)
+ *
  * @returns {string|null} 표시할 한 줄 (개선이 아니면 null — 이때 화면은 통째로 숨긴다)
  */
-function grantGiftStar(s, prev, rec) {
-  if (!isImproving(s)) return null;
+function grantGiftStar(s, rec) {
+  const pair = signalPair(s);
+  if (!pair || !isImproving(s)) return null;
   // 어느 방향이 늘었는지만 말한다(수치·판정 금지). 동률이면 굽힘 쪽으로.
-  const dir = (rec.flex - prev.flex) >= (rec.ext - prev.ext) ? '굽힘' : '폄';
+  const dir = (rec.flex - pair.prev.flex) >= (rec.ext - pair.prev.ext) ? '굽힘' : '폄';
   const today = todayStr();
   if (s.lastGiftStarAt === today) return `${dir}이 조금 늘었어요 ✨`;
   assignTodayConstellation(s);

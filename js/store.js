@@ -547,9 +547,14 @@ export function refreshFocus(state = load(), date = todayStr()) {
  * 오늘 잰 것과 무관한 옛날 변화로 오늘의 순한 코스·선물 별이 발동한다.
  * 반대로 '중간'에 낀 못 믿을 기록은 건너뛰고 그 앞의 믿을 만한 것과 비교한다 —
  * 비교 간격이 늘 뿐이고, 기준을 나쁜 값에 두지 않는 쪽이 안전하다.
+ * 이 함수가 red·개선 판정의 **유일한 쌍 공급원**이다. 밖에서도 쓸 수 있게 export한 이유:
+ * 예전엔 측정 결과 화면이 "지난 기록"을 따로 골라 grantGiftStar에 넘겼는데, 그쪽은 손만
+ * 맞추고 자세는 안 봐서 isImproving이 쓰는 쌍과 갈라졌다 — 신호는 옛 신뢰 기록으로 나는데
+ * 방향 라벨("굽힘"/"폄")은 못 믿을 기록으로 계산되는 어긋남. 쌍을 고르는 곳이 둘이면
+ * 언제든 다시 갈라지므로, 고르는 곳을 하나로 두고 여기서만 꺼내 쓴다.
  * @returns {{last:object, prev:object}|null}
  */
-function signalPair(state) {
+export function signalPair(state) {
   const ms = sameHandSeries(state.measurements || []);
   const last = ms[ms.length - 1];
   if (!isTrusted(last)) return null;

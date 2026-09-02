@@ -21,6 +21,7 @@ if (typeof localStorage === 'undefined') {
 
 import {
   sameHandSeries, makeMeasurement, isRedSignal, isImproving, computeFocus, isTrusted,
+  signalPair,
 } from './store.js';
 import { viewFits } from './measurement.js';
 import { VIEW_FIT } from './config.js';
@@ -189,6 +190,40 @@ const st = (...measurements) => ({ measurements });
   ok(isRedSignal(st(legacy('2026-01-01', 'right', 50, 50),
                     makeMeasurement({ at: '2026-01-08', hand: 'right', flex: 40, ext: 40 })),
                  '2026-01-08') === true, '10 옛 기록 → 새 기록 비교도 성립');
+}
+
+// ─── signalPair가 red·개선 판정의 유일한 쌍 공급원인가 ────────
+// 화면이 "지난 기록"을 따로 골라 넘기면 isImproving이 쓰는 쌍과 갈라진다. 실제로 그랬다:
+// 결과 화면의 prev는 손만 맞추고 자세는 안 봐서, 신호는 옛 신뢰 기록으로 나는데 방향
+// 라벨은 못 믿을 기록으로 계산됐다. 아래는 두 쌍이 서로 '다른 방향'을 가리키는 조건이다.
+{
+  const p = signalPair(st(rec('2026-01-01', 'right', 50, 50), rec('2026-01-08', 'right', 40, 40)));
+  ok(p && p.last.at === '2026-01-08' && p.prev.at === '2026-01-01', '11 정상 쌍을 그대로 돌려준다');
+  ok(signalPair(st()) === null, '11 측정 0회면 null');
+  ok(signalPair(st(rec('2026-01-01', 'right', 50, 50))) === null, '11 그 손 첫 측정이면 null');
+  ok(signalPair(st(rec('2026-01-01', 'right', 50, 50),
+                   rec('2026-01-08', 'right', 40, 40, 'off'))) === null, '11 최신이 off면 null');
+
+  // ★이음매 재현: 자세가 무너진 직전 기록과 그 앞 신뢰 기록이 '다른 방향'을 가리킨다
+  const untrusted = rec('2026-01-08', 'right', 30, 60, 'off'); // 손은 맞지만 자세가 무너진 것
+  const trusted = rec('2026-01-01', 'right', 50, 40);
+  const now = rec('2026-01-15', 'right', 55, 50);
+  const state = st(trusted, untrusted, now);
+
+  ok(isImproving(state, '2026-01-15') === true, '11 개선 신호는 난다(신뢰 쌍 기준)');
+  const pair = signalPair(state);
+  ok(pair.prev.at === trusted.at, '11 공급원은 못 믿을 직전이 아니라 그 앞 신뢰 기록을 준다');
+
+  // 방향 라벨은 grantGiftStar가 이 쌍으로 계산한다 — 어느 쌍을 쓰느냐로 단어가 갈린다
+  const dirFrom = (prev) => (now.flex - prev.flex) >= (now.ext - prev.ext) ? '굽힘' : '폄';
+  ok(dirFrom(untrusted) === '굽힘' && dirFrom(trusted) === '폄',
+     '11 두 쌍이 실제로 다른 방향을 가리키는 조건이 맞다(테스트 전제 확인)');
+  ok(dirFrom(pair.prev) === '폄', '11 공급원을 통일하면 판정과 같은 쌍에서 방향이 나온다');
+
+  // 표시용 prev(같은 손만)와는 여전히 다르다 — 그건 의도된 분리다
+  const displayPrev = sameHandSeries(state.measurements, 'right').slice(-2)[0];
+  ok(displayPrev.at === untrusted.at,
+     '11 표시용 prev는 자세를 안 봐서 직전 기록 그대로 — 판정과 기준이 달라야 맞다');
 }
 
 // ─── 표시는 막지 않는다 ─────────────────────────────────────
