@@ -2,7 +2,7 @@
 // measurement.js — 지표 계산 & ROM 측정
 // wrist-garden_32.html의 검증된 로직을 이식:
 //   · 수학 헬퍼 norm/median/ang/dist/clamp (원본 L407~412)
-//   · 손가락 지표 grip/spread/tipMCP/pinch (원본 L1246~1249)
+//   · 손가락 지표 grip/spread/tipMCP/pinch (원본 L1246~1249) + fanSpan(손가락 벌림, 신규)
 //   · 손목 각도 + 스무딩 + rel + 보상동작 comp (원본 L1243~1261)
 //   · ROM 유지-캡처 (원본 L1178~1184, capRom L1173~1175)
 // tracking.js가 넘겨준 랜드마크를 입력으로 받는 순수/상태 모듈.
@@ -32,6 +32,17 @@ export function mcpCenter(hand) {
 
 // ─── 손가락 지표 (원본 L1246~1249) ───
 // palm = 손목~중지MCP 거리로 정규화(손 크기·거리 보정)
+//
+// ⚠ spread와 fanSpan은 이름이 비슷하지만 재는 것이 다르다 — 섞어 쓰면 안 된다.
+//   · spread  = 너클 폭 ÷ 손바닥 길이. 손가락 외전은 MCP '관절'에서 일어나므로 너클
+//     간격 자체는 뼈 기하학상 거의 고정이다 → 손가락을 벌려도 이 값은 안 변한다.
+//     실제로 변하는 건 손이 돌아 단축될 때다. 즉 이건 외전 지표가 아니라 '뷰(자세)' 지표.
+//   · fanSpan = 손끝 폭 ÷ 너클 폭. 손가락 외전(벌리기)을 재는 값은 이쪽이다.
+//     palm이 아니라 너클 폭으로 나누는 이유: 두 거리 모두 손바닥 평면 안에서 손가락
+//     축과 수직이라, 손이 장축으로 돌아 단축돼도 분자·분모가 같은 비율로 줄어 서로
+//     상쇄된다(palm은 축이 달라 상쇄가 안 된다). 뷰 변화에 훨씬 덜 흔들린다.
+// (guideData/guideHand의 파라미터 `spread`는 또 다른 것 — 시범 손을 그릴 때의 부채꼴
+//  각도(fanDeg)다. 저쪽은 그리기 파라미터, 이쪽은 측정 지표로 네임스페이스가 다르다.)
 export function fingerMetrics(hand) {
   const hw = hand[HAND_LM.WRIST];
   const palm = dist(hw, hand[HAND_LM.MIDDLE_MCP]) || 0.001;
@@ -39,7 +50,9 @@ export function fingerMetrics(hand) {
     dist(hand[HAND_LM.INDEX_TIP], hw) + dist(hand[HAND_LM.MIDDLE_TIP], hw) +
     dist(hand[HAND_LM.RING_TIP], hw) + dist(hand[HAND_LM.PINKY_TIP], hw)
   ) / 4 / palm;
-  const spread = dist(hand[HAND_LM.INDEX_MCP], hand[HAND_LM.PINKY_MCP]) / palm;
+  const mcpSpan = dist(hand[HAND_LM.INDEX_MCP], hand[HAND_LM.PINKY_MCP]);
+  const spread = mcpSpan / palm;
+  const fanSpan = dist(hand[HAND_LM.INDEX_TIP], hand[HAND_LM.PINKY_TIP]) / (mcpSpan || 0.001);
   const tipMCP = (
     dist(hand[HAND_LM.INDEX_TIP], hand[HAND_LM.INDEX_MCP]) +
     dist(hand[HAND_LM.MIDDLE_TIP], hand[HAND_LM.MIDDLE_MCP]) +
@@ -47,7 +60,7 @@ export function fingerMetrics(hand) {
     dist(hand[HAND_LM.PINKY_TIP], hand[HAND_LM.PINKY_MCP])
   ) / 4 / palm;
   const pinch = dist(hand[HAND_LM.THUMB_TIP], hand[HAND_LM.INDEX_TIP]) / palm;
-  return { palm, grip, spread, tipMCP, pinch };
+  return { palm, grip, spread, fanSpan, tipMCP, pinch };
 }
 
 // ─── 팔뚝(팔꿈치/어깨) 선택 (원본 L1250) ───

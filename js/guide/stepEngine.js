@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════
 // stepEngine.js — 스텝 진행·텍스트·인식 카운트·완료 처리 (명세서 §5·§6)
 // 스텝 type: intro(자동 dur초) / follow(인식 카운트로 진행, 건너뛰기) / outro(자동)
-// 인식은 measurement.js 지표(rel/grip/tipMCP/pinch)를 재사용해 판정.
+// 인식은 measurement.js 지표(rel/grip/tipMCP/pinch/fanSpan)를 재사용해 판정.
 // UX(명세서 §6): 시범과 카운트 독립, 관대한 목표, 조용한 피드백,
 //                15초 인식0 시 탈출구, 보상동작은 안내만(카운트 막지 않음… 단 flexExt는 무효화).
 // ═══════════════════════════════════════════════════════════
@@ -106,6 +106,50 @@ function gripHoldDetector({ thresh = 1.2, holdMs = 2500, neutralBand = 14 } = {}
   };
 }
 
+/** 손가락 벌리기: 활짝(fanSpan≥openT) + 모음(≤closeT) 1세트 = 1회.
+ *  굽힘·폄과 같은 '양 끝 도달' 관용구 — 순서는 상관없다.
+ *
+ *  ⚠ fanSpan을 쓰는 이유(measurement.fingerMetrics 주석 참고): fingers.spread는 너클 폭이라
+ *    손가락을 벌려도 값이 안 변한다. 외전을 재는 건 손끝 폭(fanSpan)뿐이다.
+ *
+ *  extendedT 게이트: 손가락을 '굽혀도' 손끝 폭은 줄어든다 → 굽힘을 '모음'으로 오인해
+ *    엉뚱한 카운트가 생긴다. 그래서 편 상태(grip ≥ extendedT)에서만 판정한다.
+ *    이건 진행을 막는 게 아니라 오탐만 막는 것 — 못 맞춰도 [건너뛰기]와 15초 탈출구는 그대로다(§6).
+ *
+ *  ★임계값은 기하학 추정치다(모음 ~0.8 / 활짝 ~1.4). 실기기 실측으로 확정할 것 —
+ *    DEBUG_GUIDE를 켜면 매 프레임 fanSpan이 찍힌다. */
+function fingerSpreadDetector({ openT = 1.15, closeT = 0.95, extendedT = 1.45 } = {}) {
+  let reachedOpen = false, reachedClose = false;
+  let logAt = 0;
+  return {
+    feed(snap) {
+      const f = snap.fingers;
+      if (!snap.detected || !f) return { justCounted: false, hint: '손을 카메라에 보여주세요' };
+      if (f.grip < extendedT) return { justCounted: false, hint: '손가락을 쭉 편 채로 해요' };
+
+      if (f.fanSpan >= openT) reachedOpen = true;
+      if (f.fanSpan <= closeT) reachedClose = true;
+      let justCounted = false;
+      if (reachedOpen && reachedClose) { justCounted = true; reachedOpen = false; reachedClose = false; }
+
+      if (DEBUG_GUIDE) {
+        const t = performance.now();
+        if (justCounted || t - logAt > 200) {
+          logAt = t;
+          console.log(`[fingerSpread] fanSpan=${f.fanSpan.toFixed(2)} (벌림 인정 ≥ ${openT} / 모음 인정 ≤ ${closeT}) ` +
+                      `grip=${f.grip.toFixed(2)} 벌림도달=${reachedOpen} 모음도달=${reachedClose}` +
+                      `${justCounted ? ' ✅ 1회 인정' : ''}`);
+        }
+      }
+      const hint = reachedOpen ? '이제 천천히 모아요 🤏'
+        : reachedClose ? '손가락을 활짝 벌려요 🖐'
+        : '손가락을 활짝 벌렸다 모아요';
+      return { justCounted, hint };
+    },
+    reset() { reachedOpen = false; reachedClose = false; },
+  };
+}
+
 /** 힘줄 활주: 쫙→갈고리→주먹 순서 통과 시 1회 */
 function tendonGlideDetector() {
   const order = ['open', 'hook', 'fist'];
@@ -132,6 +176,7 @@ const DETECTORS = {
   pinchHold: pinchHoldDetector,
   gripHold: gripHoldDetector,
   tendonGlide: tendonGlideDetector,
+  fingerSpread: fingerSpreadDetector,
 };
 
 export function createDetector(type, opts) {

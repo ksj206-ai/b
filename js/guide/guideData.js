@@ -85,7 +85,10 @@ export const GUIDES = [
     steps: [
       { type: 'intro', text: '손바닥을 펴 주세요', dur: 3, pose: { spread: 0.3, curl: 0 } },
       {
-        type: 'follow', text: '손가락을 활짝 벌렸다 모아요', reps: 5, detect: 'tendonGlide',
+        // detect는 반드시 fingerSpread — tendonGlide를 쓰면 카운트가 구조적으로 0이 된다.
+        // (tendonGlide의 poseOf는 grip>1.45면 무조건 'open'이라, 손을 편 채 벌렸다 모으는
+        //  동안 상태가 'open'에 고정돼 두 번째 게이트 '갈고리'를 영원히 기다린다.)
+        type: 'follow', text: '손가락을 활짝 벌렸다 모아요', reps: 5, detect: 'fingerSpread',
         base: { curl: 0 },
         anim: [[0, { spread: 0.3 }], [1, { spread: 1.0 }], [2.5, { spread: 1.0 }], [3.5, { spread: 0.3 }]],
       },
