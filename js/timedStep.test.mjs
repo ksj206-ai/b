@@ -182,5 +182,47 @@ eq(GUIDES.length, GUIDES_BEFORE, '8 픽스처 복원됨 (뒷 테스트가 오염
 ok(getGuide('fx_timed') === null && getGuide('fx_tight') === null, '8 픽스처 조회 불가');
 eq(ROUTINE.adaptReps.focusGuide.flex, 'flex_ext', '8 focusGuide 매핑 복원됨');
 
+// ─── ⑨ 실제 콘텐츠가 배관에 물린다 (전완 스트레칭 2종) ──────
+// 픽스처가 아니라 프로덕션 GUIDES로 확인한다 — 배관의 첫 실사용자라, 여기가 통과해야
+// timed·doseAxis·스텝별 holdCapSec이 실제로 쓸 수 있는 상태라는 뜻이다.
+{
+  for (const id of ['extensor_stretch', 'flexor_stretch']) {
+    const g = getGuide(id);
+    ok(!!g, `9 ${id} 존재`);
+    ok(needsCamera(g) === false, `9 ${id}는 카메라를 안 켠다`);
+    ok(!ROUTINE.course.includes(id) && !ROUTINE.gentleCourse.includes(id),
+       `9 ${id}는 데일리 코스에 없다 — 3분 예산은 그대로`);
+    const timed = g.steps.filter((s) => s.type === 'timed');
+    eq(timed.length, 2, `9 ${id} 좌우 별도 스텝 둘 (라운드가 아니라 스텝이라 각자 문구가 붙는다)`);
+    ok(timed.every((s) => s.holdCapSec === 30),
+       `9 ${id} 스텝별 holdCapSec 명시 — 없으면 config 기본 15에 막혀 hold가 안 오른다`);
+    ok(timed.every((s) => /저릿하거나 아프면 바로 멈추세요/.test(s.hint || '')),
+       `9 ${id} 중단 기준이 모든 유지 라운드에 노출된다(안전 문구는 절반만 보이면 안 된다)`);
+  }
+
+  // dose가 hold부터 상한까지 흐른 뒤에야 reps로 — 좌우 두 스텝에 같은 값으로
+  const st = (lv) => ({ adapt: { focus: null, focusSoft: false, doseLevel: { extensor_stretch: lv },
+                                 toleratedStreak: 0 }, measurements: [] });
+  const timedOf = (lv) => getRoutineGuide('extensor_stretch', st(lv), '2026-07-22')
+    .steps.filter((s) => s.type === 'timed');
+  const holdsAt = (lv) => JSON.stringify(timedOf(lv).map((s) => s.holdSec));
+  const repsAt = (lv) => JSON.stringify(timedOf(lv).map((s) => s.reps));
+  eq(holdsAt(0), '[20,20]', '9 level 0 → base 20 (절삭 없음)');
+  eq(holdsAt(1), '[23,23]', '9 level 1 → 23, 좌우 동일');
+  eq(holdsAt(4), '[30,30]', '9 level 4 → 스텝 상한 30');
+  eq(repsAt(4), '[1,1]', '9 상한에 닿기 전엔 reps 불변');
+  eq(holdsAt(5), '[30,30]', '9 상한을 넘지 않는다');
+  eq(repsAt(5), '[2,2]', '9 남은 단계가 그제서야 reps로');
+  eq(getGuide('extensor_stretch').steps.filter((s) => s.type === 'timed')[0].holdSec, 20,
+     '9 원본 GUIDES는 불변');
+  eq(estimateGuideSec(getGuide('extensor_stretch')), 5 + 20 + 20 + 3, '9 예상 소요 48초');
+}
+
+// ─── ⑩ flex_ext 이름 — 유지 없는 반복은 스트레칭이 아니다 ─────
+{
+  ok(!/스트레칭/.test(getGuide('flex_ext').name), '10 flex_ext 이름에 "스트레칭"이 없다');
+  ok(getGuide('extensor_stretch').name.includes('스트레칭'), '10 진짜 스트레칭에만 그 말을 쓴다');
+}
+
 console.log(`\ntimed 스텝 · dose 배관 테스트: ${pass} pass, ${fail} fail`);
 if (typeof process !== 'undefined' && fail > 0) process.exitCode = 1;

@@ -97,6 +97,65 @@ export const GUIDES = [
       { type: 'outro', text: '좋아요! 손을 편하게 두세요', dur: 3, pose: { spread: 0.3, curl: 0 } },
     ],
   },
+
+  // ⑦⑧ 전완 스트레칭 (timed · 카메라 없음)
+  //
+  // 데일리 코스(ROUTINE.course)에 넣지 않는다. 풀코스는 이미 3분 예산이 꽉 찼고,
+  // 정적 부하를 끊는 건 지속시간이 아니라 빈도라 — 스트레칭은 하루 한 블록보다
+  // 짧게 여러 번이 맞다. 리마인더 마이크로 루틴의 몸통으로 쓴다.
+  //
+  // ★문구는 임상 파라미터다(안전선). 구현 재량이 아니라 스펙이므로 임의로 다듬지 않는다:
+  //   중단 기준·강도 큐·호흡 큐·반동 금지·자세 큐가 각각 행동 가능한 자리에 놓여야 한다.
+  //
+  // 좌우를 reps 2가 아니라 별도 timed 스텝 둘로 나눈 이유: 한 스텝 안의 라운드에는
+  // "이제 반대쪽" 큐를 붙일 자리가 없다(엔진이 라운드별 문구를 갖지 않는다). 스텝을
+  // 나누면 기존 배관 그대로 각 팔에 제 문구가 붙는다. dose는 dosable 스텝 '전부'에
+  // 같은 값으로 적용되므로 좌우가 어긋나지 않는다(routine.getRoutineGuide).
+  //
+  // holdCapSec을 반드시 적는다 — 없으면 config 기본값 15가 걸려 base 20이 곧 상한이 되고
+  // hold가 영원히 안 오른다(유효상한 = max(cap, base) 가드가 절삭은 막지만 성장은 못 연다).
+  // 20 → 30초는 정적 스트레칭 용량 진행의 표준 범위다.
+  //
+  // ⚠ 알려진 한계: hold가 상한에 닿은 뒤 남는 dose 단계는 reps로 넘어가고, reps 상한은
+  //   전역값(ROUTINE.adaptReps.cap = 10)이라 이론상 "한쪽을 10번"까지 오른다. 스트레칭엔
+  //   과하다. 지금은 실제로 발생하지 않는다 — 이 운동들은 focusGuide 대상이 아니라
+  //   doseLevel이 0에 머문다. 조건부 데일리 슬롯을 붙일 때(항목 5) 스텝별 reps 상한을
+  //   같이 넣어야 한다.
+  {
+    id: 'extensor_stretch', name: '전완 신전근 스트레칭', view: 'side', emoji: '🤲',
+    cat: 'stretch', short: '신전근',
+    steps: [
+      { type: 'intro', text: '팔꿈치를 편 채 손등을 아래로 — 지그시, 튕기지 않고', dur: 5,
+        pose: { wristAngle: 0, curl: 0.1 } },
+      { type: 'timed', text: '오른팔 · 숨을 천천히 내쉬면서 유지해요',
+        hint: '시원하게 당기는 느낌까지만, 통증 직전에서 멈춰요 · 저릿하거나 아프면 바로 멈추세요',
+        reps: 1, holdSec: 20, doseAxis: 'hold', holdCapSec: 30,
+        pose: { wristAngle: -45, curl: 0.1 } },
+      { type: 'timed', text: '왼팔 · 숨을 천천히 내쉬면서 유지해요',
+        hint: '시원하게 당기는 느낌까지만, 통증 직전에서 멈춰요 · 저릿하거나 아프면 바로 멈추세요',
+        reps: 1, holdSec: 20, doseAxis: 'hold', holdCapSec: 30,
+        pose: { wristAngle: -45, curl: 0.1 } },
+      { type: 'outro', text: '천천히 풀어요', dur: 3, pose: { wristAngle: 0, curl: 0.1 } },
+    ],
+  },
+
+  {
+    id: 'flexor_stretch', name: '전완 굴곡근 스트레칭', view: 'side', emoji: '🖐',
+    cat: 'stretch', short: '굴곡근',
+    steps: [
+      { type: 'intro', text: '팔꿈치를 편 채 손바닥을 위로 — 지그시, 튕기지 않고', dur: 5,
+        pose: { wristAngle: 0, curl: 0.1 } },
+      { type: 'timed', text: '오른팔 · 숨을 천천히 내쉬면서 유지해요',
+        hint: '시원하게 당기는 느낌까지만, 통증 직전에서 멈춰요 · 저릿하거나 아프면 바로 멈추세요',
+        reps: 1, holdSec: 20, doseAxis: 'hold', holdCapSec: 30,
+        pose: { wristAngle: 40, curl: 0.05 } },
+      { type: 'timed', text: '왼팔 · 숨을 천천히 내쉬면서 유지해요',
+        hint: '시원하게 당기는 느낌까지만, 통증 직전에서 멈춰요 · 저릿하거나 아프면 바로 멈추세요',
+        reps: 1, holdSec: 20, doseAxis: 'hold', holdCapSec: 30,
+        pose: { wristAngle: 40, curl: 0.05 } },
+      { type: 'outro', text: '천천히 풀어요', dur: 3, pose: { wristAngle: 0, curl: 0.1 } },
+    ],
+  },
 ];
 
 export const getGuide = (id) => GUIDES.find((g) => g.id === id) || null;
