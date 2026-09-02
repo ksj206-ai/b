@@ -8,8 +8,11 @@ import { CONSTELLATIONS, getConstellation, constellationsBySeason } from './cons
 const ROOT = STORAGE_KEYS.ROOT;
 
 /** 저장 구조 버전. 올릴 때는 migrate()에 그 단계의 변환을 함께 추가한다.
- *  v1 → v2: 측정 레코드에 정면 편위(radialDev/ulnarDev)가 추가됨 (추가 전용). */
-export const SCHEMA_VERSION = 2;
+ *  v1 → v2: 측정 레코드에 정면 편위(radialDev/ulnarDev)가 추가됨 (추가 전용).
+ *  v2 → v3: 측정 레코드에 자세 품질 view('ok'|'off')가 추가됨 (추가 전용).
+ *           옛 기록엔 필드가 없고, 없으면 'ok'로 읽는다 — 지난 데이터를 소급해서
+ *           못 믿을 것으로 만들지 않는다(그러면 기존 사용자의 신호가 통째로 죽는다). */
+export const SCHEMA_VERSION = 3;
 
 /** 전체 상태 로드 (없으면 기본 구조) */
 export function load() {
@@ -94,18 +97,38 @@ function defaults() {
  *   옛 기록(undefined)과 읽는 쪽에서 같은 "없음"으로 취급되도록 맞춘 것이다.
  * · rom은 기존 정의 그대로 **굽힘+폄 합**(편위 미포함). 편위를 섞으면 computeFocus·
  *   isRedSignal·isImproving·기록 추이가 읽는 축의 의미가 바뀌므로 절대 합치지 않는다.
- * @returns {{v:2, at, hand, flex, ext, rom, radialDev:number|null, ulnarDev:number|null}}
+ * · view는 **굽힘·폄(옆모습) 단계의 자세 품질**이다. 자세 게이트를 끝까지 못 맞춘 채
+ *   진행했으면 'off'. 편위(정면)의 자세는 기록하지 않는다 — 편위는 표시 전용이라
+ *   어떤 자동 판정에도 안 들어가기 때문이다(deviationProgress 주석 참고). 편위가
+ *   판정에 쓰이게 되는 날 그때 필드를 추가한다.
+ * @returns {{v:3, at, hand, flex, ext, rom, radialDev:number|null, ulnarDev:number|null,
+ *            view:('ok'|'off')}}
  */
 export function makeMeasurement({
   at = todayStr(), hand = null, flex = 0, ext = 0, radialDev = null, ulnarDev = null,
+  view = 'ok',
 } = {}) {
   const deg = (v) => Math.max(0, Math.round(Number(v) || 0));
   const devDeg = (v) => { const d = deg(v); return d > 0 ? d : null; }; // 0·null·NaN → 미측정(null)
   const f = deg(flex), e = deg(ext);
   return {
-    v: 2, at, hand: hand || null, flex: f, ext: e, rom: f + e,
+    v: 3, at, hand: hand || null, flex: f, ext: e, rom: f + e,
     radialDev: devDeg(radialDev), ulnarDev: devDeg(ulnarDev),
+    view: view === 'off' ? 'off' : 'ok',
   };
+}
+
+/**
+ * 이 기록을 '자동 판정'에 쓸 수 있는가 — 자세 게이트를 통과했는가.
+ * 'off'만 못 믿을 것이고 나머지(없음·null·'ok')는 전부 믿는다: 필드가 없는 옛 기록을
+ * 소급해서 죽이지 않기 위해서다.
+ *
+ * ⚠ 이 판정은 **표시가 아니라 판정에만** 건다. 자세가 무너진 체크도 사용자에겐 그대로
+ *   보여준다(자기 기록을 앱이 감추면 안 된다 — 화면 수치엔 이미 '참고값'이 붙어 있다).
+ *   막는 건 그 값으로 순한 코스를 발동하거나 선물 별을 켜는 '행동'이다.
+ */
+export function isTrusted(rec) {
+  return !!rec && (rec.view ?? 'ok') !== 'off';
 }
 
 /**
@@ -516,6 +539,26 @@ export function refreshFocus(state = load(), date = todayStr()) {
   return res;
 }
 
+/**
+ * 신호 판정에 쓸 (최신, 직전) 쌍 — isRedSignal·isImproving의 공통 입력.
+ * 조건 둘: 같은 손(sameHandSeries), 그리고 자세 게이트를 통과한 기록(isTrusted).
+ *
+ * 최신이 못 믿을 것이면 **아예 null**을 돌려준다. 그걸 건너뛰고 그 앞 둘을 비교하면
+ * 오늘 잰 것과 무관한 옛날 변화로 오늘의 순한 코스·선물 별이 발동한다.
+ * 반대로 '중간'에 낀 못 믿을 기록은 건너뛰고 그 앞의 믿을 만한 것과 비교한다 —
+ * 비교 간격이 늘 뿐이고, 기준을 나쁜 값에 두지 않는 쪽이 안전하다.
+ * @returns {{last:object, prev:object}|null}
+ */
+function signalPair(state) {
+  const ms = sameHandSeries(state.measurements || []);
+  const last = ms[ms.length - 1];
+  if (!isTrusted(last)) return null;
+  for (let i = ms.length - 2; i >= 0; i--) {
+    if (isTrusted(ms[i])) return { last, prev: ms[i] };
+  }
+  return null;
+}
+
 // 측정이 직전 대비 이 각도(°) 이상 떨어지면 red 신호(순한 코스로 쉬어가기).
 // 측정 노이즈(ROM.stableBand=7° 흔들림 허용)보다 크게 잡아 오탐을 막는다.
 const RED_DROP_DEG = 8;
@@ -528,10 +571,9 @@ const RED_DROP_DEG = 8;
  * 노출하지 않는다(조용히). 순한 코스는 안전 방향이라 red면 그날만 부드럽게 갈 뿐.
  */
 export function isRedSignal(state = load(), date = todayStr()) {
-  const ms = sameHandSeries(state.measurements || []); // 같은 손끼리만 비교
-  if (ms.length < 2) return false;
-  const last = ms[ms.length - 1];
-  const prev = ms[ms.length - 2];
+  const pair = signalPair(state);   // 같은 손 + 자세 게이트 통과분만
+  if (!pair) return false;
+  const { last, prev } = pair;
   const flexDrop = (Number(prev.flex) || 0) - (Number(last.flex) || 0);
   const extDrop = (Number(prev.ext) || 0) - (Number(last.ext) || 0);
   const red = flexDrop >= RED_DROP_DEG || extDrop >= RED_DROP_DEG;
@@ -548,10 +590,9 @@ export function isRedSignal(state = load(), date = todayStr()) {
  * 결정한다(사용자에겐 개선일 때만 긍정 문구를 보이고, 하락·정체는 아무것도 노출 안 함).
  */
 export function isImproving(state = load(), date = todayStr()) {
-  const ms = sameHandSeries(state.measurements || []); // 같은 손끼리만 비교
-  if (ms.length < 2) return false;
-  const last = ms[ms.length - 1];
-  const prev = ms[ms.length - 2];
+  const pair = signalPair(state);   // 같은 손 + 자세 게이트 통과분만
+  if (!pair) return false;
+  const { last, prev } = pair;
   const rise = ROUTINE.adaptImprove.riseDeg;
   const flexUp = (Number(last.flex) || 0) - (Number(prev.flex) || 0);
   const extUp = (Number(last.ext) || 0) - (Number(prev.ext) || 0);

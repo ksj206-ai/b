@@ -9,6 +9,8 @@
 //   ③ 손을 모르는 옛 기록(hand:null)끼리는 예전처럼 비교된다(회귀 없음).
 //   ④ computeFocus는 두 측정을 비교하지 않는다 — 한 레코드 안에서 flex vs ext를 본다.
 //      대신 어느 손에서 나온 신호인지를 hand로 함께 돌려준다.
+//   ⑤ 자세(뷰) 게이트를 못 맞춘 채 잰 기록(view:'off')은 자동 판정에서 빠진다.
+//      단 '표시'에서는 안 빠진다 — 판정만 막고 자기 기록은 그대로 보여준다.
 // ═══════════════════════════════════════════════════════════
 if (typeof localStorage === 'undefined') {
   globalThis.localStorage = {
@@ -18,13 +20,16 @@ if (typeof localStorage === 'undefined') {
 }
 
 import {
-  sameHandSeries, makeMeasurement, isRedSignal, isImproving, computeFocus,
+  sameHandSeries, makeMeasurement, isRedSignal, isImproving, computeFocus, isTrusted,
 } from './store.js';
+import { viewFits } from './measurement.js';
+import { VIEW_FIT } from './config.js';
 
 let pass = 0, fail = 0;
 const ok = (cond, msg) => { if (cond) { pass++; return; } fail++; console.error(`FAIL ${msg}`); };
 
-const rec = (at, hand, flex, ext) => makeMeasurement({ at, hand, flex, ext });
+const rec = (at, hand, flex, ext, view = 'ok') => makeMeasurement({ at, hand, flex, ext, view });
+const fingersWith = (spread) => ({ palm: 1, grip: 1.7, spread, fanSpan: 1, tipMCP: 1, pinch: 1 });
 const st = (...measurements) => ({ measurements });
 
 // ─── sameHandSeries 자체 ────────────────────────────────────
@@ -102,5 +107,64 @@ const st = (...measurements) => ({ measurements });
   ok(none.focus === null && none.hand === null, '5 측정 0회면 focus·hand 모두 null');
 }
 
-console.log(`\n측정 비교(같은 손끼리) 테스트: ${pass} pass, ${fail} fail`);
+// ─── 자세(뷰) 판정 viewFits ─────────────────────────────────
+{
+  const side = fingersWith(0.20);   // 손날이 카메라 — 너클 줄이 시선 축으로 겹침
+  const front = fingersWith(0.85);  // 손바닥이 카메라 — 너클 줄이 펼쳐짐
+  ok(viewFits(side, 'side') === true, '6 옆모습 자세는 옆모습 단계를 통과');
+  ok(viewFits(side, 'front') === false, '6 옆모습 자세로는 정면 단계를 못 지난다');
+  ok(viewFits(front, 'front') === true, '6 정면 자세는 정면 단계를 통과');
+  ok(viewFits(front, 'side') === false, '6 정면 자세로는 옆모습 단계를 못 지난다 — 이게 막고 싶던 것');
+
+  const mid = fingersWith((VIEW_FIT.sideMax + VIEW_FIT.frontMin) / 2);
+  ok(viewFits(mid, 'side') === false && viewFits(mid, 'front') === false,
+     '6 사각지대는 어느 쪽도 통과 못 함(안내는 뜨되 relaxMs 뒤 진행)');
+
+  ok(viewFits(null, 'side') === true && viewFits(undefined, 'front') === true,
+     '6 손이 안 잡힌 프레임은 자세 판정 대상이 아니다(호출부가 따로 안내)');
+  ok(viewFits({ spread: NaN }, 'side') === true, '6 값이 이상하면 붙잡지 않는다');
+}
+
+// ─── isTrusted: 'off'만 못 믿는다 ───────────────────────────
+{
+  ok(isTrusted({ view: 'ok' }) === true, "7 view:'ok'는 믿는다");
+  ok(isTrusted({ view: 'off' }) === false, "7 view:'off'만 못 믿는다");
+  ok(isTrusted({}) === true, '7 필드 없는 옛 기록은 소급해서 죽이지 않는다');
+  ok(isTrusted({ view: null }) === true, '7 null도 ok로 읽는다');
+  ok(isTrusted(null) === false, '7 레코드 자체가 없으면 false');
+}
+
+// ─── 자세 게이트를 못 맞춘 체크는 자동 판정에서 빠진다 ────────
+{
+  const badLast = st(rec('2026-01-01', 'right', 50, 50), rec('2026-01-08', 'right', 40, 40, 'off'));
+  ok(isRedSignal(badLast, '2026-01-08') === false, "8 최신이 view:'off'면 red 없음");
+
+  const badLastUp = st(rec('2026-01-01', 'right', 40, 40), rec('2026-01-08', 'right', 50, 50, 'off'));
+  ok(isImproving(badLastUp, '2026-01-08') === false, "8 최신이 view:'off'면 개선도 없음");
+
+  // 최신이 off일 때 그걸 건너뛰고 '그 앞 둘'로 옛날 변화를 되살리면 안 된다
+  const stale = st(rec('2026-01-01', 'right', 50, 50), rec('2026-01-08', 'right', 40, 40),
+                   rec('2026-01-15', 'right', 41, 41, 'off'));
+  ok(isRedSignal(stale, '2026-01-15') === false,
+     '8 최신이 off면 그 앞의 옛 변화로 신호가 되살아나지 않는다');
+
+  // 반대로 '중간'에 낀 off는 건너뛰고 그 앞의 믿을 만한 것과 비교한다
+  const midBad = st(rec('2026-01-01', 'right', 50, 50), rec('2026-01-08', 'right', 20, 20, 'off'),
+                    rec('2026-01-15', 'right', 40, 40));
+  ok(isRedSignal(midBad, '2026-01-15') === true,
+     '8 중간의 off는 건너뛰고 그 앞 믿을 만한 기록과 비교(50→40 = red)');
+
+  const both = st(rec('2026-01-01', 'right', 50, 50), rec('2026-01-08', 'left', 50, 50),
+                  rec('2026-01-15', 'right', 40, 40, 'off'));
+  ok(isRedSignal(both, '2026-01-15') === false, '8 손·자세 조건이 함께 적용된다');
+}
+
+// ─── 표시는 막지 않는다 ─────────────────────────────────────
+{
+  // sameHandSeries는 자세를 안 본다 — 추이·델타는 자기 기록을 그대로 보여줘야 한다
+  const ms = [rec('2026-01-01', 'right', 50, 50), rec('2026-01-08', 'right', 40, 40, 'off')];
+  ok(sameHandSeries(ms).length === 2, "9 view:'off'도 추이 표시에는 남는다(판정만 막는다)");
+}
+
+console.log(`\n측정 신뢰(같은 손 · 자세 게이트) 테스트: ${pass} pass, ${fail} fail`);
 if (typeof process !== 'undefined' && fail > 0) process.exitCode = 1;

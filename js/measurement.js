@@ -7,7 +7,7 @@
 //   · ROM 유지-캡처 (원본 L1178~1184, capRom L1173~1175)
 // tracking.js가 넘겨준 랜드마크를 입력으로 받는 순수/상태 모듈.
 // ═══════════════════════════════════════════════════════════
-import { HAND_LM, POSE_LM, SMOOTH, POSE, COMP_TH, ROM } from './config.js';
+import { HAND_LM, POSE_LM, SMOOTH, POSE, COMP_TH, ROM, VIEW_FIT } from './config.js';
 
 // ─── 수학 헬퍼 (원본 L407~412) ───
 /** 각도를 -180~180°로 정규화 */
@@ -61,6 +61,25 @@ export function fingerMetrics(hand) {
   ) / 4 / palm;
   const pinch = dist(hand[HAND_LM.THUMB_TIP], hand[HAND_LM.INDEX_TIP]) / palm;
   return { palm, grip, spread, fanSpan, tipMCP, pinch };
+}
+
+/**
+ * 지금 자세가 이 단계가 요구하는 뷰와 맞는가 (설계 §7 · config.VIEW_FIT).
+ * 옆모습 단계에서 손바닥을 카메라로 향하면 중립이 엉뚱한 평면에 잡히고, 그 뒤 각도는
+ * 전부 무의미해진다 — 그런데 지금은 아무 저항 없이 잡힌다. 그걸 막는 유일한 관문.
+ *
+ * 손이 안 잡힌 프레임은 true로 돌려준다 — '자세가 틀렸다'와 '아직 안 보인다'는 다른
+ * 상황이고, 후자는 호출부가 이미 따로 안내한다(여기서 겹쳐 말하지 않는다).
+ *
+ * @param {object|null} fingers fingerMetrics 결과
+ * @param {'side'|'front'} view 이 단계가 요구하는 뷰
+ * @returns {boolean} 맞거나 판단 불가면 true
+ */
+export function viewFits(fingers, view) {
+  if (!fingers || !Number.isFinite(fingers.spread)) return true;
+  return view === 'side'
+    ? fingers.spread <= VIEW_FIT.sideMax
+    : fingers.spread >= VIEW_FIT.frontMin;
 }
 
 // ─── 팔뚝(팔꿈치/어깨) 선택 (원본 L1250) ───

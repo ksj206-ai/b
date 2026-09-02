@@ -105,10 +105,13 @@ const rearm = (rom, t) => rom.feed(0, t, false);
   eq(rl.state.maxA, 25, '3d 중립 복귀 후엔 더 큰 값으로 갱신');
 }
 
-// ═══ 4) 저장 스키마 (v2) ═══
+// ═══ 4) 저장 스키마 (v3) ═══
 {
   const full = makeMeasurement({ at: '2026-07-23', hand: 'right', flex: 40, ext: 55, radialDev: 18, ulnarDev: 30 });
-  eq(full.v, 2, '4 레코드 버전 2');
+  eq(full.v, 3, '4 레코드 버전 3');
+  eq(full.view, 'ok', '4 자세 품질 기본값은 ok');
+  eq(makeMeasurement({ view: 'off' }).view, 'off', '4 자세 게이트를 못 맞춘 체크는 off');
+  eq(makeMeasurement({ view: '이상한값' }).view, 'ok', "4 'off' 외의 값은 전부 ok로 정규화");
   eq(full.radialDev, 18, '4 요측 저장');
   eq(full.ulnarDev, 30, '4 척측 저장');
   // rom은 기존 정의 그대로 굽힘+폄 — 편위를 섞으면 computeFocus·isImproving이 읽는 축이 바뀐다

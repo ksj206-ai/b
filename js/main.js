@@ -14,7 +14,7 @@ import { renderSky } from './sky.js';
 import { CONSTELLATIONS } from './constellations.js';
 import {
   SCREENS, VIEWS, ROUTINE, HAND_LM, DEBUG_GUIDE, DEBUG_MEASURE, FUNCTIONAL_ROM, DEV_LABEL,
-  STAR_MESSAGE,
+  STAR_MESSAGE, VIEW_FIT,
 } from './config.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
@@ -749,7 +749,7 @@ async function initMeasure() {
 
 async function wireMeasure() {
   const tracking = await import('./tracking.js');
-  const { createWristTracker, createRomMeasurer, flexExtRel, deviationRel } =
+  const { createWristTracker, createRomMeasurer, flexExtRel, deviationRel, viewFits } =
     await import('./measurement.js');
 
   const $ = (id) => document.getElementById(id);
@@ -773,7 +773,9 @@ async function wireMeasure() {
   const savedHand = load().lastMeasureHand;
   measure = {
     wired: true, tracking, els, running: false, phase: 'idle', neutralStart: null,
-    mods: { flexExtRel, deviationRel },
+    mods: { flexExtRel, deviationRel, viewFits },
+    viewBadSince: null,   // 자세가 어긋난 채 흐른 시간 — relaxMs 넘으면 안내를 접는다
+    viewOffFlexExt: false, // 굽힘·폄을 자세 게이트 없이 잰 세션인가 → 레코드 view:'off'
     tracker: createWristTracker('measure'), rom: createRomMeasurer(),       // 옆모습: 굽힘·폄
     devTracker: createWristTracker('measure'), devRom: createRomMeasurer(), // 정면: 요측·척측
     devLogAt: 0, // DEBUG_MEASURE 진단 로그 스로틀
@@ -846,6 +848,8 @@ const isDevPhase = (phase) => phase === 'devNeutral' || phase === 'dev';
 /** 중립 재수집 시작 (옆모습 — 굽힘·폄 처음부터). 편위 캡처도 함께 버린다 */
 function enterNeutral() {
   measure.neutralStart = null;
+  measure.viewBadSince = null;
+  measure.viewOffFlexExt = false; // 굽힘·폄을 처음부터 다시 잰다 → 자세 판정도 백지에서
   measure.rom.reset();
   measure.devRom.reset();
   setMeasurePhase('neutral');
@@ -856,6 +860,8 @@ function enterNeutral() {
  *  섞이면 기준각이 치우친다. 새 자세는 새 트래커로 처음부터 잡는다. */
 function enterDevNeutral() {
   measure.neutralStart = null;
+  measure.viewBadSince = null;    // 뷰 판정은 단계마다 새로 — 단, 앞서 잰 굽힘·폄의
+                                  // 자세 결과(viewOffFlexExt)는 그대로 둔다(이미 확정된 값)
   measure.devTracker.reset();
   measure.devRom.reset();
   setMeasurePhase('devNeutral');
@@ -911,6 +917,35 @@ const setCapVal = (el, v) => { el.textContent = v > 0 ? v + '°' : '–'; };
 const setProg = (p) => { measure.els.mProgBar.style.width = (Math.max(0, Math.min(1, p)) * 100) + '%'; };
 function pulseCap(chip) { chip.classList.remove('pop'); void chip.offsetWidth; chip.classList.add('pop'); }
 
+/**
+ * 자세 게이트 한 프레임 — 통과(또는 관대 모드 진입)면 true, 계속 안내해야 하면 false.
+ * false를 돌려주는 동안 호출부는 중립 수집을 시작하지 않는다(진행 자체를 멈춘다).
+ *
+ * 어긋난 채 relaxMs가 지나면 true로 바꿔 진행시킨다 — 자세를 못 맞추는 사람을 측정
+ * 자체에서 배제하지 않기 위해서다(관대함). 대신 옆모습 단계였다면 viewOffFlexExt를
+ * 세워, 저장될 레코드가 view:'off'가 되게 한다.
+ */
+function gateView(m, snap, dev, now) {
+  const want = dev ? 'front' : 'side';
+  if (m.mods.viewFits(snap.fingers, want)) { m.viewBadSince = null; return true; }
+
+  if (m.viewBadSince == null) m.viewBadSince = now;
+  if (now - m.viewBadSince >= VIEW_FIT.relaxMs) {
+    if (!dev) m.viewOffFlexExt = true;   // 굽힘·폄만 기록한다(편위는 판정에 안 쓰임)
+    return true;                         // 관대 모드 — 이 프레임부터 그냥 진행
+  }
+  m.els.mLiveVal.textContent = '자세를 조금만 바꿔주세요';
+  m.els.mLiveCap.textContent = dev
+    ? '손바닥이 카메라를 보게 돌려주세요 🖐'
+    : '손날이 카메라를 보게 옆으로 세워주세요 ✋';
+  if (DEBUG_MEASURE) {
+    console.log(`[view] ${want} 불일치 spread=${snap.fingers ? snap.fingers.spread.toFixed(2) : '–'} ` +
+                `(기준 ${want === 'side' ? '≤ ' + VIEW_FIT.sideMax : '≥ ' + VIEW_FIT.frontMin}) ` +
+                `${Math.round((now - m.viewBadSince) / 100) / 10}s`);
+  }
+  return false;
+}
+
 function measureFrame(now, snap) {
   const m = measure, e = m.els;
 
@@ -920,6 +955,15 @@ function measureFrame(now, snap) {
     const tracker = dev ? m.devTracker : m.tracker;
     const rom = dev ? m.devRom : m.rom;
     if (snap.detected) {
+      // 자세(뷰) 게이트 — 옆모습 단계인데 손바닥을 카메라로 향하면 중립을 잡지 않는다.
+      // 잘못 잡힌 중립은 그 뒤 모든 각도를 조용히 무의미하게 만든다(설계 §7).
+      // 다만 붙잡지는 않는다: relaxMs 동안 못 맞추면 안내를 접고 진행하되, 그 세션은
+      // view:'off'로 남아 자동 판정(순한 코스·선물 별)에서만 빠진다 — 표시는 그대로.
+      // 카운트다운 '도중' 자세가 무너져도 처음부터 다시 — neutralStart를 지운다.
+      // tracker.update는 매 프레임 neutralBuf에 표본을 쌓으므로, 여기서 안 끊으면
+      // 자세가 무너진 동안의 각도가 중립 평균에 섞인다(ROM 유지 타이머가 흔들리면
+      // 리셋되는 것과 같은 이유). 다음 정상 프레임의 beginNeutral이 버퍼를 비운다.
+      if (!gateView(m, snap, dev, now)) { m.neutralStart = null; setProg(0); return; }
       if (m.neutralStart == null) { m.neutralStart = now; tracker.beginNeutral(); }
       const p = Math.min(1, (now - m.neutralStart) / NEUTRAL_MS);
       setProg(p);
@@ -978,6 +1022,7 @@ function finishMeasure() {
   // rom은 기존대로 굽힘+폄 — 편위를 섞지 않는다(computeFocus 등이 읽는 축 불변).
   const rec = makeMeasurement({
     at: todayStr(), hand: m.hand, flex, ext, radialDev: d.maxA, ulnarDev: d.maxB,
+    view: m.viewOffFlexExt ? 'off' : 'ok',
   });
   s.measurements.push(rec);
   s.lastMeasureHand = m.hand; // 다음 측정의 기본 선택
