@@ -7,7 +7,9 @@
 export const GUIDES = [
   // ① 손목 굽힘·폄 (side) — 마일스톤
   {
-    id: 'flex_ext', name: '손목 굽힘·폄 스트레칭', view: 'side', emoji: '✋', cat: 'mobility', short: '굽힘·폄',
+    // 이름에 '스트레칭'을 쓰지 않는다 — 이 운동은 끝범위 유지가 없는 능동 가동(AROM)이라
+    // 스트레칭이 아니다. 유지 있는 정적 스트레칭은 timed 스텝의 별도 운동으로 둔다.
+    id: 'flex_ext', name: '손목 굽혔다 펴기', view: 'side', emoji: '✋', cat: 'mobility', short: '굽힘·폄',
     steps: [
       { type: 'intro', text: '팔을 편하게 두고 손에 힘을 빼요', dur: 3, pose: { wristAngle: 0, curl: 0.15 } },
       {
