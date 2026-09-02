@@ -278,7 +278,19 @@ function renderHomeDex() {
   }
 }
 
-/** 손목 체크 — 최근 수치 + 미니 추이. 하락은 그리지 않는다(추세선만, 보이는_돌봄 §2②). */
+/** 손목 체크 — 최근 수치 + 미니 추이. 하락은 그리지 않는다(추세선만, 보이는_돌봄 §2②).
+ *
+ *  개선 소식은 여기서 말하지 않는다. 홈에는 이미 마스코트 말풍선(dailyStarMessage)이
+ *  있고 그 1순위 tier가 개선이다 — 같은 렌더 패스에서 둘 다 그려지므로, 여기에 개선
+ *  문구를 두면 한 화면이 같은 말을 두 번 한다("반가워요 칸은 말풍선과 같은 말을 두 번
+ *  하지 않는다"와 같은 규칙).
+ *
+ *  게다가 예전 문구는 "별 하나를 선물로 드릴게요"라고 약속했는데 이 카드는 별을 켜지
+ *  않는다 — 실제 지급은 측정 결과 화면의 grantGiftStar다. 지키지 않는 약속이었다.
+ *
+ *  개선 판정의 게이트(14일 신선도·3일 간격·견딤)는 routine.improveSignal에 있고,
+ *  말풍선이 그 경로를 탄다. 여기서 맨몸 isImproving()을 부르면 그 게이트를 전부
+ *  건너뛰므로 — 문지기를 하나 더 세우는 대신 공급원을 하나 줄인다. */
 function renderHomeMeasure() {
   const box = document.getElementById('homeMetrics');
   const trend = document.getElementById('homeTrend');
@@ -296,8 +308,7 @@ function renderHomeMeasure() {
   box.innerHTML =
     `<div class="metric"><span>굽힘</span><b>${Math.round(last.flex)}°</b></div>`
     + `<div class="metric"><span>폄</span><b>${Math.round(last.ext)}°</b></div>`
-    + (dev != null ? `<div class="metric"><span>좌우 편위 합</span><b>${dev}°</b></div>` : '')
-    + (isImproving() ? '<div class="gift">🎁 지난번보다 조금 늘었어요. 별 하나를 선물로 드릴게요 ✦</div>' : '');
+    + (dev != null ? `<div class="metric"><span>좌우 편위 합</span><b>${dev}°</b></div>` : '');
 
   // 미니 추이 — 점이 둘 이상일 때만. 값 범위에 맞춰 세로를 늘려 변화가 보이게 한다.
   if (!trend) return;
