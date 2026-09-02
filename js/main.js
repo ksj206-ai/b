@@ -7,7 +7,7 @@ import { initUI, onScreenChange, getCurrentScreen, navigate, pushView } from './
 import {
   load, save, update, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky, lightStars,
-  isTodayComplete, completeTodayConstellation, refreshFocus, freshComp,
+  isTodayComplete, completeTodayConstellation, refreshFocus, freshComp, sameHandSeries,
   makeMeasurement, deviationProgress, isImproving, getAdapt,
 } from './store.js';
 import { renderSky } from './sky.js';
@@ -282,7 +282,8 @@ function renderHomeMeasure() {
   const box = document.getElementById('homeMetrics');
   const trend = document.getElementById('homeTrend');
   if (!box) return;
-  const list = (load().measurements || []).slice(-6);
+  // 미니 추이도 같은 손끼리 — 좌우를 한 선에 얹으면 정상적인 좌우 차이가 급락으로 보인다
+  const list = sameHandSeries(load().measurements || []).slice(-6);
   if (!list.length) {
     box.innerHTML = '<p class="soft">아직 체크 기록이 없어요. 한 번 재두면 변화가 보여요.</p>';
     if (trend) trend.hidden = true;
@@ -970,7 +971,9 @@ function finishMeasure() {
 
   const s = load();
   s.measurements = s.measurements || [];
-  const prev = s.measurements[s.measurements.length - 1] || null;
+  // 지난 체크 대비 델타는 '같은 손'끼리만 — 오른손 다음에 왼손을 재고 "폄 -12°"라고
+  // 말하면 그건 손목이 나빠진 게 아니라 다른 손을 잰 것이다(store.sameHandSeries 참고).
+  const prev = sameHandSeries(s.measurements, m.hand).slice(-1)[0] || null;
   // 편위는 캡처 못 했으면 makeMeasurement가 null로 남긴다(편위 단계를 건너뛴 경우 포함).
   // rom은 기존대로 굽힘+폄 — 편위를 섞지 않는다(computeFocus 등이 읽는 축 불변).
   const rec = makeMeasurement({
@@ -1901,8 +1904,11 @@ async function renderRecords() {
     guideNameMap = Object.fromEntries(GUIDES.map((g) => [g.id, g.name]));
   }
   const s = load();
-  renderTrend(recordsEls, s.measurements || []);
-  renderDevTrend(recordsEls, s.measurements || []);
+  // 추이는 '가장 최근에 잰 손' 기준으로만 그린다 — 손을 섞으면 선이 지그재그가 되고,
+  // 그 톱니가 실제 변화로 읽힌다. 어느 손 기준인지는 카드 힌트에 밝힌다(숨기지 않는다).
+  const series = sameHandSeries(s.measurements || []);
+  renderTrend(recordsEls, series, handLabelOf(series));
+  renderDevTrend(recordsEls, series, handLabelOf(series));
   // 프리즈 사용 표시 — 숨기지 않고 그대로 보여준다 (신뢰)
   recordsEls.freeze.hidden = !freezeUsedThisWeek(s);
   renderWeek(recordsEls, s.conditions || [], s.lastFreezeAt);
@@ -1952,7 +1958,14 @@ function renderRoutineLog(e, log) {
   }).join('');
 }
 
-function renderTrend(e, ms) {
+/** 추이 카드에 붙일 "오른손 기준" 라벨 — 손을 모르는 옛 기록만 있으면 빈 문자열.
+ *  필터를 조용히 걸지 않기 위한 것: 총 N회가 줄어 보이는 이유를 사용자가 알 수 있어야 한다. */
+function handLabelOf(ms) {
+  const h = ms.length ? (ms[ms.length - 1].hand ?? null) : null;
+  return HAND_KO[h] ? `${HAND_KO[h]} 기준` : '';
+}
+
+function renderTrend(e, ms, handLabel = '') {
   if (!ms.length) {
     e.trendWrap.hidden = true; e.trendEmpty.hidden = false; e.range.textContent = '';
     return;
@@ -1976,7 +1989,8 @@ function renderTrend(e, ms) {
     e.delta.textContent = '—';
   }
   e.range.textContent = ms.length > 1 ? `${fmtMd(ms[0].at)} ~ ${fmtMd(last.at)}` : fmtMd(last.at);
-  e.trendHint.textContent = ms.length < 2 ? '체크를 2번 이상 하면 변화 추이가 그려져요.' : `총 ${ms.length}회 체크 · 참고값`;
+  const trendBody = ms.length < 2 ? '체크를 2번 이상 하면 변화 추이가 그려져요.' : `총 ${ms.length}회 체크 · 참고값`;
+  e.trendHint.textContent = handLabel ? `${handLabel} · ${trendBody}` : trendBody;
 
   drawTrend(e.canvas, [
     { data: flexes, color: '#b7a9f7', label: '굽힘' }, // --moss-dd
@@ -1993,8 +2007,11 @@ function renderTrend(e, ms) {
  * 양쪽 다 잡힌 체크만 점으로 쓴다 — 한쪽만 잰 날의 합을 같은 선에 얹으면 실제로는
  * 안 떨어졌는데 떨어진 것처럼 보인다. 편위 필드가 없는 v1 옛 기록도 같은 조건으로
  * 자연스럽게 걸러진다. 남는 점이 없으면 카드 자체를 숨긴다.
+ *
+ * 입력 ms는 이미 같은 손으로 추려진 시리즈다(호출부의 sameHandSeries). 좌우를 섞으면
+ * '한쪽만 잰 날'과 똑같은 착시가 생기는데, 이쪽은 필터로 안 걸러지므로 더 위험하다.
  */
-function renderDevTrend(e, ms) {
+function renderDevTrend(e, ms, handLabel = '') {
   const pts = ms.map((m) => ({ at: m.at, d: deviationProgress(m) }))
     .filter((p) => p.d.has && p.d.both);
   e.devCard.hidden = pts.length === 0;
@@ -2013,9 +2030,10 @@ function renderDevTrend(e, ms) {
     ? `${last.d.sum - prev.d.sum > 0 ? '+' : ''}${last.d.sum - prev.d.sum}°`
     : '—';
   e.devRange.textContent = pts.length > 1 ? `${fmtMd(pts[0].at)} ~ ${fmtMd(last.at)}` : fmtMd(last.at);
-  e.devHint.textContent = pts.length < 2
+  const devBody = pts.length < 2
     ? '편위도 2번 이상 재면 변화 추이가 그려져요.'
     : `총 ${pts.length}회 · 참고값`;
+  e.devHint.textContent = handLabel ? `${handLabel} · ${devBody}` : devBody;
 
   drawTrend(e.devCanvas, [{ data: sums, color: '#ffcf87', label: '편위 합' }]); // --honey
 }

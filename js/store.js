@@ -137,6 +137,37 @@ export function deviationProgress(rec, target = FUNCTIONAL_ROM.deviationCombined
 }
 
 // ═══════════════════════════════════════════════════════════
+// 측정 비교의 단일 기준 — "같은 손끼리만"
+//
+// 두 측정을 비교하는 곳은 여럿이다(red/개선 신호, 결과 화면 델타, 기록 추이). 그 전부가
+// 같은 규칙을 써야 해서 여기 한 곳에 둔다. 손을 안 보면 오른손 다음 주에 왼손을 잰 것이
+// 급락·개선으로 잡힌다.
+//
+// 위험한 건 좌우의 해부학적 차이(보통 작다)가 아니라 **파이프라인 비대칭**이다:
+//   · flexExtRel/deviationRel의 부호가 손마다 뒤집힌다
+//   · 옆모습에서 카메라를 향하는 신체 면이 반대다
+//   · 편위 개별 라벨은 아직 잠정(config.DEV_LABEL)
+// 이 셋이 만드는 겉보기 변화는 판정 문턱(RED_DROP_DEG·riseDeg = 8°)을 쉽게 넘는다.
+//
+// 규칙은 한 줄이다 — hand가 '같으면' 비교 가능. 손을 모르는 옛 기록(null)끼리는 서로
+// 비교되고(기존 동작 보존), 아는 손과는 비교되지 않는다(교차 비교를 새로 만들지 않는다).
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 같은 손으로 잰 측정만 시간순으로 추린다 — 비교·추이의 입력.
+ * @param {Array} measurements 전체 측정 배열
+ * @param {'left'|'right'|null} [hand] 생략하면 가장 최근에 잰 손 기준
+ * @returns {Array} 필터된 배열(원본 불변). 입력이 이상하면 []
+ */
+export function sameHandSeries(measurements = [], hand) {
+  const ms = Array.isArray(measurements) ? measurements : [];
+  const h = hand === undefined
+    ? (ms.length ? (ms[ms.length - 1].hand ?? null) : null)
+    : (hand ?? null);
+  return ms.filter((m) => m && (m.hand ?? null) === h);
+}
+
+// ═══════════════════════════════════════════════════════════
 // 스트릭(연속 달성) — 활동일 기준 계산
 // 정책: 하루에 한 번이라도 활동(가이드 완료·측정 저장)하면 그 날은 "달성".
 //   · 같은 날 반복 활동 → 스트릭 변화 없음
@@ -383,6 +414,7 @@ function defaultAdapt() {
   return {
     focus: null,            // 'flex' | 'ext' | null — 현재 우선 강화 방향
     focusSoft: false,       // true면 "약함" 아닌 참고 코칭 신호(조정 폭 작게)
+    focusHand: null,        // focus를 뽑아낸 측정의 손 — 아직 루틴 적용에 쓰지 않는다(출처 보존)
     doseLevel: {},          // { [guideId]: n } — 운동별 강도 단계(0=기본)
     toleratedStreak: 0,     // 연속 잘 견딘 세션 수
     lastImproveShownAt: null, // 긍정 신호 마지막 표시일(도배 방지)
@@ -428,20 +460,27 @@ const FOCUS_STALE_DAYS = 30;
  *   · 그 외 더 낮은 쪽을 focus로. 그 값이 기능선(40°) 미만이면 "약함"(soft=false),
  *     기능선 이상이면 "약함" 아님 → 참고 코칭 신호로만(soft=true)
  *   · 최근 측정이 오래됨(30일↑)이면 어떤 focus든 soft=true(신뢰도↓)
- * @returns {{ focus:'flex'|'ext'|null, focusSoft:boolean, reason:string, at?:string, flex?:number, ext?:number }}
+ *
+ * ⚠ 이 판정은 한 레코드 '안'에서 flex와 ext를 비교한다 — 두 측정을 비교하지 않으므로
+ *   sameHandSeries가 필요 없다. 대신 결과가 '어느 손에서 나온 신호인지'를 hand로 함께
+ *   돌려준다. 루틴은 아직 손 구분 없이 이 focus를 적용하므로(오른손 focus인데 왼손으로
+ *   운동하는 경우), 그걸 좁히려면 이 출처가 필요하다.
+ * @returns {{ focus:'flex'|'ext'|null, focusSoft:boolean, reason:string, hand:('left'|'right'|null),
+ *             at?:string, flex?:number, ext?:number }}
  */
 export function computeFocus(state = load(), date = todayStr()) {
   const ms = state.measurements || [];
   const last = ms[ms.length - 1];
-  if (!last) return { focus: null, focusSoft: false, reason: 'no-measurement' };
+  if (!last) return { focus: null, focusSoft: false, reason: 'no-measurement', hand: null };
 
+  const hand = last.hand ?? null;
   const flex = Number(last.flex) || 0;
   const ext = Number(last.ext) || 0;
   const F = FUNCTIONAL_ROM;
 
   // 방향 비대칭이 없으면(측정 실패로 둘 다 0인 경우 포함) 우선 방향 없음
   if (flex === ext) {
-    return { focus: null, focusSoft: false, reason: 'balanced', at: last.at, flex, ext };
+    return { focus: null, focusSoft: false, reason: 'balanced', hand, at: last.at, flex, ext };
   }
 
   const focus = flex < ext ? 'flex' : 'ext';
@@ -457,7 +496,7 @@ export function computeFocus(state = load(), date = todayStr()) {
   const reason = focusVal < threshold ? (stale ? 'weak-stale' : 'weak')
     : (stale ? 'coaching-stale' : 'coaching');
 
-  return { focus, focusSoft, reason, at: last.at, flex, ext };
+  return { focus, focusSoft, reason, hand, at: last.at, flex, ext };
 }
 
 /**
@@ -468,7 +507,10 @@ export function computeFocus(state = load(), date = todayStr()) {
  */
 export function refreshFocus(state = load(), date = todayStr()) {
   const res = computeFocus(state, date);
-  state.adapt = { ...defaultAdapt(), ...getAdapt(state), focus: res.focus, focusSoft: res.focusSoft };
+  state.adapt = {
+    ...defaultAdapt(), ...getAdapt(state),
+    focus: res.focus, focusSoft: res.focusSoft, focusHand: res.hand,
+  };
   save(state);
   if (DEBUG_ADAPT) console.log('[adapt] focus', res);
   return res;
@@ -486,7 +528,7 @@ const RED_DROP_DEG = 8;
  * 노출하지 않는다(조용히). 순한 코스는 안전 방향이라 red면 그날만 부드럽게 갈 뿐.
  */
 export function isRedSignal(state = load(), date = todayStr()) {
-  const ms = state.measurements || [];
+  const ms = sameHandSeries(state.measurements || []); // 같은 손끼리만 비교
   if (ms.length < 2) return false;
   const last = ms[ms.length - 1];
   const prev = ms[ms.length - 2];
@@ -506,7 +548,7 @@ export function isRedSignal(state = load(), date = todayStr()) {
  * 결정한다(사용자에겐 개선일 때만 긍정 문구를 보이고, 하락·정체는 아무것도 노출 안 함).
  */
 export function isImproving(state = load(), date = todayStr()) {
-  const ms = state.measurements || [];
+  const ms = sameHandSeries(state.measurements || []); // 같은 손끼리만 비교
   if (ms.length < 2) return false;
   const last = ms[ms.length - 1];
   const prev = ms[ms.length - 2];
