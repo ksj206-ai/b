@@ -124,8 +124,11 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
     adapt: { focus: 'flex', focusSoft: false, doseLevel: {}, toleratedStreak: 0, lastImproveShownAt: null, lastAdaptedAt: null, lastDoseAction: null, ...adaptPatch },
     measurements,
   });
-  const meas = (flex, ext, rom) => ({ at: 'x', flex, ext, rom });
-  const rising = [meas(30, 30, 60), meas(40, 32, 72)]; // flex +10(개선), ext +2, 하락 없음
+  // 날짜는 실제 형식이어야 한다 — signalPair가 쌍 간격(PAIR_MAX_GAP_DAYS)을 보기 때문.
+  // 파싱 불가 값을 쓰면 "간격 확인 불가 → 신호 없음"으로 떨어져 이 블록의 의도가 사라진다.
+  // 7일 간격 = ROUTINE.measureEveryDays (실제 사용 패턴)
+  const meas = (at, flex, ext, rom) => ({ at, flex, ext, rom });
+  const rising = [meas('2026-07-08', 30, 30, 60), meas('2026-07-15', 40, 32, 72)]; // flex +10(개선), ext +2, 하락 없음
   const D = '2026-07-22';
 
   // I1: 개선 + streak≥2 + 간격 충분 + 오늘 하강 없음 → 표시 + lastImproveShownAt 갱신
@@ -141,11 +144,11 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
   // I4: 간격 미달(어제 이미 표시) → 스킵(도배 방지)
   eq(improveSignal(mkI({ toleratedStreak: 2, lastImproveShownAt: '2026-07-21' }, rising), D), null, 'I4 간격 미달 스킵');
   // I5: 개선 아님(상승폭 노이즈 이하) → 스킵
-  eq(improveSignal(mkI({ toleratedStreak: 2 }, [meas(30, 30, 60), meas(33, 31, 64)]), D), null, 'I5 정체 스킵');
+  eq(improveSignal(mkI({ toleratedStreak: 2 }, [meas('2026-07-08', 30, 30, 60), meas('2026-07-15', 33, 31, 64)]), D), null, 'I5 정체 스킵');
   // I6: 한 방향이라도 노이즈 넘게 하락(ext -10) → 개선 아님(하락 가드) → 스킵
-  eq(improveSignal(mkI({ toleratedStreak: 2 }, [meas(30, 30, 60), meas(42, 20, 62)]), D), null, 'I6 하락 가드 스킵');
+  eq(improveSignal(mkI({ toleratedStreak: 2 }, [meas('2026-07-08', 30, 30, 60), meas('2026-07-15', 42, 20, 62)]), D), null, 'I6 하락 가드 스킵');
   // I7: 측정 2회 미만 → 재료 부족 → 스킵
-  eq(improveSignal(mkI({ toleratedStreak: 2 }, [meas(40, 40, 80)]), D), null, 'I7 측정부족 스킵');
+  eq(improveSignal(mkI({ toleratedStreak: 2 }, [meas('2026-07-15', 40, 40, 80)]), D), null, 'I7 측정부족 스킵');
   // I8: 오늘 이미 표시 → 같은 문구 유지(조건 재평가 없이 멱등)
   eq(improveSignal(mkI({ lastImproveShownAt: D }, []), D), '손목이 부드러워지고 있어요 ✨', 'I8 오늘 표시 유지');
 }
@@ -157,8 +160,9 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
     adapt: { focus: 'flex', focusSoft: false, doseLevel, toleratedStreak: 3, lastImproveShownAt: null, lastAdaptedAt: null, lastDoseAction: null, ...patch },
     measurements,
   });
-  const red = [{ at: 'p', flex: 40, ext: 40, rom: 80 }, { at: 'l', flex: 30, ext: 40, rom: 70 }]; // flex -10 → red
-  const okMeas = [{ at: 'p', flex: 30, ext: 40, rom: 70 }, { at: 'l', flex: 40, ext: 41, rom: 81 }]; // 회복 → red 아님
+  // 날짜는 실제 형식으로 — signalPair가 쌍 간격을 본다(위 블록 주석 참고)
+  const red = [{ at: '2026-07-15', flex: 40, ext: 40, rom: 80 }, { at: '2026-07-22', flex: 30, ext: 40, rom: 70 }]; // flex -10 → red
+  const okMeas = [{ at: '2026-07-15', flex: 30, ext: 40, rom: 70 }, { at: '2026-07-22', flex: 40, ext: 41, rom: 81 }]; // 회복 → red 아님
   const followReps = (g) => g.steps.find((s) => s.type === 'follow').reps;
 
   // R1: red 날 flex_ext는 base(5)로 클램프(focus +2 · dose +1 모두 무시)

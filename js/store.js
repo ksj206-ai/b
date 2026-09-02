@@ -539,6 +539,18 @@ export function refreshFocus(state = load(), date = todayStr()) {
   return res;
 }
 
+// 비교 쌍의 두 기록이 이 일수를 넘게 벌어져 있으면 신호를 내지 않는다.
+// red(RED_DROP_DEG 8°)는 '급락' 판정인데 두 달에 걸친 8° 하락은 급성이 아니다.
+// 30일인 이유: measureEveryDays(7)의 3~4주기까지는 "인접 측정"으로 봐줄 만하고,
+// FOCUS_STALE_DAYS와 같은 값이라 "한 달 넘으면 옛날"이라는 시간 감각이 코드에서 하나로
+// 읽힌다. (두 상수를 합치지는 않는다 — 하나는 '최신이 오래됨', 하나는 '쌍이 벌어짐'으로
+// 재는 것이 다르다. 값이 같은 건 시간 감각이 같아서지 같은 규칙이라서가 아니다.)
+//
+// 걸리면 어느 쪽으로 떨어지든 안전하다: red 미발동 = 순한 코스 안 켬(기본 코스가 안전
+// 기본값), improve 미발동 = 옛 기록으로 칭찬 안 함. red·improve 양쪽에 동시에 걸리므로
+// 한쪽만 가드해서 비대칭이 남는 문제도 없다.
+const PAIR_MAX_GAP_DAYS = 30;
+
 /**
  * 신호 판정에 쓸 (최신, 직전) 쌍 — isRedSignal·isImproving의 공통 입력.
  * 조건 둘: 같은 손(sameHandSeries), 그리고 자세 게이트를 통과한 기록(isTrusted).
@@ -546,7 +558,13 @@ export function refreshFocus(state = load(), date = todayStr()) {
  * 최신이 못 믿을 것이면 **아예 null**을 돌려준다. 그걸 건너뛰고 그 앞 둘을 비교하면
  * 오늘 잰 것과 무관한 옛날 변화로 오늘의 순한 코스·선물 별이 발동한다.
  * 반대로 '중간'에 낀 못 믿을 기록은 건너뛰고 그 앞의 믿을 만한 것과 비교한다 —
- * 비교 간격이 늘 뿐이고, 기준을 나쁜 값에 두지 않는 쪽이 안전하다.
+ * 기준을 나쁜 값에 두지 않는 쪽이 안전하다. 다만 그렇게 건너뛰면 비교 간격이 벌어지므로
+ * PAIR_MAX_GAP_DAYS로 상한을 둔다(손 필터도 같은 이유로 간격을 넓힌다).
+ *
+ * ⚠ 이 가드는 '쌍이 서로 얼마나 떨어졌나'만 본다. '그 쌍이 오늘로부터 얼마나 오래됐나'는
+ *   아직 안 본다 — 반년 전에 가깝게 찍힌 두 기록으로 오늘 red가 날 수 있다(isRedSignal은
+ *   날짜를 아예 안 읽는다). improve 쪽은 routine.improveSignal의 maxMeasureAgeDays(14)가
+ *   표시 단계에서 막아주지만 red엔 대응물이 없다. 별개 정책이라 여기서 확장하지 않는다.
  * 이 함수가 red·개선 판정의 **유일한 쌍 공급원**이다. 밖에서도 쓸 수 있게 export한 이유:
  * 예전엔 측정 결과 화면이 "지난 기록"을 따로 골라 grantGiftStar에 넘겼는데, 그쪽은 손만
  * 맞추고 자세는 안 봐서 isImproving이 쓰는 쌍과 갈라졌다 — 신호는 옛 신뢰 기록으로 나는데
@@ -559,7 +577,11 @@ export function signalPair(state) {
   const last = ms[ms.length - 1];
   if (!isTrusted(last)) return null;
   for (let i = ms.length - 2; i >= 0; i--) {
-    if (isTrusted(ms[i])) return { last, prev: ms[i] };
+    if (!isTrusted(ms[i])) continue;
+    const gap = dayDiff(ms[i].at, last.at);
+    // 날짜를 못 읽으면(NaN) 간격을 확인할 수 없다 → 신호를 내지 않는다(안전 방향).
+    if (Number.isNaN(gap) || gap > PAIR_MAX_GAP_DAYS) return null;
+    return { last, prev: ms[i] };
   }
   return null;
 }
