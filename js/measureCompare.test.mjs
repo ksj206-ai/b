@@ -159,6 +159,38 @@ const st = (...measurements) => ({ measurements });
   ok(isRedSignal(both, '2026-01-15') === false, '8 손·자세 조건이 함께 적용된다');
 }
 
+// ─── 업데이트 전 저장본(view 키 자체가 없음)이 침묵하지 않는가 ────
+// ★이 블록은 makeMeasurement를 일부러 안 쓴다 — 그 함수는 항상 view를 찍으므로
+//   "필드가 없는 상태"를 재현할 수 없다. localStorage에 실제로 들어 있던 모양 그대로 만든다.
+//   migrate()는 schemaVersion 도장만 찍고 레코드를 손대지 않으므로, 읽는 시점에도 키는 없다.
+//
+//   여기가 무너지면(예: 신뢰 규칙을 view === 'ok'만 통과로 짜면) 업데이트 순간 기존
+//   사용자 전원의 히스토리가 신호 공급을 멈춘다 — 순한 코스도 긍정 신호도 침묵.
+//   증상이 '아무 일도 안 일어남'이라 눈에 안 띄는 종류의 사고다.
+{
+  const legacy = (at, hand, flex, ext) =>
+    ({ v: 2, at, hand, flex, ext, rom: flex + ext, radialDev: null, ulnarDev: null }); // view 없음
+
+  const one = legacy('2026-01-08', 'right', 40, 40);
+  ok(!('view' in one), '10 픽스처에 view 키가 정말 없다(테스트 자체의 전제 확인)');
+  ok(isTrusted(one) === true, '10 옛 기록은 신뢰 게이트를 통과');
+
+  ok(isRedSignal(st(legacy('2026-01-01', 'right', 50, 50), one), '2026-01-08') === true,
+     '10 옛 기록만으로도 red 신호가 그대로 난다');
+  ok(isImproving(st(legacy('2026-01-01', 'right', 40, 40), legacy('2026-01-08', 'right', 50, 50)),
+                 '2026-01-08') === true, '10 옛 기록만으로도 개선 신호가 그대로 난다');
+
+  // v1(편위 필드조차 없고 hand도 null) — 가장 오래된 모양
+  const v1 = (at, flex, ext) => ({ v: 1, at, hand: null, flex, ext, rom: flex + ext });
+  ok(isRedSignal(st(v1('2026-01-01', 50, 50), v1('2026-01-08', 40, 40)), '2026-01-08') === true,
+     '10 v1 기록(hand:null·편위 없음·view 없음)도 신호가 난다');
+
+  // 새 기록과 옛 기록이 섞여도 — 옛 것을 기준으로 새 것을 판정할 수 있어야 한다
+  ok(isRedSignal(st(legacy('2026-01-01', 'right', 50, 50),
+                    makeMeasurement({ at: '2026-01-08', hand: 'right', flex: 40, ext: 40 })),
+                 '2026-01-08') === true, '10 옛 기록 → 새 기록 비교도 성립');
+}
+
 // ─── 표시는 막지 않는다 ─────────────────────────────────────
 {
   // sameHandSeries는 자세를 안 본다 — 추이·델타는 자기 기록을 그대로 보여줘야 한다
