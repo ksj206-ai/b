@@ -15,7 +15,8 @@
 // ═══════════════════════════════════════════════════════════
 import { fingerMetrics } from './measurement.js';
 import { createDetector, createStepEngine } from './guide/stepEngine.js';
-import { getGuide } from './guide/guideData.js';
+import { getGuide, GUIDES } from './guide/guideData.js';
+import { ROUTINE } from './config.js';
 
 let pass = 0, fail = 0;
 const ok = (cond, msg) => { if (cond) { pass++; return; } fail++; console.error(`FAIL ${msg}`); };
@@ -27,7 +28,7 @@ const MCP_X = { index: -2.7, middle: 0, ring: 2.7, pinky: 5.3 }; // 검지~새�
 const LEN = { index: 7.0, middle: 7.7, ring: 7.0, pinky: 5.5 };
 const OFF = { index: -1, middle: -0.33, ring: 0.33, pinky: 1 };  // 부채꼴 중심에서의 위치
 
-function makeHand({ fan = 0, curl = 0 } = {}) {
+function makeHand({ fan = 0, curl = 0, thumbAt = null, gap = 0.3 } = {}) {
   const fanDeg = -6 + fan * 28;           // 0 → -6°(수렴) / 1 → +22°(활짝)
   const tip = (name) => {
     const th = (fanDeg * OFF[name]) * Math.PI / 180;
@@ -40,7 +41,10 @@ function makeHand({ fan = 0, curl = 0 } = {}) {
   h[9] = { x: MCP_X.middle, y: -9.5 }; h[12] = tip('middle');   // MIDDLE
   h[13] = { x: MCP_X.ring, y: -9.5 };  h[16] = tip('ring');     // RING
   h[17] = { x: MCP_X.pinky, y: -9.5 }; h[20] = tip('pinky');    // PINKY
-  h[4] = { x: -4.5, y: -6.0 };                                  // THUMB_TIP (핀치 무관)
+  // THUMB_TIP — thumbAt이 손가락 이름이면 그 끝점 근처로(gap cm), 아니면 편 손 위치
+  h[4] = thumbAt && LEN[thumbAt]
+    ? (() => { const t = tip(thumbAt); return { x: t.x - gap, y: t.y }; })()
+    : { x: -4.5, y: -6.0 };
   return h;
 }
 const snapOf = (opts) => ({ detected: true, rel: 0, comp: false, fingers: fingerMetrics(makeHand(opts)) });
@@ -121,6 +125,69 @@ const snapOf = (opts) => ({ detected: true, rel: 0, comp: false, fingers: finger
   ok(d.feed({ detected: false, rel: 0, comp: false, fingers: null }).justCounted === false,
      '6 미검출 프레임은 카운트 없음');
   ok(d.feed(snapOf({ fan: 0 })).justCounted === true, '6 미검출을 지나도 진행 중이던 왕복은 살아 있다');
+}
+
+// 9: 엄지 대립 — palm 정규화가 네 손가락에 같은 뜻이어야 한다
+{
+  const open = fingerMetrics(makeHand({ fan: 0.3 }));
+  const g = open.thumbGap;
+  ok(g && ['index', 'middle', 'ring', 'pinky'].every((k) => typeof g[k] === 'number'),
+     '9 thumbGap 네 손가락 모두 계산됨');
+  ok(Math.abs(open.pinch - g.index) < 1e-12, '9 pinch는 thumbGap.index와 같은 값(이름만 유지)');
+  ok(g.pinky > g.index, '9 손 편 상태에선 새끼가 더 멀다 — 분리도가 새끼에서 더 좋다');
+
+  // 접촉 상태: 어느 손가락이든 임계 아래로 떨어진다(palm 정규화라 손가락 길이와 무관)
+  for (const f of ['index', 'middle', 'ring', 'pinky']) {
+    const m = fingerMetrics(makeHand({ fan: 0.3, thumbAt: f, gap: 0.3 }));
+    ok(m.thumbGap[f] < 0.35, `9 ${f} 접촉 시 임계 아래 (${m.thumbGap[f].toFixed(2)})`);
+  }
+}
+
+// 10: 순환 판정 — 순서대로 한 바퀴 = 1회
+{
+  const snapAt = (f) => ({ detected: true, rel: 0, comp: false,
+                           fingers: fingerMetrics(makeHand({ fan: 0.3, thumbAt: f, gap: 0.3 })) });
+  const d = createDetector('thumbOpposition');
+  let counted = 0;
+  for (let i = 0; i < 3; i++) {
+    for (const f of ['index', 'middle', 'ring', 'pinky']) {
+      if (d.feed(snapAt(f)).justCounted) counted++;
+    }
+  }
+  ok(counted === 3, `10 세 바퀴 → 3회 (실제 ${counted})`);
+
+  // ★캐스케이드 방지 — 이 픽스처에서 엄지@검지는 검지(0.03)와 중지(0.34)가 '둘 다'
+  //   임계(0.35) 아래다. 판정기는 프레임당 한 칸만 넘어가므로, 한 프레임씩만 먹이면
+  //   최근접 조건이 있으나 없으나 결과가 같다 — 그래서 '여러 프레임 유지'로 눌러야 하고,
+  //   카운트가 아니라 '다음 목표가 무엇인가'(상태)를 봐야 판별된다.
+  //   최근접 조건이 없으면 검지를 물고 있는 동안 중지 게이트까지 통과해 목표가 약지로 간다.
+  const d2 = createDetector('thumbOpposition');
+  const held = snapAt('index');
+  let hint = '';
+  for (let i = 0; i < 20; i++) hint = d2.feed(held).hint;
+  ok(/중지/.test(hint), `10 검지를 20프레임 물고 있어도 다음 목표는 여전히 중지 (실제: "${hint}")`);
+  ok(!/약지/.test(hint), '10 이웃 게이트로 새어나가지 않는다');
+
+  // 그 상태에서 순서대로 마저 채우면 한 바퀴가 완성된다(진행 자체는 막지 않는다)
+  ok(d2.feed(snapAt('middle')).justCounted === false, '10 중지 통과 — 아직 한 바퀴 아님');
+  ok(d2.feed(snapAt('ring')).justCounted === false, '10 약지 통과');
+  ok(d2.feed(snapAt('pinky')).justCounted === true, '10 새끼까지 채우면 한 바퀴 완성');
+
+  ok(d2.feed({ detected: false, rel: 0, comp: false, fingers: null }).justCounted === false,
+     '10 미검출 프레임 안전');
+}
+
+// 11: 로스터 배선 — 코스 교체가 실제로 반영됐는가
+{
+  const g = getGuide('thumb_opposition');
+  ok(!!g, '11 엄지 대립 운동 존재');
+  ok(g.steps.find((s) => s.type === 'follow').detect === 'thumbOpposition', '11 판정기 배선');
+  ok(ROUTINE.course.includes('thumb_opposition'), '11 데일리 코스에 들어감');
+  ok(!ROUTINE.course.includes('grip_hold'), '11 악력은 데일리에서 빠짐');
+  ok(!!getGuide('grip_hold'), '11 악력은 GUIDES에 남아 둘러보기로 접근 가능(콘텐츠 삭제 아님)');
+  ok(ROUTINE.course.includes('pinch_hold'), '11 핀치는 남는다 — 엄지 대립의 첫 칸이라 중복 아님');
+  ok(ROUTINE.course.every((id) => !!getGuide(id)), '11 코스의 모든 id가 실제 가이드');
+  ok(GUIDES.some((x) => x.id === 'grip_hold'), '11 GUIDES 배열 확인');
 }
 
 // 7: guideData 배선 — 시범(벌리기)과 판정기가 같은 운동을 가리키는가

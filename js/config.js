@@ -162,7 +162,9 @@ export const ROM = {
 // ─── 데일리 루틴 ───
 export const ROUTINE = {
   // 오늘의 루틴 = 매일 동일한 풀코스 (고정 순서 — 요일 로테이션 없음, "고민하게 만들면 안 한다")
-  course: ['flex_ext', 'deviation', 'tendon_glide', 'pinch_hold', 'grip_hold', 'finger_spread'],
+  // grip_hold → thumb_opposition 교체(로스터 확정). grip_hold는 GUIDES에 남아 둘러보기로
+  // 접근 가능하다 — 콘텐츠를 지우는 게 아니라 데일리에서 뺀 것이다.
+  course: ['flex_ext', 'deviation', 'tendon_glide', 'pinch_hold', 'thumb_opposition', 'finger_spread'],
   // 어제 컨디션이 "뻐근해요"였으면 다음 날은 순한 3종만 제안 (제안일 뿐, 판정 아님)
   gentleCourse: ['flex_ext', 'tendon_glide', 'finger_spread'],
   measureEveryDays: 7,   // 측정 "제안" 주기 (일) — 제안 문구까지만, 판정 아님

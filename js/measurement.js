@@ -59,8 +59,19 @@ export function fingerMetrics(hand) {
     dist(hand[HAND_LM.RING_TIP], hand[HAND_LM.RING_MCP]) +
     dist(hand[HAND_LM.PINKY_TIP], hand[HAND_LM.PINKY_MCP])
   ) / 4 / palm;
-  const pinch = dist(hand[HAND_LM.THUMB_TIP], hand[HAND_LM.INDEX_TIP]) / palm;
-  return { palm, grip, spread, fanSpan, tipMCP, pinch };
+  // 엄지끝 ↔ 각 손가락끝 거리 ÷ 손바닥. **palm으로 나누는 것이 중요하다.**
+  // 손가락 자기 길이로 나누면(검지 7cm / 새끼 5.5cm) 같은 3cm 간격이 검지 0.43 · 새끼 0.55가
+  // 되어, 임계 하나가 대립이 가장 어려운 새끼에 더 높은 문턱을 세운다 — 판정과 수행이
+  // 어긋나는 실패를 자리만 옮기는 셈이다. palm으로 나누면 네 손가락 모두 0.32로 같고,
+  // 손 편 상태 값은 새끼로 갈수록 오히려 커져(1.13 → 1.35) 분리도가 좋아진다.
+  const thumbGap = {
+    index: dist(hand[HAND_LM.THUMB_TIP], hand[HAND_LM.INDEX_TIP]) / palm,
+    middle: dist(hand[HAND_LM.THUMB_TIP], hand[HAND_LM.MIDDLE_TIP]) / palm,
+    ring: dist(hand[HAND_LM.THUMB_TIP], hand[HAND_LM.RING_TIP]) / palm,
+    pinky: dist(hand[HAND_LM.THUMB_TIP], hand[HAND_LM.PINKY_TIP]) / palm,
+  };
+  // pinch는 thumbGap.index와 같은 값이다(핀치 판정이 예전부터 쓰던 이름이라 유지).
+  return { palm, grip, spread, fanSpan, tipMCP, pinch: thumbGap.index, thumbGap };
 }
 
 /**

@@ -151,6 +151,48 @@ function fingerSpreadDetector({ openT = 1.15, closeT = 0.95, extendedT = 1.45 } 
   };
 }
 
+/** 엄지 대립 순환: 엄지끝을 검지 → 중지 → 약지 → 새끼 끝에 차례로. 한 바퀴 = 1회.
+ *
+ *  ★"가장 가까운 손가락이 목표여야 한다" 조건이 핵심이다. 임계만 보면 검지에 댄 순간
+ *   이웃한 중지까지 임계 안에 들어와(끝끼리 ~2cm = 0.21) 게이트가 한 프레임에 두 칸씩
+ *   넘어간다. 최근접 조건이 그걸 막고, 덤으로 손 크기·임계값에 둔감해진다.
+ *
+ *  임계는 palm 정규화 기준이다(measurement.fingerMetrics 주석 참고) — 손가락 자기 길이로
+ *  나누면 새끼가 더 엄격해져서 대립이 가장 어려운 손가락에 높은 문턱을 세우게 된다.
+ *
+ *  ★touchT는 기하학 추정치다(접촉 ~0.05 / 3cm 근접 0.32 / 손 편 상태 1.1~1.35).
+ *   DEBUG_GUIDE를 켜면 네 손가락 간격이 프레임마다 찍힌다. 실기기로 확정할 것. */
+function thumbOppositionDetector({ touchT = 0.35 } = {}) {
+  const order = ['index', 'middle', 'ring', 'pinky'];
+  const label = { index: '검지', middle: '중지', ring: '약지', pinky: '새끼' };
+  let idx = 0, logAt = 0;
+  return {
+    feed(snap) {
+      const f = snap.fingers;
+      if (!snap.detected || !f || !f.thumbGap) return { justCounted: false, hint: '손을 보여주세요' };
+      const g = f.thumbGap;
+      const target = order[idx];
+      const nearest = order.reduce((a, b) => (g[b] < g[a] ? b : a));
+      let justCounted = false;
+      if (nearest === target && g[target] <= touchT) {
+        idx++;
+        if (idx >= order.length) { idx = 0; justCounted = true; }
+      }
+      if (DEBUG_GUIDE) {
+        const t = performance.now();
+        if (justCounted || t - logAt > 200) {
+          logAt = t;
+          console.log(`[thumbOpp] 목표=${target} 최근접=${nearest} (인정 ≤ ${touchT}) ` +
+                      order.map((k) => `${label[k]}=${g[k].toFixed(2)}`).join(' ') +
+                      `${justCounted ? ' ✅ 한 바퀴 인정' : ''}`);
+        }
+      }
+      return { justCounted, hint: justCounted ? '잘했어요!' : `다음: ${label[order[idx]]}` };
+    },
+    reset() { idx = 0; },
+  };
+}
+
 /** 힘줄 활주: 쫙→갈고리→주먹 순서 통과 시 1회 */
 function tendonGlideDetector() {
   const order = ['open', 'hook', 'fist'];
@@ -178,6 +220,7 @@ const DETECTORS = {
   gripHold: gripHoldDetector,
   tendonGlide: tendonGlideDetector,
   fingerSpread: fingerSpreadDetector,
+  thumbOpposition: thumbOppositionDetector,
 };
 
 export function createDetector(type, opts) {

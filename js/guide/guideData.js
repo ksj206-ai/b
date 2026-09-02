@@ -81,6 +81,37 @@ export const GUIDES = [
     ],
   },
 
+  // ⑨ 엄지 대립 순환 (front) — 데일리 코스에서 grip_hold를 대신한다
+  //
+  // 교체 이유: grip_hold가 요구하는 자세는 tendon_glide의 세 번째 게이트('fist')와 판정
+  // 코드 수준에서 같다. 무저항 등척성이라 근력 자극도 사실상 없다(진짜 악력 훈련은 물건이
+  // 필요한데 카메라로 검증이 안 된다). 반면 엄지 대립은 코스 어디에서도 안 다루는 관절
+  // (엄지 CMC)을 유일하게 건드리고, 스마트폰·마우스 사용자에게 흔한 부위다.
+  // pinch_hold가 남는 이유도 같다 — 그쪽은 엄지 대립의 첫 칸을 다루니 중복이 아니다.
+  //
+  // ⚠ 시범의 한계(명시): 어느 손가락에 대는지를 그림이 못 보여준다. 렌더러의 엄지 IK는
+  //   pinchGap으로 '검지'에만 접촉하도록 되어 있고(guideHand §4④), 손가락별 curl은 배열이라
+  //   animPlayer가 보간하지 못한다(sampleTrack이 수치 연산이라 배열은 NaN이 된다).
+  //   그래서 시범은 '대립 동작의 형태'(엄지 왕복)만 보여주고, 어느 손가락 차례인지는
+  //   판정기가 실시간 힌트로 전한다("다음: 약지"). 동작 종류가 다른 게 아니라 대상만
+  //   일반화된 것이라 finger_spread 때의 어긋남과는 다르지만, 스프라이트 에셋이나 엄지 IK
+  //   타깃 지정이 생기면 제대로 고쳐야 한다 — 스모크 체크리스트에 적어뒀다.
+  {
+    id: 'thumb_opposition', name: '엄지 대립 순환', view: 'front', emoji: '👌', cat: 'hold', short: '엄지',
+    steps: [
+      { type: 'intro', text: '손바닥을 펴고 엄지를 준비해요', dur: 3, pose: { curl: 0, spread: 0.5, pinchGap: 1 } },
+      {
+        type: 'follow', text: '엄지끝을 검지 → 중지 → 약지 → 새끼 끝에 차례로', reps: 3, detect: 'thumbOpposition',
+        base: { curl: 0, spread: 0.5 },
+        anim: [[0, { pinchGap: 1 }], [0.5, { pinchGap: 0 }], [1.0, { pinchGap: 0 }], [1.4, { pinchGap: 1 }],
+               [1.9, { pinchGap: 0 }], [2.4, { pinchGap: 0 }], [2.8, { pinchGap: 1 }],
+               [3.3, { pinchGap: 0 }], [3.8, { pinchGap: 0 }], [4.2, { pinchGap: 1 }],
+               [4.7, { pinchGap: 0 }], [5.2, { pinchGap: 0 }], [5.8, { pinchGap: 1 }]],
+      },
+      { type: 'outro', text: '수고했어요! 손을 털어요', dur: 3, pose: { curl: 0, spread: 0.5, pinchGap: 1 } },
+    ],
+  },
+
   // ⑥ 손가락 벌리기 (front)
   {
     id: 'finger_spread', name: '손가락 벌리기', view: 'front', emoji: '🖐️', cat: 'glide', short: '벌리기',
