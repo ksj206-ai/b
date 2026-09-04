@@ -7,6 +7,7 @@
 //                15초 인식0 시 탈출구, 보상동작은 안내만(카운트 막지 않음… 단 flexExt는 무효화).
 // ═══════════════════════════════════════════════════════════
 import { ROM, DEBUG_GUIDE } from '../config.js';
+import { rec } from '../debugRec.js';
 
 const IDLE_MS = 15000; // follow에서 이 시간동안 카운트 0이면 탈출구 안내
 
@@ -118,7 +119,7 @@ function gripHoldDetector({ thresh = 1.2, holdMs = 2500, neutralBand = 14 } = {}
  *    이건 진행을 막는 게 아니라 오탐만 막는 것 — 못 맞춰도 [건너뛰기]와 15초 탈출구는 그대로다(§6).
  *
  *  ★임계값은 기하학 추정치다(모음 ~0.8 / 활짝 ~1.4). 실기기 실측으로 확정할 것 —
- *    DEBUG_GUIDE를 켜면 매 프레임 fanSpan이 찍힌다. */
+ *    콘솔 `__rec.on()`이 fanSpan·grip 분포를 모은다(절차: docs/스모크_체크리스트.md). */
 function fingerSpreadDetector({ openT = 1.15, closeT = 0.95, extendedT = 1.45 } = {}) {
   let reachedOpen = false, reachedClose = false;
   let logAt = 0;
@@ -126,7 +127,11 @@ function fingerSpreadDetector({ openT = 1.15, closeT = 0.95, extendedT = 1.45 } 
     feed(snap) {
       const f = snap.fingers;
       if (!snap.detected || !f) return { justCounted: false, hint: '손을 카메라에 보여주세요' };
+      // 실측 기록 — grip은 게이트 앞에서 받아야 extendedT(1.45)가 맞는지 볼 수 있다.
+      // 게이트 뒤에서만 받으면 "통과한 프레임의 grip"만 남아 게이트 자체를 검증 못 한다.
+      rec('fingerSpread:grip', f.grip);
       if (f.grip < extendedT) return { justCounted: false, hint: '손가락을 쭉 편 채로 해요' };
+      rec('fingerSpread:fanSpan', f.fanSpan);   // 판정이 실제로 보는 값 = 편 상태의 fanSpan
 
       if (f.fanSpan >= openT) reachedOpen = true;
       if (f.fanSpan <= closeT) reachedClose = true;
@@ -161,7 +166,8 @@ function fingerSpreadDetector({ openT = 1.15, closeT = 0.95, extendedT = 1.45 } 
  *  나누면 새끼가 더 엄격해져서 대립이 가장 어려운 손가락에 높은 문턱을 세우게 된다.
  *
  *  ★touchT는 기하학 추정치다(접촉 ~0.05 / 3cm 근접 0.32 / 손 편 상태 1.1~1.35).
- *   DEBUG_GUIDE를 켜면 네 손가락 간격이 프레임마다 찍힌다. 실기기로 확정할 것. */
+ *   실기기로 확정할 것 — 콘솔 `__rec.on()`이 손가락별 간격 분포를 모은다.
+ *   손가락별 min이 접촉값, max가 편 손 값이다(절차: docs/스모크_체크리스트.md). */
 function thumbOppositionDetector({ touchT = 0.35 } = {}) {
   const order = ['index', 'middle', 'ring', 'pinky'];
   const label = { index: '검지', middle: '중지', ring: '약지', pinky: '새끼' };
@@ -173,6 +179,9 @@ function thumbOppositionDetector({ touchT = 0.35 } = {}) {
       const g = f.thumbGap;
       const target = order[idx];
       const nearest = order.reduce((a, b) => (g[b] < g[a] ? b : a));
+      // 실측 기록 — 손가락별 min이 그 손가락의 실제 '접촉값', max가 '손 편 상태'다.
+      // touchT는 그 둘 사이에 놓여야 하고, 새끼로 갈수록 대립이 어려워 min이 커진다.
+      for (const k of order) rec(`thumbOpp:${label[k]}`, g[k]);
       let justCounted = false;
       if (nearest === target && g[target] <= touchT) {
         idx++;

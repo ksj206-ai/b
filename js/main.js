@@ -17,6 +17,7 @@ import {
   SCREENS, VIEWS, ROUTINE, HAND_LM, DEBUG_GUIDE, DEBUG_MEASURE, FUNCTIONAL_ROM, DEV_LABEL,
   STAR_MESSAGE, VIEW_FIT,
 } from './config.js';
+import { rec } from './debugRec.js';
 import {
   getTodayRoutine, markRoutineDone, nextRoutineExercise,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
@@ -939,6 +940,10 @@ function pulseCap(chip) { chip.classList.remove('pop'); void chip.offsetWidth; c
  */
 function gateView(m, snap, dev, now) {
   const want = dev ? 'front' : 'side';
+  // 실측 기록은 판정 '앞'에 둔다 — 아래 [view] 로그는 불일치 분기 안에 있어서
+  // 어긋난 자세의 spread만 남는다. sideMax·frontMin은 "맞는 자세일 때 spread가 어디에
+  // 모이는가"로 정하는 값이라, 통과한 프레임이 빠지면 애초에 정할 수가 없다.
+  if (snap.fingers) rec(`view:${want}`, snap.fingers.spread);
   if (m.mods.viewFits(snap.fingers, want)) { m.viewBadSince = null; return true; }
 
   if (m.viewBadSince == null) m.viewBadSince = now;

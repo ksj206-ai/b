@@ -141,7 +141,9 @@ export const DEV_LABEL = { radialDev: '엄지쪽', ulnarDev: '새끼쪽' };
 //
 // 두 값 사이(0.45~0.60)는 어느 쪽도 단정하지 않는 사각지대다 — 오탐으로 사용자를
 // 붙잡는 것이 못 재는 것보다 나쁘기 때문에 일부러 넓게 뒀다.
-// ★임계값은 기하학 추정치다. DEBUG_MEASURE를 켜면 spread가 찍히니 실기기에서 확정할 것.
+// ★임계값은 기하학 추정치다. 실기기에서 확정할 것 — 콘솔 `__rec.on()`으로 자세별 spread
+// 분포를 모은다(js/debugRec.js, 절차는 docs/스모크_체크리스트.md). DEBUG_MEASURE 로그는
+// 자세가 '어긋난' 프레임에서만 찍혀서 임계를 정하는 데는 쓸 수 없다.
 export const VIEW_FIT = {
   sideMax: 0.45,    // 옆모습으로 인정하는 spread 상한
   frontMin: 0.60,   // 정면으로 인정하는 spread 하한
