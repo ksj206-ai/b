@@ -471,9 +471,13 @@
         </div>
       </section>
 
-      <!-- 게임 — 미니게임 ① 별 따기 (설계: docs/미니게임_별따기_설계.md)
-           게임은 pinch_hold 운동의 두 번째 얼굴이다. 완주하면 그 운동을 한 것으로
-           기록되고(markRoutineDone), 별자리 점등은 홈에서 기존 경로로 이뤄진다. -->
+      <!-- 게임 — 미니게임 (설계: docs/미니게임_별따기_설계.md)
+           게임은 대응 운동의 두 번째 얼굴이다. 완주하면 그 운동을 한 것으로
+           기록되고(markRoutineDone), 별자리 점등은 홈에서 기존 경로로 이뤄진다.
+           제목·안내 문구는 어느 게임이냐에 따라 js/games/session.js가 채운다(레지스트리).
+           아래 마크업의 문구는 모듈이 오기 전 첫 페인트용이라 **특정 게임을 지목하지
+           않는다** — 게임이 셋이 되면서, 기본값을 별 따기로 두면 오늘 띄울 게임이
+           다른 날 엉뚱한 이름이 한 프레임 보였다가 바뀐다. -->
       <section id="screen-game" class="screen" data-screen="game">
         <div class="screen-head">
           <button class="btn btn-back" data-back>← 뒤로</button>
@@ -483,16 +487,15 @@
         <div class="cols split">
           <div class="col">
             <section class="box">
-              <h2 class="box-head">🌠 별 따기 <span class="more" id="gmSlot"></span></h2>
+              <h2 class="box-head"><span id="gmTitle">🎮 오늘의 게임</span> <span class="more" id="gmSlot"></span></h2>
               <div class="box-body">
                 <div class="gm-stage">
                   <canvas id="gmCanvas" class="gm-canvas"></canvas>
                   <!-- 시작 전 자리 안내 — 검은 판만 남지 않게 (measure의 cam-idle과 같은 뜻) -->
                   <div id="gmIdle" class="gm-idle">
-                    <p class="gm-idle-emoji">🌠</p>
-                    <p class="gm-idle-title">여기에 별이 떠요</p>
-                    <p class="gm-idle-text">떠도는 별을 <b>엄지와 검지로 집어</b> 잠깐 들고 있으면<br>
-                      별이 고양이에게 모입니다. 오른쪽 <b>시작하기</b>를 누르면 카메라가 켜집니다.</p>
+                    <p class="gm-idle-emoji" id="gmIdleEmoji">🎮</p>
+                    <p class="gm-idle-title" id="gmIdleTitle">게임을 불러오는 중이에요</p>
+                    <p class="gm-idle-text" id="gmIdleText">잠시만 기다려 주세요.</p>
                   </div>
                   <div class="gp-pip" id="gmPip" hidden>
                     <video id="gmVideo" class="cam-video" playsinline muted></video>
@@ -507,7 +510,7 @@
 
           <div class="col">
             <section class="box">
-              <h2 class="box-head">🤏 오늘의 핀치 집기</h2>
+              <h2 class="box-head" id="gmExName">🎮 오늘의 게임</h2>
               <div class="box-body">
                 <p id="gmLead" class="gm-lead">엄지와 검지로 별을 집어 보세요.</p>
                 <p id="gmCount" class="gm-count"><span id="gmCountNum">0</span> <span class="gm-count-of">/ 0</span></p>

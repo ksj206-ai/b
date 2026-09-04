@@ -12,8 +12,15 @@ import { rec } from '../debugRec.js';
 const IDLE_MS = 15000; // follow에서 이 시간동안 카운트 0이면 탈출구 안내
 
 // ─── 판정기(detector) ─────────────────────────────────────
-// feed(snap, now) → { justCounted, hint, progress? }
+// feed(snap, now) → { justCounted, hint, progress?, range?, ends? }
 //   snap = { detected, rel, comp, fingers }
+//
+// range·ends는 각도(rel) 판정기만 내보낸다. 게임이 손목 각도를 화면 좌표로 옮기고
+// '어느 끝을 찍었는지'를 그리려면 임계값과 도달 상태가 필요한데, 그걸 게임이 따로
+// 가지면 판정과 그림이 어긋난다(finger_spread에서 이미 한 번 겪은 종류의 어긋남).
+// 판정기가 자기 임계를 내주는 편이 출처를 하나로 유지한다.
+//   range = { lo, hi }  판정에 쓰는 두 끝의 각도(°)
+//   ends  = { lo, hi }  지금 그 끝을 찍어 둔 상태인가(왕복 판정의 내부 상태)
 
 /** 굽힘·폄: rel 왕복(굽힘 끝 + 폄 끝) 1세트 = 1회. 폄 목표는 낮게(2D 한계).
  *  comp(보상동작)는 무효 처리하지 않는다 — 가이드는 관대한 판정(§6).
@@ -21,9 +28,13 @@ const IDLE_MS = 15000; // follow에서 이 시간동안 카운트 0이면 탈출
 function flexExtDetector({ flexT = 24, extT = 12 } = {}) {
   let reachedFlex = false, reachedExt = false;
   let logAt = 0; // 진단 로그 스로틀 (DEBUG_GUIDE 켰을 때만 사용)
+  const range = { lo: -flexT, hi: extT };   // lo=굽힘 끝, hi=폄 끝
   return {
     feed(snap) {
-      if (!snap.detected) return { justCounted: false, hint: '손을 카메라에 보여주세요' };
+      if (!snap.detected) {
+        return { justCounted: false, hint: '손을 카메라에 보여주세요',
+                 range, ends: { lo: reachedFlex, hi: reachedExt } };
+      }
       const rel = snap.rel;
       if (rel <= -flexT) reachedFlex = true;
       if (rel >= extT) reachedExt = true;
@@ -41,7 +52,7 @@ function flexExtDetector({ flexT = 24, extT = 12 } = {}) {
       const hint = reachedFlex ? '좋아요, 이제 위로 펴세요 ⬆'
         : reachedExt ? '이제 아래로 굽혀요 ⬇'
         : '천천히 굽혔다 펴세요';
-      return { justCounted, hint };
+      return { justCounted, hint, range, ends: { lo: reachedFlex, hi: reachedExt } };
     },
     reset() { reachedFlex = false; reachedExt = false; },
   };
@@ -50,15 +61,17 @@ function flexExtDetector({ flexT = 24, extT = 12 } = {}) {
 /** 좌우 편위: 요측 끝 + 척측 끝 1세트 = 1회 */
 function deviationDetector({ radialT = 16, ulnarT = 18 } = {}) {
   let reachedR = false, reachedU = false;
+  const range = { lo: -radialT, hi: ulnarT };   // lo=요측(엄지쪽) 끝, hi=척측(새끼쪽) 끝
   return {
     feed(snap) {
-      if (!snap.detected) return { justCounted: false, hint: '손을 보여주세요' };
+      const ends = () => ({ lo: reachedR, hi: reachedU });
+      if (!snap.detected) return { justCounted: false, hint: '손을 보여주세요', range, ends: ends() };
       const rel = snap.rel;
       if (rel <= -radialT) reachedR = true;
       if (rel >= ulnarT) reachedU = true;
       let justCounted = false;
       if (reachedR && reachedU) { justCounted = true; reachedR = false; reachedU = false; }
-      return { justCounted, hint: '엄지쪽·새끼쪽으로 번갈아 기울여요' };
+      return { justCounted, hint: '엄지쪽·새끼쪽으로 번갈아 기울여요', range, ends: ends() };
     },
     reset() { reachedR = false; reachedU = false; },
   };
@@ -232,8 +245,16 @@ const DETECTORS = {
   thumbOpposition: thumbOppositionDetector,
 };
 
+/** 실재하는 판정기 이름 — 배선표(guideData의 detect, games/registry의 detect)가
+ *  가리키는 이름이 진짜인지 테스트가 확인할 수 있게 내보낸다.
+ *  createDetector가 모르는 이름에 '무동작 판정기'를 돌려주기 때문에 필요하다:
+ *  오타가 나도 예외가 안 나고, 그 운동만 영영 카운트가 안 오른다(조용히 깨진다). */
+export const DETECTOR_TYPES = Object.freeze(Object.keys(DETECTORS));
+
 export function createDetector(type, opts) {
   const make = DETECTORS[type];
+  // 모르는 이름이면 무동작 판정기 — 화면이 죽는 것보다 낫다(진행은 [건너뛰기]로 가능).
+  // 대신 "이름이 진짜인가"는 배선표 테스트가 DETECTOR_TYPES로 막는다.
   return make ? make(opts) : { feed: () => ({ justCounted: false, hint: '' }), reset() {} };
 }
 

@@ -14,22 +14,9 @@
 // 무대는 "오늘의 별자리"가 아니라 떠도는 별이다. 별자리 점등의 주체는
 // store.js:syncStarsToProgress 하나로 남겨 둔다(설계서 §3).
 // ═══════════════════════════════════════════════════════════
-import { createStage, createParticles, createLoop, reducedMotion } from './engine.js';
-
-// 밤하늘 판 — css의 --skypanel과 같은 두 색(라이트/다크 공통이라 토큰을 안 읽는다)
-const SKY_TOP = '#2c3468', SKY_BOT = '#4b5497';
-
-/** 5각별 경로 */
-function starPath(ctx, x, y, r, rot = 0) {
-  ctx.beginPath();
-  for (let i = 0; i < 10; i++) {
-    const rr = i % 2 ? r * 0.44 : r;
-    const a = rot - Math.PI / 2 + (i * Math.PI) / 5;
-    const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
-    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-  }
-  ctx.closePath();
-}
+import {
+  createStage, createParticles, createLoop, reducedMotion, drawNightSky, starPath,
+} from './engine.js';
 
 /**
  * @param {object} o
@@ -71,22 +58,6 @@ export function createStarPick({ canvas, reps, detector, onCount, onHint, onDone
   }
 
   function targetIdx() { return stars.findIndex((s) => !s.taken); }
-
-  function drawBg(t) {
-    const { ctx, W, H } = stage;
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, SKY_TOP); g.addColorStop(1, SKY_BOT);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    // 잔별 — 위치는 화면 크기에서 결정론적으로 뽑아 프레임마다 흔들리지 않게
-    for (let i = 0; i < 34; i++) {
-      const x = ((i * 71) % 100) / 100 * W, y = ((i * 137) % 100) / 100 * H;
-      const tw = soft ? 0.5 : 0.35 + Math.abs(Math.sin(t * 0.0007 + i)) * 0.45;
-      ctx.globalAlpha = tw * 0.6;
-      ctx.fillStyle = '#dfe6ff';
-      ctx.beginPath(); ctx.arc(x, y, i % 5 ? 1 : 1.7, 0, 6.3); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
 
   function drawCat() {
     const { ctx, W, H } = stage;
@@ -133,7 +104,7 @@ export function createStarPick({ canvas, reps, detector, onCount, onHint, onDone
 
   function frame(now, dt) {
     const { ctx } = stage;
-    drawBg(now);
+    drawNightSky(stage, now, soft);
     const pocket = drawCat();
     const ti = targetIdx();
 
