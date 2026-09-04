@@ -8,11 +8,11 @@
 | [기획서.md](기획서.md) | 제품의 왜/무엇/원칙 — 설계 원칙 6가지, 핵심 기능 5, ROM 근거, 용어 | 참고 문서 |
 | [계획서_손목웰니스앱.md](계획서_손목웰니스앱.md) | 프로젝트 전체 기획 — 문제 정의, 타깃, 기능 범위, 화면 구성 | 기획 확정 |
 | [손목인식_설계문서.md](손목인식_설계문서.md) | 손 인식 파이프라인 현재 구조 (MediaPipe 연동 · 모드별 설정 · 손 선택 · 보정) | 구현 완료 |
-| [측정모듈_설계서_v2.md](측정모듈_설계서_v2.md) | ROM 측정·판정·콘텐츠 통합 설계 (원근 단축 보정, judge 계층, 미니게임 구조) | 굽힘·폄 + 정면 편위 구현 완료 (미니게임 미착수) |
+| [측정모듈_설계서_v2.md](측정모듈_설계서_v2.md) | ROM 측정·판정·콘텐츠 통합 설계 (원근 단축 보정, judge 계층, 미니게임 구조) | 굽힘·폄 + 정면 편위 구현 완료 (미니게임 ① 별 따기 구현) |
 | [가이드모듈_구현명세서.md](가이드모듈_구현명세서.md) | 캐릭터 애니메이션 기반 운동 가이드 모듈 구현 명세 | 구현 완료 |
 | [맞춤루틴_설계문서_1.md](맞춤루틴_설계문서_1.md) | 측정 기록 기반 적응형(adaptive) 루틴 조정 시스템 | 구현 완료 (§6 1~6단계) |
 | [보이는_돌봄_설계.md](보이는_돌봄_설계.md) | 적응형 신호를 긍정으로 번역해 노출 — "오늘의 별자리 한마디" 외 | 1·2·3단계 구현 완료 (§5 전체) |
-| [미니게임_별따기_설계.md](미니게임_별따기_설계.md) | 미니게임 ① 별 따기 — 게임을 `pinch_hold` 운동의 두 번째 얼굴로 두는 구조 | 설계 확정 (미구현) |
+| [미니게임_별따기_설계.md](미니게임_별따기_설계.md) | 미니게임 ① 별 따기 — 게임을 `pinch_hold` 운동의 두 번째 얼굴로 두는 구조 | 구현 완료. 이 구조 위에 각도 게임 2종 추가(총 3종, 범위 확정 — `js/games/README.md`) |
 
 ## 관련 코드 매핑
 
@@ -24,7 +24,9 @@
 | 루틴 구성 · 적응형 조정 | `js/routine.js`, `js/store.js` |
 | 별자리 데이터 · 렌더 | `js/constellations.js`, `js/sky.js` |
 | 오늘의 별자리 한마디 | `js/routine.js` (dailyStarMessage), `js/config.js` (STAR_MESSAGE) |
+| 미니게임 | `js/games/` (registry · session · engine · starPick · starScoop · meteorCatch) |
 | 상수 단일 출처 | `js/config.js` |
-| 테스트 (단독 실행) | `js/*.test.mjs` — star · adapt · deviation · integration · tracking |
+| 테스트 (단독 실행) | `js/*.test.mjs` — star · adapt · deviation · integration · tracking ·
+  guideDetect · measureCompare · timedStep · games |
 
 프로젝트 개요와 실행 방법은 [루트 README](../README.md)를 참고하세요.
