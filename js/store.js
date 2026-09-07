@@ -648,3 +648,89 @@ export function isImproving(state = load(), date = todayStr()) {
   if (DEBUG_ADAPT && improving) console.log('[adapt] improving', { flexUp, extUp, romUp, at: last.at });
   return improving;
 }
+
+// ═══════════════════════════════════════════════════════════
+// 데이터 관리 — 내보내기 · 불러오기 · 삭제
+//
+// 이 앱의 기록은 localStorage 한 곳에만 있다. 브라우저 데이터를 정리하면 몇 달치
+// 체크·별자리·스트릭이 통째로 사라지는데, 지금까지 그걸 막을 방법도 알릴 방법도
+// 없었다. 앱의 핵심 가치가 '추이'인 이상 백업 경로는 기능이 아니라 전제다.
+//
+// 삭제를 함께 두는 이유는 대칭이 아니라 두 가지 실제 필요다:
+//   · 잘못 잰 체크(손 잘못 고름·자세 무너짐)가 computeFocus·isRedSignal로 들어가
+//     며칠간 루틴을 바꾼다. 되돌릴 방법이 없으면 실수가 처방이 된다.
+//   · 건강 관련 기록을 사용자가 지울 수 없는 것은 기능 문제가 아니다.
+//
+// ⚠ 지우는 것은 ROOT 키 하나뿐이다. 테마·팔레트(theme.js)는 기록이 아니라 취향이라
+//   남긴다 — "기록 전체 삭제"라고 말했으면 딱 그것만 지워야 한다.
+// ═══════════════════════════════════════════════════════════
+
+/** 내보내기 파일의 겉봉 — 나중에 이 파일을 열었을 때 무엇인지 알아볼 수 있게. */
+const EXPORT_KIND = 'wristGarden.backup';
+
+/**
+ * 백업 객체 만들기 — 저장된 상태를 그대로 감싼다(가공·선별 없음).
+ * 겉봉에 kind/at을 두는 이유: 불러오기가 "이 파일이 우리 것인가"를 값이 아니라
+ * 겉봉으로 판단해야, 스키마가 바뀌어도 검증이 안 깨진다.
+ */
+export function exportData(state = load()) {
+  return { kind: EXPORT_KIND, schemaVersion: SCHEMA_VERSION, at: new Date().toISOString(), state };
+}
+
+/**
+ * 불러오기 — 검증을 통과하면 통째로 교체하고 새 상태를 돌려준다. 실패하면 null.
+ *
+ * 부분 병합을 하지 않는다: 지금 상태와 백업을 섞으면 스트릭·별자리가 어느 쪽 것인지
+ * 모르는 잡종이 된다. 백업은 '그 시점으로 돌아가는 것'이어야 한다.
+ *
+ * 옛 백업은 load()와 같은 길(migrate + defaults 병합)로 들어온다 — 여기서 별도
+ * 변환을 새로 쓰면 두 벌의 마이그레이션이 생긴다.
+ *
+ * @param {string|object} raw 파일 내용(문자열) 또는 이미 파싱된 객체
+ * @returns {object|null} 저장된 상태. 형식이 아니면 null(호출부가 안내를 띄운다)
+ */
+export function importData(raw) {
+  let box = raw;
+  if (typeof raw === 'string') {
+    try { box = JSON.parse(raw); } catch (e) { return null; }
+  }
+  if (!box || typeof box !== 'object') return null;
+  // 겉봉이 우리 것인가 — measurements 유무 같은 값으로 판단하면 첫 실행 백업이 걸린다
+  if (box.kind !== EXPORT_KIND || !box.state || typeof box.state !== 'object') return null;
+  if (Array.isArray(box.state)) return null;            // 배열도 typeof 'object'다
+  const next = migrate({ ...defaults(), ...box.state });
+  save(next);
+  return next;
+}
+
+/**
+ * 측정 기록 하나 삭제 (measurements 배열의 index).
+ *
+ * ★지운 뒤 refreshFocus를 반드시 다시 돌린다. adapt.focus는 '가장 최근 측정'에서
+ *  나오므로, 지우기만 하면 이미 없는 기록이 계속 루틴의 반복수를 바꾼다 —
+ *  화면에서는 사라졌는데 처방에는 남아 있는, 사용자가 볼 수 없는 종류의 어긋남이다.
+ *
+ * @returns {boolean} 지웠으면 true (index가 범위 밖이면 false)
+ */
+export function deleteMeasurement(index, state = load()) {
+  const ms = state.measurements;
+  if (!Array.isArray(ms) || !Number.isInteger(index) || index < 0 || index >= ms.length) return false;
+  ms.splice(index, 1);
+  save(state);
+  refreshFocus(state);   // 내부에서 다시 save한다
+  return true;
+}
+
+/**
+ * 기록 전체 삭제 — ROOT 키만 지운다(테마는 남긴다, 위 주석 참고).
+ * @returns {boolean} 지웠으면 true
+ */
+export function clearAllData() {
+  try {
+    localStorage.removeItem(ROOT);
+    return true;
+  } catch (e) {
+    console.warn('[store] 삭제 실패', e);
+    return false;
+  }
+}

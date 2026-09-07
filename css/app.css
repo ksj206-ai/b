@@ -577,6 +577,26 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .rh-name{ min-width:0; color:var(--ink); }
 .rh-more{ margin-left:auto; font-size:.76rem; color:var(--dim); }
 
+/* 손목 체크 기록 항목 - 값 / 자세 경고 / 삭제 */
+.rh-vals{ min-width:0; color:var(--ink); }
+.rh-warn{
+  flex:none; font-size:.72rem; padding:1px 6px; border-radius:999px;
+  background:var(--warm); border:1px solid var(--frame-2); color:var(--ink);
+}
+.rh-del{
+  margin-left:auto; flex:none; border:0; background:none; cursor:pointer;
+  font-size:.78rem; color:var(--dim); padding:2px 6px; border-radius:6px; line-height:1;
+}
+.rh-del:hover{ color:var(--ink); background:var(--chip); }
+
+/* 데이터 관리 */
+.data-btns{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+.data-confirm{
+  margin-top:8px; padding:9px 11px; border-radius:8px;
+  background:var(--warm); border:2px solid var(--frame-2);
+}
+.data-confirm p{ margin:0; font-size:.8rem; line-height:1.6; }
+
 /* 최근 7일 컨디션 */
 .rec-week{ display:grid; grid-template-columns:repeat(7,1fr); gap:5px; text-align:center; margin-bottom:8px; }
 .rw-day{ padding:4px 0; border-radius:6px; }
@@ -859,6 +879,11 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 }
 .remind-q{ margin:0 0 3px; font-size:.86rem; font-weight:700; }
 .remind-sub{ margin:0 0 6px; font-size:.75rem; color:var(--dim); }
+.remind-limit{
+  margin:8px 0 0; padding:6px 0 6px 9px; font-size:.75rem; line-height:1.55;
+  color:var(--dim); border-left:2px solid var(--frame-2);
+}
+.remind-limit b{ color:var(--ink); }
 .remind-note{
   margin:7px 0 0; padding:6px 9px; border-radius:6px; font-size:.76rem; line-height:1.5;
   background:var(--warm); border:2px solid var(--frame-2); color:var(--ink);

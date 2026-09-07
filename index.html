@@ -136,6 +136,12 @@
                   <div class="remind-selected" id="remindSelected"></div>
                   <p class="remind-note" id="remindNote" hidden>
                     브라우저 알림 권한이 꺼져 있어 알림이 가지 않아요. (주소창 자물쇠 → 알림에서 켤 수 있어요)</p>
+                  <!-- 구조적 한계를 결정 직전에 밝힌다. setInterval 기반이라 탭이 닫히면
+                       알림이 안 간다(reminder.js 상단 주석). 이걸 안 적으면 사용자는
+                       21:00을 고르고 권한까지 준 뒤 아무 일도 안 일어나는 것을 겪는다. -->
+                  <p class="remind-limit">
+                    ⓘ 알림은 <b>이 탭이 열려 있을 때만</b> 가요. 브라우저를 닫으면 가지 않아요.
+                  </p>
                   <div class="remind-btns">
                     <button class="btn btn-line" id="remindSave">알림 받기 🔔</button>
                     <button class="btn btn-back" id="remindOff" hidden>알림 끄기</button>
@@ -584,6 +590,26 @@
         </div>
         <div class="col">
 
+          <!-- 손목 체크 기록 — 지금까지 추이(그림)만 있고 개별 기록을 볼 자리가 없었다.
+               이 목록이 있어야 (1) 자세 게이트를 못 맞춘 기록(view:'off')을 사용자가
+               구별하고 (2) 잘못 잰 기록을 지울 수 있다. 둘 다 판정에 영향을 주는데
+               화면에서는 손댈 수 없던 것들이다. -->
+          <section class="box">
+            <h2 class="box-head">📏 손목 체크 기록 <span class="more" id="recMeasCount"></span></h2>
+            <div class="box-body">
+              <ul id="recMeas" class="rec-history"></ul>
+              <p id="recMeasNote" class="rec-hint" hidden>
+                ⚠ 표시가 붙은 기록은 자세가 끝까지 안 맞은 채 저장된 것이에요.
+                수치는 그대로 두되, 추이·맞춤 판정에는 쓰이지 않아요.
+              </p>
+              <div id="recMeasEmpty" class="rec-empty" hidden>
+                <p class="rec-empty-emoji">📏</p>
+                <p class="rec-empty-text">아직 체크 기록이 없어요.<br>손목 상태를 재고 변화를 지켜봐요.</p>
+                <button class="btn" data-nav="measure">체크하러 가기</button>
+              </div>
+            </div>
+          </section>
+
           <!-- 데일리 루틴 기록 (N/6) -->
           <section class="box">
             <h2 class="box-head">🔥 데일리 루틴 <span class="more" id="recRoutineCount"></span></h2>
@@ -608,6 +634,35 @@
                 <p class="rec-empty-text">아직 완료한 운동이 없어요.<br>가이드를 따라 첫 운동을 해봐요.</p>
                 <button class="btn" data-nav="guide">가이드 보러 가기</button>
               </div>
+            </div>
+          </section>
+
+          <!-- 데이터 관리 — 기록은 이 브라우저 안에만 있다. 그 사실과 대비책을
+               같은 자리에서 말한다(경고만 하고 방법이 없으면 불안만 남는다). -->
+          <section class="box">
+            <h2 class="box-head">💾 기록 보관</h2>
+            <div class="box-body">
+              <p class="rec-hint">
+                기록은 이 브라우저 안에만 저장돼요. 브라우저 기록을 지우거나 다른 기기에서
+                열면 남아 있지 않아요 — 가끔 파일로 내려받아 두면 안전해요.
+              </p>
+              <div class="data-btns">
+                <button type="button" class="btn btn-line" id="dataExport">⬇ 파일로 내보내기</button>
+                <button type="button" class="btn btn-line" id="dataImport">⬆ 파일에서 불러오기</button>
+                <button type="button" class="btn btn-back" id="dataClear">기록 전체 삭제</button>
+              </div>
+              <input type="file" id="dataFile" accept="application/json,.json" hidden />
+              <!-- 되돌릴 수 없는 동작이라 두 단계로 나눈다. 브라우저 confirm()을 쓰지
+                   않는 이유: 앱 톤과 따로 놀고, 화면 밖 모달이라 흐름이 끊긴다. -->
+              <div id="dataConfirm" class="data-confirm" hidden>
+                <p>정말 전체 기록을 지울까요? <b>되돌릴 수 없어요.</b><br>
+                   체크·운동·별자리·스트릭이 모두 사라져요. (테마 설정은 남아요)</p>
+                <div class="data-btns">
+                  <button type="button" class="btn btn-line" id="dataClearYes">네, 전부 지웁니다</button>
+                  <button type="button" class="btn btn-back" id="dataClearNo">취소</button>
+                </div>
+              </div>
+              <p id="dataMsg" class="rec-hint" role="status" hidden></p>
             </div>
           </section>
 

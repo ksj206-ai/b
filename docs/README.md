@@ -26,7 +26,8 @@
 | 오늘의 별자리 한마디 | `js/routine.js` (dailyStarMessage), `js/config.js` (STAR_MESSAGE) |
 | 미니게임 | `js/games/` (registry · session · engine · starPick · starScoop · meteorCatch) |
 | 상수 단일 출처 | `js/config.js` |
+| 데이터 관리 (내보내기·불러오기·삭제) | `js/store.js` (하단), `js/main.js` (wireDataTools) |
 | 테스트 (단독 실행) | `js/*.test.mjs` — star · adapt · deviation · integration · tracking ·
-  guideDetect · measureCompare · timedStep · games |
+  guideDetect · measureCompare · timedStep · games · dataTools |
 
 프로젝트 개요와 실행 방법은 [루트 README](../README.md)를 참고하세요.

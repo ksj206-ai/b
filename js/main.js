@@ -10,6 +10,7 @@ import {
   isTodayComplete, completeTodayConstellation, refreshFocus, freshComp, sameHandSeries,
   signalPair,
   makeMeasurement, deviationProgress, isImproving, getAdapt,
+  isTrusted, exportData, importData, deleteMeasurement, clearAllData,
 } from './store.js';
 import { renderSky } from './sky.js';
 import { CONSTELLATIONS } from './constellations.js';
@@ -2061,7 +2062,10 @@ async function renderRecords() {
       guideCount: $('recGuideCount'), history: $('recHistory'), historyEmpty: $('recHistoryEmpty'),
       routineCount: $('recRoutineCount'), routine: $('recRoutine'), routineEmpty: $('recRoutineEmpty'),
       week: $('recWeek'), freeze: $('recFreeze'),
+      meas: $('recMeas'), measCount: $('recMeasCount'),
+      measEmpty: $('recMeasEmpty'), measNote: $('recMeasNote'),
     };
+    wireDataTools();
   }
   if (!guideNameMap) {
     const { GUIDES } = await import('./guide/guideData.js');
@@ -2078,6 +2082,118 @@ async function renderRecords() {
   renderWeek(recordsEls, s.conditions || [], s.lastFreezeAt);
   renderRoutineLog(recordsEls, s.routineLog || []);
   renderHistory(recordsEls, s.guideDone || []);
+  // 목록은 추이와 달리 손 필터를 걸지 않는다 — 추이는 '비교'라 같은 손이어야 하지만
+  // 목록은 '내가 뭘 쟀나'라서 걸러내면 지울 수도, 본 적도 없는 기록이 생긴다.
+  renderMeasList(recordsEls, s.measurements || []);
+}
+
+/**
+ * 손목 체크 기록 목록 — 최신순. 각 줄에 자세 경고(view:'off')와 삭제를 붙인다.
+ *
+ * 자세가 무너진 기록을 감추지 않고 '표시'만 하는 이유는 store.isTrusted의 원칙 그대로다:
+ * 자기 기록을 앱이 숨기면 안 되고, 막는 건 그 값으로 판정하는 '행동'이다. 다만 지금까지는
+ * 사용자가 그 사실을 알 방법이 아예 없어서 "왜 이 체크는 추이에 안 잡히지"를 물을 수도
+ * 없었다. 표식은 숨김의 반대다.
+ */
+function renderMeasList(e, ms) {
+  if (!e.meas) return;
+  if (!ms.length) {
+    e.meas.hidden = true; e.measEmpty.hidden = false;
+    e.measNote.hidden = true; e.measCount.textContent = '';
+    return;
+  }
+  e.measEmpty.hidden = true; e.meas.hidden = false;
+  e.measCount.textContent = `총 ${ms.length}회`;
+
+  let anyOff = false;
+  const rows = ms.map((m, i) => ({ m, i })).reverse().slice(0, 20).map(({ m, i }) => {
+    const off = !isTrusted(m);
+    if (off) anyOff = true;
+    const hand = HAND_KO[m.hand] ? `${HAND_KO[m.hand]} ` : '';
+    const dev = deviationProgress(m);
+    const devTxt = dev.has ? ` · 편위 ${dev.sum}°` : '';
+    return `<li class="rh-item">` +
+      `<span class="rh-date">${fmtMd(m.at)}</span>` +
+      `<span class="rh-vals">${hand}굽힘 ${m.flex || 0}° · 폄 ${m.ext || 0}°${devTxt}</span>` +
+      (off ? '<span class="rh-warn" title="자세 게이트를 끝까지 못 맞춘 기록">⚠ 자세</span>' : '') +
+      `<button type="button" class="rh-del" data-del="${i}" ` +
+      `aria-label="${fmtMd(m.at)} 체크 기록 삭제">✕</button></li>`;
+  }).join('');
+  e.meas.innerHTML = rows;
+  e.measNote.hidden = !anyOff;
+
+  // 삭제는 위임으로 — 목록이 다시 그려질 때마다 리스너를 새로 다는 것을 피한다
+  if (!e.meas.dataset.wired) {
+    e.meas.dataset.wired = '1';
+    e.meas.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-del]');
+      if (!b) return;
+      // 지운 뒤 focus가 다시 판정된다(store.deleteMeasurement) — 홈의 오늘 한마디·
+      // 포커스 태그가 그 결과를 읽으므로 홈도 함께 다시 그린다.
+      if (deleteMeasurement(Number(b.dataset.del))) { renderRecords(); renderHome(); }
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// 데이터 관리 — 내보내기 · 불러오기 · 전체 삭제
+//
+// 기록은 localStorage 한 곳에만 있다. 그 사실을 화면에서 말하면서 대비책을 안 주면
+// 불안만 남으므로, 안내와 수단을 같은 카드에 둔다.
+//
+// 불러오기·전체 삭제 뒤에는 페이지를 다시 읽는다. 저장소만 갈아끼우면 메모리에 남은
+// 것들(오늘 루틴 캐시·별자리 상태·화면별 els)이 옛 상태를 계속 들고 있어서, 화면마다
+// 다른 시점을 보여주는 잡종이 된다. 되돌리기 힘든 동작일수록 확실한 쪽이 낫다.
+// ═══════════════════════════════════════════════════════════
+function wireDataTools() {
+  const $ = (id) => document.getElementById(id);
+  const d = {
+    exp: $('dataExport'), imp: $('dataImport'), file: $('dataFile'),
+    clear: $('dataClear'), confirm: $('dataConfirm'),
+    yes: $('dataClearYes'), no: $('dataClearNo'), msg: $('dataMsg'),
+  };
+  if (!d.exp) return;
+  // role="status"라 스크린리더에도 읽힌다 — 이 카드의 결과는 화면 변화가 거의 없어서
+  // 문구가 유일한 피드백이다.
+  const say = (t) => { d.msg.textContent = t || ''; d.msg.hidden = !t; };
+
+  d.exp.addEventListener('click', () => {
+    try {
+      const blob = new Blob([JSON.stringify(exportData(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wrist-garden-backup-${todayStr()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      say('내려받았어요. 이 파일만 있으면 나중에 되돌릴 수 있어요 ✅');
+    } catch (err) {
+      console.warn('[data] 내보내기 실패', err);
+      say('내보내지 못했어요. 브라우저 다운로드 설정을 확인해 주세요.');
+    }
+  });
+
+  d.imp.addEventListener('click', () => { say(''); d.file.click(); });
+  d.file.addEventListener('change', async () => {
+    const f = d.file.files?.[0];
+    d.file.value = '';                       // 같은 파일을 다시 골라도 change가 뜨게
+    if (!f) return;
+    let text;
+    try { text = await f.text(); } catch (err) { say('파일을 읽지 못했어요.'); return; }
+    if (!importData(text)) { say('이 앱에서 내보낸 백업 파일이 아니에요.'); return; }
+    say('복원했어요. 화면을 새로 불러올게요…');
+    setTimeout(() => location.reload(), 700);
+  });
+
+  // 되돌릴 수 없는 동작 — 두 단계. 브라우저 confirm()을 쓰지 않는다(앱 톤 밖이고 흐름이 끊긴다).
+  d.clear.addEventListener('click', () => { say(''); d.confirm.hidden = false; d.yes.focus(); });
+  d.no.addEventListener('click', () => { d.confirm.hidden = true; d.clear.focus(); });
+  d.yes.addEventListener('click', () => {
+    d.confirm.hidden = true;
+    if (!clearAllData()) { say('지우지 못했어요.'); return; }
+    say('전체 기록을 지웠어요. 화면을 새로 불러올게요…');
+    setTimeout(() => location.reload(), 700);
+  });
 }
 
 /** 최근 7일 컨디션 이모지 행 — 날짜별 표시 (프리즈 날 🧊, 기록 없으면 ·) */
