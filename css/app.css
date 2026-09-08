@@ -220,6 +220,11 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 .cols{display:grid;gap:12px;height:100%;}
 .cols.home{grid-template-columns:240px minmax(0,1fr) 268px;}
 .cols.split{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);}
+/* ★.cols.split의 열 정의는 여기 한 번만 적는다. 아래 @media (max-width:980px)에서 1fr로
+   되돌리는데, 그 뒤에 조건 없이 한 번 더 적으면 순서상 그게 이겨서 모바일 규칙이 죽는다.
+   실제로 그런 중복이 있었고(716행), 오늘의 루틴·손목 체크·기록·게임 네 화면이 390px
+   폰에서 2열(181px+121px)로 남아 "오/른/손"처럼 한 글자씩 세로로 쪼개졌다.
+   legacy.css에는 .cols 규칙이 아예 없으므로 무엇을 이기려고 다시 적을 이유도 없다. */
 /* 칸에 박스가 하나뿐이면 남는 높이를 그 박스가 먹는다 — 시범·카메라 무대가 커진다 */
 .cols.split > div,.cols.wide > div{display:flex;flex-direction:column;}
 .cols.split > div > .box:only-child,
@@ -713,7 +718,6 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .cols > .col::-webkit-scrollbar{ width:7px; }
 .cols > .col::-webkit-scrollbar-thumb{ background:var(--frame-2); border-radius:999px; }
 .cols > .col::-webkit-scrollbar-track{ background:transparent; }
-.cols.split{ grid-template-columns:minmax(0,1.5fr) minmax(0,1fr); }
 
 /* 화면 머리 — 탭이 있으니 크게 외치지 않는다 */
 .screen-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
