@@ -7,8 +7,8 @@ registry.js     게임 ↔ 운동 1:1 표 · 오늘 무엇을 띄울지 · 반�
 session.js      화면 세션 배관 — 판정기 · 중립 잡기 · 자세 게이트 · 카메라 생명주기
 engine.js       공용 부품 — 무대(DPR) · 파티클 · rAF 루프 · 밤하늘 · 각도 라운드 계약
 starPick.js     ① 별 따기      (pinch_hold · 유지)
-starScoop.js    ② 별 줍기      (flex_ext  · 세로축)
-meteorCatch.js  ③ 유성우 받기  (deviation · 가로축)
+moonPhase.js    ② 달 채우기    (flex_ext  · 시상면 각도)
+meteorCatch.js  ③ 유성우 받기  (deviation · 관상면 각도)
 ```
 
 **registry와 session을 나눈 이유는 테스트다.** 캔버스·`rAF`는 플레인 node 스위트가
@@ -35,7 +35,7 @@ meteorCatch.js  ③ 유성우 받기  (deviation · 가로축)
 | 축 | 게임 | 대응 운동 | 판정기 |
 |---|---|---|---|
 | 유지 · 손끝 거리 | 별 따기 | `pinch_hold` | `pinchHold` |
-| 시상면 각도 (굽힘·폄) | 별 줍기 | `flex_ext` | `flexExt` |
+| 시상면 각도 (굽힘·폄) | 달 채우기 | `flex_ext` | `flexExt` |
 | 관상면 각도 (좌우) | 유성우 받기 | `deviation` | `deviation` |
 
 **왜 여기서 멈추나.** 세 가지 비용이 실제로 든다.

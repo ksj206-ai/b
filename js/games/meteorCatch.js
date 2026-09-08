@@ -10,12 +10,18 @@
 //   사용자가 그 끝에 닿을 때까지 기다리고, 닿는 순간 바구니로 내려온다. 조준도
 //   타이밍도 없다. 사용자가 하는 일은 손목을 좌우로 기울이는 것뿐이다.
 //
-// 좌우 어느 쪽이 요측(엄지쪽)인지는 고정이 아니다 — 별 줍기와 같은 이유로, 판정기가
+// 좌우 어느 쪽이 요측(엄지쪽)인지는 고정이 아니다 — 달 채우기와 같은 이유로, 판정기가
 // 손별 부호 정규화(deviationRel) 없이 화면 기준 rel을 본다. 바구니가 손을 실시간으로
 // 따라가므로 방향은 한 번 움직여 보면 알고, 왕복 판정은 양쪽 끝을 다 요구하므로
 // 어느 손이든 똑같이 성립한다.
 //
-// 별 줍기와 라운드 규칙이 완전히 같아서 engine의 createAxisRounds를 함께 쓴다.
+// ★받는 주체가 바구니가 아니라 고양이다. 전에는 그릇이 축을 따라 움직였는데, 그건
+//   별 줍기(세로축 + 채반)와 축 방향만 다른 같은 그림이었다 — 사용자가 "같은 게임
+//   같은데"로 알아봤다. 라운드 규칙(createAxisRounds)은 여전히 공유하지만, 화면에서
+//   공통 요소를 없앤다: 저쪽은 달 하나뿐이고(축도 그릇도 없다) 이쪽은 마스코트가
+//   좌우로 뛰어다닌다. 같은 배관 위에 다른 이야기를 얹는 것이지, 같은 그림이 아니다.
+//   마스코트를 쓰는 건 덤이 아니라 회수다 — 홈에서 하루를 같이 보낸 그 고양이가
+//   여기서도 주인공이면, 게임이 앱 밖의 별책부록처럼 보이지 않는다.
 // 이 파일은 그림과 기하만 갖는다 — 축이 세로가 아니라 가로라는 것이 유일한 차이다.
 // ═══════════════════════════════════════════════════════════
 import {
@@ -38,16 +44,21 @@ export function createMeteorCatch({ canvas, reps, detector, onCount, onHint, onD
   const flights = createFlights();
   const soft = reducedMotion();
 
+  // 마스코트 — 유성을 받는 주체. 못 불러오면 그리지 않고 게임은 그대로 돈다
+  // (별 따기가 쓰는 것과 같은 파일·같은 실패 처리).
+  const cat = new Image();
+  cat.src = 'assets/cat-idle.png';
+
   // 기하 — 가로축. t=0이 왼쪽(range.lo), t=1이 오른쪽(range.hi).
   const xLo = () => stage.W * 0.18;
   const xHi = () => stage.W * 0.82;
   const skyY = () => stage.H * 0.20;          // 유성이 떠 있는 높이
-  const basketY = () => stage.H * 0.74;
+  const trackY = () => stage.H * 0.74;
   const starR = () => Math.min(22, Math.max(13, stage.W / 16));
   const endX = (key) => (key === 'hi' ? xHi() : xLo());
 
-  /** 바구니 위치 — 유성이 여기로 떨어지므로 flights의 표적이기도 하다 */
-  const basket = () => ({ x: xLo() + (xHi() - xLo()) * rounds.t, y: basketY() });
+  /** 고양이 위치 — 유성이 여기로 내려오므로 flights의 표적이기도 하다 */
+  const catSpot = () => ({ x: xLo() + (xHi() - xLo()) * rounds.t, y: trackY() });
 
   const rounds = createAxisRounds({
     reps, detector, onCount, onHint, onDone,
@@ -93,7 +104,7 @@ export function createMeteorCatch({ canvas, reps, detector, onCount, onHint, onD
   function drawRail() {
     const { ctx, H } = stage;
     const gold = stage.token('star', '#fff4d2');
-    const y = basketY();
+    const y = trackY();
 
     ctx.save();
     ctx.strokeStyle = '#dfe6ff';
@@ -116,18 +127,18 @@ export function createMeteorCatch({ canvas, reps, detector, onCount, onHint, onD
     }
   }
 
-  /** 바구니 — 손목 각도가 그대로 좌우 위치가 된다. 위가 열린 그릇. */
-  function drawBasket() {
+  /** 고양이 — 손목 각도가 그대로 좌우 위치가 된다. 그릇 대신 마스코트가 받는다. */
+  function drawCat() {
     const { ctx } = stage;
-    const b = basket();
-    const r = starR() * 1.3;
-
+    const b = catSpot();
+    const sz = Math.min(96, stage.H * 0.3);
+    if (!(cat.complete && cat.naturalWidth)) return;
+    // 가는 쪽으로 살짝 기운다 — 방향이 몸짓으로 읽히게. 정지 상태(t=0.5)에선 똑바로.
+    const tilt = (rounds.t - 0.5) * (soft ? 0 : 0.35);
     ctx.save();
-    ctx.strokeStyle = stage.token('accent', '#a9b6ff');
-    ctx.lineWidth = 3;
-    ctx.globalAlpha = 0.95;
-    ctx.beginPath(); ctx.arc(b.x, b.y, r, 0, Math.PI); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(b.x - r, b.y); ctx.lineTo(b.x + r, b.y); ctx.stroke();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(tilt);
+    ctx.drawImage(cat, -sz / 2, -sz * 0.62, sz, sz);
     ctx.restore();
   }
 
@@ -139,10 +150,10 @@ export function createMeteorCatch({ canvas, reps, detector, onCount, onHint, onD
     const tk = rounds.target();
     drawMeteor('lo', tk === 'lo', now);
     drawMeteor('hi', tk === 'hi', now);
-    drawBasket();
+    drawCat();
 
-    // 표적이 매 프레임 바뀐다 — 유성이 '지금 그 자리의' 바구니로 떨어진다
-    flights.draw(ctx, dt, basket(), stage.token('star', '#fff4d2'), starR());
+    // 표적이 매 프레임 바뀐다 — 유성이 '지금 그 자리의' 고양이에게 내려온다
+    flights.draw(ctx, dt, catSpot(), stage.token('star', '#fff4d2'), starR());
     parts.update(dt);
     parts.draw(ctx);
   }
