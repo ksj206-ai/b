@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="오늘의 별자리">
+  <!-- 탭 아이콘 — assets/icon-*.png와 같은 그림의 벡터판(작은 크기에서 또렷하다).
+       색은 앱 토큰 그대로: 밤하늘 skypanel(160deg #2c3468→#4b5497), 별빛 star #fff4d2.
+       (XML 주석 안에서는 토큰 이름 앞의 붙임표 두 개를 쓸 수 없다 — 파싱이 깨진다.)
+       마스코트가 아니라 별을 쓴 이유는 16px에서 고양이가 뭉개지기 때문이다. -->
+  <defs>
+    <linearGradient id="sky" x1="0.329" y1="0.030" x2="0.671" y2="0.970">
+      <stop offset="0" stop-color="#2c3468"/>
+      <stop offset="1" stop-color="#4b5497"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="11.5" fill="url(#sky)"/>
+  <!-- 네 갈래 별 — 배너의 ✦와 같은 모양(허리 0.30) -->
+  <path d="M32 11.8 L37.8 25.2 L51.2 31 L37.8 36.8 L32 50.2 L26.2 36.8 L12.8 31 L26.2 25.2 Z"
+        fill="#fff4d2"/>
+  <circle cx="14.7" cy="48.6" r="3.1" fill="#fff4d2" fill-opacity="0.86"/>
+  <circle cx="48.0" cy="16.6" r="2.3" fill="#fff4d2" fill-opacity="0.75"/>
+  <circle cx="50.6" cy="51.2" r="1.8" fill="#fff4d2" fill-opacity="0.59"/>
+</svg>
