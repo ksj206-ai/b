@@ -210,6 +210,8 @@ html[data-theme="dark"] .banner-mark h1{text-shadow:0 0 18px rgba(255,255,255,.2
 .tabs a:hover, .tabs button:hover{background:var(--chip);}
 .tabs a.on, .tabs button.on{background:var(--chip);border-top-color:var(--accent);color:var(--accent);font-weight:700;}
 .tabs a.off, .tabs button[disabled]{opacity:.4;}
+/* 폰용 짧은 이름은 넓은 화면에서 숨는다 — 두 이름이 같이 보이면 "오늘의 루틴 루틴"이 된다 */
+.tabs .tab-short{display:none;}
 
 /* ─── 화면 무대 ─── 탭·카드가 화면을 갈아끼운다(.screen 중 하나만 .is-on).
    무대는 남은 높이를 전부 차지하고, 넘치는 것은 각 칸이 자기 안에서 처리한다 —
@@ -1089,3 +1091,134 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .cam-idle-title{ margin:2px 0 0; font-size:1rem; font-weight:700; }
 .cam-idle-text{ margin:0; font-size:.84rem; line-height:1.6; opacity:.82; word-break:keep-all; }
 .cam-idle-text b{ color:var(--star); }
+
+/* ═══════════════════════════════════════════════════════════
+   폰 (≤620px) — 문서가 아니라 앱 껍데기로
+
+   전에는 390×780에서 배너 372px + 탭 2줄 86px을 쓰고 나서야 내용이 시작돼,
+   "시작하기"가 y=1430(스크롤 두 번 아래)에 있었다. 폭만 고쳐도 여전히 문서였다.
+
+   구조를 바꾼다: 얇은 헤더 / 화면에 맞는 본문 / 하단 고정 탭.
+   ★홈만 무스크롤이다. 기록·도감·운동 목록은 내용이 원래 길어서 스크롤이 맞고,
+     억지로 한 화면에 넣으면 그 안에 또 스크롤을 만들 뿐이다.
+   태블릿(621~980px)은 건드리지 않는다 — 거기서는 세로로 쌓여도 여유가 있다.
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width:620px){
+  /* ── 껍데기 ── */
+  html, body{ height:100%; }
+  body{ padding:0; overflow:hidden; }
+  .win{
+    display:flex; flex-direction:column;
+    height:100dvh;            /* 폰 주소창 접힘까지 따라간다(vh는 안 따라간다) */
+    border:0; border-radius:0; margin:0;
+  }
+  .stage{ flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-top:6px; }
+
+  /* ── 헤더 — 워드마크와 한마디 한 줄. 마스코트는 본문 한가운데로 내려간다 ── */
+ /* 상태 띠 — 환영 문구는 접는다. 배너가 이미 앱 이름을 말하고, 360px에서는 이 한 줄이
+     두 줄로 접혀 59px을 먹는다(측정값). 테마 컨트롤만 남긴다. */
+  .win-top{ padding:3px 10px; font-size:.62rem; justify-content:flex-end; }
+  .win-top > .mono{ display:none; }
+  .banner{
+    grid-template-columns:1fr; gap:6px;
+    text-align:center; padding:8px 14px;
+  }
+  .banner .mascot-wrap{ display:none; }   /* 본문 마스코트와 겹친다 */
+  .banner-mark h1{ font-size:1.25rem; text-shadow:none; }
+  .banner-mark p{ display:none; }
+  .banner-note{ padding:5px 8px; font-size:.68rem; }
+  .banner-note b{ display:inline; margin:0 4px 0 0; }
+  .banner .deco{ display:none; }
+
+  /* ── 하단 고정 탭 ── */
+  .tabs{
+    position:fixed; left:0; right:0; bottom:0; z-index:40;
+    flex-wrap:nowrap; border-top:2px solid var(--frame); border-bottom:0;
+    padding-bottom:env(safe-area-inset-bottom);   /* 아이폰 홈 인디케이터 */
+  }
+  .tabs button{
+    flex:1 1 0; min-width:0; flex-direction:column; gap:1px;
+    padding:7px 2px; font-size:.6rem; border-right:0;
+    border-top:0; border-bottom:3px solid transparent;
+  }
+  .tabs button.on{ border-bottom-color:var(--accent); }
+  .tabs .tab-ico{ font-size:1.05rem; line-height:1; }
+  /* 긴 이름은 폰에서 줄인다 — "오늘의 루틴"은 65px 칸에 안 들어간다.
+     ★CSS ::after로 글자를 만들지 않는다: 아이콘은 aria-hidden이고 라벨을 display:none으로
+     지우면 버튼에 읽을 이름이 하나도 안 남는다(생성 콘텐츠는 이름 계산에 안 잡힌다).
+     그래서 짧은 이름을 DOM에 두고, 버튼의 aria-label이 폰·데스크톱 양쪽에서 같은
+     이름("오늘의 루틴")을 보장한다. 눈에 보이는 글자만 폭에 맞춰 갈아 끼운다. */
+  .tabs .tab-label{ display:none; }
+  .tabs .tab-short{ display:inline; }
+  /* 본문이 탭 밑으로 숨지 않게 */
+  .stage{ padding-bottom:56px; }   /* 하단 탭 51px + 여유 5px */
+
+  /* ── 홈: 한 화면에 딱 ── */
+  #screen-home{ height:100%; }
+  .cols.home{ grid-template-columns:1fr; align-content:start; gap:5px; }
+  /* 남기는 셋: 마스코트 / 오늘의 별자리 / 시작하기 */
+  .cols.home > .col:nth-child(1){ order:1; }   /* 반가워요(마스코트) */
+  .cols.home > .col:nth-child(3){ order:2; }   /* 오늘의 하늘 */
+  .cols.home > .col:nth-child(2){ order:3; }   /* 오늘의 루틴 */
+
+  /* 접는 것 — 기본 화면에서는 안 보이고 [더 보기]로 열린다 */
+  #homeMenu,
+  #homeFocusBox,
+  .cols.home > aside.col > section.box:nth-of-type(n+4),   /* 리마인더·안전 안내 */
+  .cols.home > main.col > section.box:nth-of-type(n+2),    /* 최근 기록·도감 */
+  .cols.home > .col:nth-child(3) > section.box:nth-of-type(n+2){ /* 체크·이번 달 */
+    display:none;
+  }
+  body.home-expanded #homeMenu,
+  body.home-expanded #homeFocusBox,
+  body.home-expanded .cols.home > aside.col > section.box,
+  body.home-expanded .cols.home > main.col > section.box,
+  body.home-expanded .cols.home > .col:nth-child(3) > section.box{ display:block; }
+
+  /* 마스코트 칸 — 이 화면의 한가운데. 크게 띄운다 */
+  #homeHello .welcome-cat-sm{ max-width:88px; }
+  #homeHello .box-body{ padding:10px; }
+  #homeHello .btn.ghost{ display:none; }   /* [운동 목록 보기]는 하단 탭과 같은 자리 */
+
+  /* 오늘의 루틴 칸 — 목록은 접고 헤드라인과 버튼만. 목록은 루틴 탭에 있다 */
+  body:not(.home-expanded) #homeRoutineList{ display:none; }
+  #routineStart{ width:100%; }
+
+  /* 오늘의 하늘 판 — ★legacy.css가 min-height:150px과 aspect-ratio:3/2를 걸어 둬서
+     height만 줄이면 안 먹는다(실제로 안 먹었다). 셋을 같이 눌러야 한다. */
+  .sky-stage{ height:150px; min-height:0; max-height:150px; aspect-ratio:auto; }
+
+  /* ★홈 3칸은 카드 껍데기를 벗는다. 제목바(약 28px)와 테두리·여백이 칸마다 붙어 세 칸이면
+     140px가 넘는데, "반가워요"·"오늘의 하늘" 같은 제목은 폰 홈에서 자리값을 못 한다 —
+     마스코트·별자리·시작하기 버튼이 이미 스스로를 설명한다. 헤드의 [운동 목록 ▸]
+     [도감 ▸] 링크도 하단 탭에 같은 자리가 있어 잃는 게 없다.
+     별자리 판을 더 깎는 대신 이쪽을 걷어낸다 — 별자리는 이 화면의 payoff라 작아지면 안 된다. */
+  #screen-home .box-head{ display:none; }
+  #screen-home .box{ border:0; background:none; box-shadow:none; margin:0; }
+  #screen-home .box-body{ padding:4px 6px; }
+
+  /* 더 보기 손잡이 */
+  .home-more{
+    display:block; margin:4px auto 0;
+    background:none; border:0; cursor:pointer;
+    font:inherit; font-size:.72rem; color:var(--dim); text-decoration:underline;
+  }
+  body.home-expanded #screen-home{ height:auto; }
+}
+
+/* 폰이 아닐 때는 손잡이 자체가 없다 — 접는 규칙도 그때만 산다 */
+.home-more{ display:none; }
+@media (max-width:620px){ .home-more{ display:block; } }
+
+/* 작은 폰(iPhone SE급, 높이 667px) — 본문에 남는 높이가 533px뿐이라 기본 3칸이 넘친다.
+   계산: 헤더 91 + 하단 탭 43 = 134px를 빼면 533px. 3칸 기본 합이 약 616px이라 83px 초과.
+   마스코트와 별자리 무대를 줄여 맞춘다 — 칸을 빼지는 않는다(빼면 이 화면의 뜻이 사라진다). */
+@media (max-width:620px) and (max-height:700px){
+  #homeHello .welcome-cat-sm{ max-width:52px; }
+  #homeHello .box-body{ padding:6px; }
+  .sky-stage{ height:90px; min-height:0; max-height:90px; aspect-ratio:auto; }
+  #screen-home .box-head{ padding:4px 8px; font-size:.72rem; }
+  #screen-home .box-body{ padding:8px; }
+  .banner-mark h1{ font-size:1.1rem; }
+  .cols.home{ gap:6px; }
+}

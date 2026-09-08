@@ -649,6 +649,16 @@ function boot() {
 
   document.getElementById('routineStart').addEventListener('click', startRoutineDeep);
 
+  // 폰 무스크롤 홈의 "더 보기" — 접어 둔 카드를 펼친다(데스크톱에선 버튼 자체가 안 보인다).
+  const homeMore = document.getElementById('homeMore');
+  if (homeMore) {
+    homeMore.addEventListener('click', () => {
+      const on = document.body.classList.toggle('home-expanded');
+      homeMore.setAttribute('aria-expanded', String(on));
+      homeMore.textContent = on ? '접기 ▴' : '아래로 더 보기 ▾';
+    });
+  }
+
   initUI();
   maybeAutoWelcome(); // 홈 최초 렌더 위에 환영 오버레이 (첫 1회)
 
