@@ -144,6 +144,29 @@ export function listGames(state = load()) {
   }).sort((a, b) => rank(a.id) - rank(b.id));
 }
 
+/**
+ * 지금 화면이 걸고 있는 게임 — **화면과 실행이 같은 답을 봐야 한다.**
+ *
+ * ★이 함수가 생긴 이유가 실제 사고다: "다른 게임"을 붙이면서 renderIdle만 고른 것을
+ *  반영하게 하고, 정작 startSession은 pickGame()을 다시 불렀다. 그래서 이름·설명은
+ *  고른 게임으로 바뀌는데 **실제로 도는 게임과 완료로 기록되는 운동은 자동 선택 쪽**이었다.
+ *  화면에는 "별 따기"라고 쓰여 있는데 유성우 받기가 돌고, 완료도 엉뚱한 운동에 찍힌다 —
+ *  사용자가 원인을 짚을 수 없는 종류의 어긋남이다.
+ *  고르는 곳이 둘이면 언제든 다시 갈라지므로, 고르는 곳을 하나로 둔다.
+ *
+ * @param {string|null} pickedId 사용자가 "다른 게임"에서 고른 id (없으면 자동 선택)
+ * @returns {{kind:'absent'|'ready'|'done', r:object, id:string|null}} pickGame과 같은 모양
+ */
+export function resolveGame(pickedId, state = load()) {
+  const auto = pickGame(state);
+  if (!pickedId) return auto;
+  // 고른 것이 오늘 할 수 없는 것(코스 밖)이면 조용히 자동 선택으로 돌아간다 —
+  // 어제 고른 게 오늘 코스에서 빠졌을 수 있다.
+  const row = listGames(state).find((g) => g.id === pickedId && g.playable);
+  if (!row) return auto;
+  return { kind: row.done ? 'done' : 'ready', r: auto.r, id: row.id };
+}
+
 export function gameReps(id, state = load()) {
   const g = getRoutineGuide(id, state);
   const step = g?.steps.find((st) => st.type === 'follow' && st.reps != null);

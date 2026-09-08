@@ -19,7 +19,7 @@ import { createDetector } from '../guide/stepEngine.js';
 import { createWristTracker, viewFits } from '../measurement.js';
 import { NEUTRAL, VIEW_FIT } from '../config.js';
 import * as tracking from '../tracking.js';
-import { GAME_REGISTRY, ABSENT_LEAD, pickGame, listGames, gameReps } from './registry.js';
+import { GAME_REGISTRY, ABSENT_LEAD, pickGame, listGames, resolveGame, gameReps } from './registry.js';
 
 let s = null;   // 세션 상태 — enterGame에서 한 번 만든다
 
@@ -87,11 +87,7 @@ export function renderIdle(pickedId) {
   if (pickedId !== undefined) s.pickedId = pickedId;
   const e = s.els;
   const games = listGames();
-  const auto = pickGame();
-  const wanted = games.find((g) => g.id === s.pickedId && g.playable);
-  const st = wanted
-    ? { kind: wanted.done ? 'done' : 'ready', r: auto.r, id: wanted.id }
-    : auto;
+  const st = resolveGame(s.pickedId);   // ★화면과 실행이 같은 답을 본다
   renderOthers(games, st.id);
   e.idle.hidden = false;
   e.pip.hidden = true;
@@ -193,7 +189,7 @@ function stepNeutral(n, snap, now, tracker, def, e) {
 // ─── 세션 ─────────────────────────────────────────────────
 async function startSession() {
   if (!s || s.running) return;
-  const st = pickGame();
+  const st = resolveGame(s.pickedId);   // ★renderIdle이 그린 것과 같은 게임을 돌린다
   if (st.kind === 'absent') return;
   const e = s.els, def = GAME_REGISTRY[st.id];
   const gen = ++s.startGen;

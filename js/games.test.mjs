@@ -22,7 +22,8 @@ if (typeof localStorage === 'undefined') {
   };
 }
 
-import { GAME_REGISTRY, pickGame, listGames, gameReps } from './games/registry.js';
+import { readFileSync } from 'node:fs';
+import { GAME_REGISTRY, pickGame, listGames, resolveGame, gameReps } from './games/registry.js';
 import { getGuide } from './guide/guideData.js';
 import { createDetector, DETECTOR_TYPES } from './guide/stepEngine.js';
 import { getRoutineGuide } from './routine.js';
@@ -325,6 +326,60 @@ const mkRoutine = (ids, doneIds = []) => ({
     const row = listGames(st).find((g) => g.id === picked.id);
     ok(row && row.playable, `L3 pickGame이 고른 ${picked.id}는 목록에서도 playable`);
   }
+}
+
+// ── L4: 고른 게임이 실제로 걸리는가 (resolveGame) ──
+// ★실제로 났던 사고: "다른 게임"을 붙이면서 화면(renderIdle)만 고른 것을 반영하고
+//   실행(startSession)은 pickGame()을 다시 불렀다. 이름·설명은 별 따기인데 도는 건
+//   유성우 받기였고, 완료 기록도 엉뚱한 운동에 찍혔다. 고르는 곳이 둘이면 또 갈라진다.
+{
+  const st = mk({}, mkRoutine([...ROUTINE.course], []));
+  const auto = pickGame(st);
+  const playable = listGames(st).filter((g) => g.playable).map((g) => g.id);
+
+  eq(resolveGame(null, st).id, auto.id, 'L4 아무것도 안 골랐으면 자동 선택 그대로');
+  eq(resolveGame(undefined, st).id, auto.id, 'L4b undefined도 자동 선택');
+
+  // 고를 수 있는 것은 전부 그대로 걸려야 한다 — 하나라도 자동 선택으로 되돌아가면
+  // 그게 바로 "이름만 바뀌고 다 같은 게임" 증상이다.
+  for (const id of playable) {
+    eq(resolveGame(id, st).id, id, `L4c ${id}를 고르면 ${id}가 걸린다`);
+  }
+  ok(playable.length >= 2, 'L4d 고를 수 있는 게임이 둘 이상이다(이 단언 자체가 의미 있게)');
+
+  eq(resolveGame('없는게임', st).id, auto.id, 'L4e 모르는 id는 자동 선택으로 돌아간다');
+
+  // 오늘 코스에 없는 게임을 고른 상태(어제 고른 게 오늘 빠졌을 때)
+  const yst = new Date(today); yst.setDate(today.getDate() - 1);
+  const pad = (n) => String(n).padStart(2, '0');
+  const yStr3 = `${yst.getFullYear()}-${pad(yst.getMonth() + 1)}-${pad(yst.getDate())}`;
+  const gentleSt = { ...mk(), conditions: [{ at: yStr3, condition: 'stiff' }] };
+  const locked = listGames(gentleSt).find((g) => !g.playable);
+  if (locked) {
+    eq(resolveGame(locked.id, gentleSt).id, pickGame(gentleSt).id,
+       `L4f 오늘 못 하는 ${locked.id}를 고른 상태면 조용히 자동 선택으로`);
+  }
+
+  // 연습 모드(오늘 몫 완료)에서도 고른 것이 유지된다
+  const allDone = mk({}, mkRoutine([...ROUTINE.course], [...ROUTINE.course]));
+  for (const id of listGames(allDone).filter((g) => g.playable).map((g) => g.id)) {
+    const rg = resolveGame(id, allDone);
+    eq(rg.id, id, `L4g 완료 후에도 고른 ${id}가 유지된다`);
+    eq(rg.kind, 'done', `L4h ${id}: 이미 한 것은 연습 모드로`);
+  }
+}
+
+// ── L5: session.js가 게임을 스스로 고르지 않는다 (소스 검사) ──
+// 위 L4는 규칙이 옳은지를 보고, 이건 그 규칙을 **우회하는 자리가 없는지**를 본다.
+// 사고의 본체가 "두 번째로 고르는 자리가 생긴 것"이었으므로 그 자리 자체를 막는다.
+{
+  const src = readFileSync(new URL('./games/session.js', import.meta.url), 'utf8');
+  const direct = src.split(/\r?\n/).filter((l) => /\bpickGame\s*\(/.test(l) && !l.trim().startsWith('//'));
+  eq(direct.length, 0, 'L5 session.js는 pickGame을 직접 부르지 않는다(resolveGame 한 곳으로)');
+  ok(/resolveGame\s*\(/.test(src), 'L5b resolveGame을 실제로 쓴다');
+  // 화면과 실행 두 자리 모두에서 불러야 한다
+  const uses = (src.match(/resolveGame\s*\(/g) || []).length;
+  ok(uses >= 2, `L5c 화면·실행 양쪽에서 부른다 (지금 ${uses}곳)`);
 }
 
 
