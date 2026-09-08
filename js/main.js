@@ -159,10 +159,14 @@ function renderHome() {
   renderHomeCalendar();
 
   // 반가워요 칸은 말풍선과 같은 말을 두 번 하지 않는다 — 짧은 인사만.
+  // ★이 규칙을 두 갈래에서 어기고 있었다: 완주하면 양쪽 다 "오늘 몫 끝! 내일 만나요"였고,
+  //   진행 중이면 "좀 전에 하던 거…"와 "아까 하던 거…"라 같은 말을 두 번 하는 셈이었다.
+  //   갈라놓는 기준은 역할이다 — 말풍선은 오늘 무슨 일이 있었는지(상태)를 말하고,
+  //   이 칸은 인사만 한다. 그래야 나란히 놓여도 서로를 덮지 않는다.
   const greet = $('homeGreet');
   if (greet) {
-    greet.textContent = complete ? '오늘 몴 끝! 내일 만나요 🌙'
-      : done > 0 ? '좀 전에 하던 거, 이어서 할까요?'
+    greet.textContent = complete ? '오늘도 와 줘서 고마워요 🐾'
+      : done > 0 ? '천천히 해요, 여기서 기다릴게요 🐾'
       : '오늘도 만나서 반가워요!';
   }
 
@@ -1371,7 +1375,8 @@ async function initGuide() {
     b.className = 'guide-card';
     b.dataset.guideId = g.id;
     b.innerHTML = `<span class="gc-emoji">${g.emoji}</span><span class="gc-name">${g.name}</span>` +
-                  `<span class="gc-tags"><span class="gc-focus" hidden>🎯 오늘의 포커스</span>` +
+                  `<span class="gc-tags">${needsCamera(g) ? '' : '<span class="gc-cam">카메라 없이</span>'}` +
+                  `<span class="gc-focus" hidden>🎯 오늘의 포커스</span>` +
                   `<span class="gc-badge" hidden></span></span>`;
     b.addEventListener('click', () => openPlayer(g.id, false));
     els.list.appendChild(b);
@@ -1451,6 +1456,9 @@ function showGuideList() {
   refreshGuideBadges();
   guide.els.player.hidden = true;
   guide.els.list.hidden = false;
+  // 목록으로 돌아오면 도움말도 돌아온다 — 여기서는 아홉 개 중 일곱이 카메라를 쓴다.
+  const recogHelp = document.getElementById('guideRecogHelp');
+  if (recogHelp) recogHelp.hidden = false;
 }
 
 /**
@@ -1482,13 +1490,14 @@ function refreshGuideBadges() {
       if (focusTag) focusTag.hidden = true; // 오늘 코스에 없는 운동엔 태그도 안 붙인다
       continue;
     }
-    // 완료한 것만 표시한다. 목록 전체가 오늘의 루틴이라(화면 제목도 그렇다)
-    // 미완료에까지 "오늘의 루틴"을 달면 여섯 줄이 다 같은 칩이 되어 아무것도
-    // 구분해 주지 못한다 — 비워 둬야 완료 표시가 눈에 들어온다.
+    // ★전에는 완료만 표시했다. 근거는 "목록 전체가 오늘의 루틴이라 미완료에까지 칩을 달면
+    //   여섯 줄이 다 같은 칩이 되어 아무것도 구분해 주지 못한다"였는데, 그 전제가 더는
+    //   사실이 아니다: 목록은 9개고 오늘 코스는 6개다(grip_hold·전완 스트레칭 2종이 코스 밖).
+    //   이제 칩 6개가 "오늘 할 것"과 "둘러보기"를 실제로 갈라 준다.
     const done = isSlotDone(r, slot);
-    badge.textContent = done ? '완료 ✨' : '';
+    badge.textContent = done ? '완료 ✨' : '오늘 코스';
     badge.classList.toggle('gc-badge--done', done);
-    badge.hidden = !done;
+    badge.hidden = false;
     // 끝낸 운동엔 숨긴다 — 태그는 "여기 신경 써봐요"라는 권유라 완료 후엔 소음이 된다
     if (focusTag) focusTag.hidden = done || card.dataset.guideId !== focusId;
   }
@@ -1499,6 +1508,11 @@ async function startGuide(id, routineMode = false) {
   // 둘러보기(browse)는 기본 reps 그대로 — 판정·애니는 어느 쪽이든 불변.
   const g = routineMode ? getRoutineGuide(id) : guide.mods.getGuide(id);
   if (!g) return;
+
+  // 인식 도움말은 카메라를 쓰는 운동에서만. 전완 스트레칭(timed)은 인식을 안 쓰는데도
+  // "손이 화면 안에 다 들어오게 놓아주세요"가 옆에 떠 있어서, 없는 문제를 걱정시켰다.
+  const recogHelp = document.getElementById('guideRecogHelp');
+  if (recogHelp) recogHelp.hidden = !guide.mods.needsCamera(g);
   const { els, ctx, mods } = guide;
   const gen = ++guide.startGen; // 이 시작 시도의 세대 — 로딩 중 이탈 시 stopGuideSession이 올림
   clearTimeout(guide.autoNextTimer);
@@ -2094,7 +2108,7 @@ async function renderRecords() {
       routineCount: $('recRoutineCount'), routine: $('recRoutine'), routineEmpty: $('recRoutineEmpty'),
       week: $('recWeek'), freeze: $('recFreeze'),
       meas: $('recMeas'), measCount: $('recMeasCount'),
-      measEmpty: $('recMeasEmpty'), measNote: $('recMeasNote'),
+      measEmpty: $('recMeasEmpty'), measNote: $('recMeasNote'), measBox: $('recMeasBox'),
     };
     wireDataTools();
   }
@@ -2128,6 +2142,10 @@ async function renderRecords() {
  */
 function renderMeasList(e, ms) {
   if (!e.meas) return;
+  // ★체크 기록이 없으면 이 카드를 통째로 접는다. 바로 왼쪽 추이 카드가 이미 같은 문구
+  //   ("아직 체크 기록이 없어요…")와 같은 버튼("체크하러 가기")을 보여 주고 있어서,
+  //   빈 화면에 똑같은 안내가 두 번 나란히 떴다. 기록이 생기면 다시 나타난다.
+  if (e.measBox) e.measBox.hidden = !ms.length;
   if (!ms.length) {
     e.meas.hidden = true; e.measEmpty.hidden = false;
     e.measNote.hidden = true; e.measCount.textContent = '';
@@ -2420,14 +2438,31 @@ function renderHistory(e, done) {
   e.historyEmpty.hidden = true; e.history.hidden = false;
   e.guideCount.textContent = `총 ${done.length}회`;
 
+  // 바로 위 "데일리 루틴"이 이미 하루를 6/6으로 요약한다. 여기서 하루치를 다시 여섯 줄로
+  // 펴면 같은 사실을 두 번 세는 셈이라, 기본은 접어 두고 궁금한 사람만 펼친다.
   const recent = [...done].reverse();
-  const shown = recent.slice(0, 20);
+  const FOLD = 6;
+  const expanded = e.history.dataset.expanded === '1';
+  const shown = expanded ? recent.slice(0, 60) : recent.slice(0, FOLD);
   const rows = shown.map((g) => {
     const name = g.name || guideNameMap[g.id] || g.id;
     return `<li class="rh-item"><span class="rh-date">${fmtMd(g.at)}</span><span class="rh-name">${escapeHtml(name)}</span></li>`;
   });
-  if (recent.length > shown.length) rows.push(`<li class="rh-more">그 외 ${recent.length - shown.length}회</li>`);
+  const rest = recent.length - shown.length;
+  if (rest > 0) {
+    rows.push(`<li class="rh-more"><button type="button" class="rh-more-btn" data-expand>그 외 ${rest}회 더 보기</button></li>`);
+  } else if (expanded && recent.length > FOLD) {
+    rows.push('<li class="rh-more"><button type="button" class="rh-more-btn" data-expand>접기</button></li>');
+  }
   e.history.innerHTML = rows.join('');
+  if (!e.history.dataset.wired) {
+    e.history.dataset.wired = '1';
+    e.history.addEventListener('click', (ev) => {
+      if (!ev.target.closest('[data-expand]')) return;
+      e.history.dataset.expanded = e.history.dataset.expanded === '1' ? '' : '1';
+      renderRecords();
+    });
+  }
 }
 
 if (document.readyState === 'loading') {

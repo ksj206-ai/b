@@ -19,7 +19,7 @@ import { createDetector } from '../guide/stepEngine.js';
 import { createWristTracker, viewFits } from '../measurement.js';
 import { NEUTRAL, VIEW_FIT } from '../config.js';
 import * as tracking from '../tracking.js';
-import { GAME_REGISTRY, ABSENT_LEAD, pickGame, gameReps } from './registry.js';
+import { GAME_REGISTRY, ABSENT_LEAD, pickGame, listGames, gameReps } from './registry.js';
 
 let s = null;   // 세션 상태 — enterGame에서 한 번 만든다
 
@@ -34,7 +34,7 @@ function collectEls() {
     idleEmoji: $('gmIdleEmoji'), idleTitle: $('gmIdleTitle'), idleText: $('gmIdleText'),
     count: $('gmCount'), countNum: $('gmCountNum'),
     countOf: document.querySelector('#gmCount .gm-count-of'),
-    start: $('gmStart'), quit: $('gmQuit'),
+    start: $('gmStart'), quit: $('gmQuit'), others: $('gmOthers'),
   };
 }
 
@@ -44,9 +44,55 @@ function setCam(ico, txt) {
   s.els.camTxt.textContent = txt;
 }
 
-export function renderIdle() {
+/**
+ * "다른 게임" 줄 — 지금 보여 주는 것 말고 나머지를 조용히 알린다.
+ *
+ * 격자 메뉴가 아니다: 기본 경로는 위의 하나로 끝나고(아무것도 안 묻는다), 이 줄은
+ * 궁금한 사람이 누르는 자리다. 오늘 코스에 없는 게임은 감추지 않고 잠근다 —
+ * 감추면 "어제는 있었는데"가 되고, 잠그면 왜인지 말할 수 있다.
+ */
+function renderOthers(games, curId) {
+  const box = s?.els?.others;
+  if (!box) return;
+  const rest = games.filter((g) => g.id !== curId);
+  box.hidden = !rest.length;
+  box.innerHTML = '';
+  if (!rest.length) return;
+  const label = document.createElement('span');
+  label.className = 'gm-others-label';
+  label.textContent = '다른 게임';
+  box.appendChild(label);
+  for (const g of rest) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'gm-other';
+    b.textContent = g.title;
+    if (!g.playable) {
+      b.disabled = true;
+      b.title = '오늘 코스에 없는 운동이에요 — 완료로 기록될 자리가 없어요';
+      b.setAttribute('aria-label', `${g.title} — 오늘은 쉬어요`);
+    } else {
+      b.title = g.exName + (g.done ? ' · 오늘 몫 완료' : '');
+      b.addEventListener('click', () => { stopSession(); renderIdle(g.id); });
+    }
+    if (g.done) b.classList.add('is-done');
+    box.appendChild(b);
+  }
+}
+
+export function renderIdle(pickedId) {
   if (!s?.els) return;
-  const e = s.els, st = pickGame();
+  // pickedId가 오면 그것을, 없으면 늘 하던 대로 하나를 자동으로 내민다.
+  // 기본 경로에서는 아무도 고르지 않는다 — 고르는 건 "다른 게임"을 누른 사람뿐이다.
+  if (pickedId !== undefined) s.pickedId = pickedId;
+  const e = s.els;
+  const games = listGames();
+  const auto = pickGame();
+  const wanted = games.find((g) => g.id === s.pickedId && g.playable);
+  const st = wanted
+    ? { kind: wanted.done ? 'done' : 'ready', r: auto.r, id: wanted.id }
+    : auto;
+  renderOthers(games, st.id);
   e.idle.hidden = false;
   e.pip.hidden = true;
   e.priv.hidden = true;

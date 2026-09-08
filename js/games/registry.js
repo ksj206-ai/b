@@ -115,6 +115,35 @@ export function pickGame(state = load()) {
 
 /** 반복수는 게임이 정하지 않는다 — 적응형 dose가 얹힌 루틴 가이드에서 읽는다.
  *  게임이 자기 반복수를 정하면 adapt.doseLevel을 우회하는 샛길이 된다(설계서 §2). */
+/**
+ * 게임 세 종의 오늘 상태 — 화면이 "다른 게임"을 조용히 보여줄 재료.
+ *
+ * ★pickGame이 하나만 내미는 규칙은 그대로다(위 주석의 원칙 ②: 고민하게 만들면 안 한다).
+ *  이 함수는 그 하나를 고르는 자리가 아니라, **고르지 않은 것도 존재한다**는 사실까지
+ *  화면이 알 수 있게 하는 목록이다. 셋을 격자로 늘어놓고 매일 고르라고 묻는 것과는 다르다 —
+ *  기본 경로는 여전히 아무것도 묻지 않고, 궁금한 사람만 옆줄을 누른다.
+ *  이게 없으면 만들어 둔 셋 중 둘은 사용자가 존재조차 모른 채로 남는다.
+ *
+ * playable=false(오늘 코스에 없는 운동)는 숨기지 않고 잠근다. 감추면 "왜 어제는
+ * 있었는데 오늘은 없지"가 되고, 잠그면 이유를 말할 수 있다.
+ * 순서는 오늘 코스 순 — 코스 밖은 뒤로 민다.
+ */
+export function listGames(state = load()) {
+  const r = getTodayRoutine(state);
+  const rank = (id) => { const i = r.ids.indexOf(id); return i < 0 ? 99 : i; };
+  return Object.keys(GAME_REGISTRY).map((id) => {
+    const inCourse = r.ids.includes(id);
+    return {
+      id,
+      title: GAME_REGISTRY[id].title,
+      exName: GAME_REGISTRY[id].exName,
+      inCourse,
+      done: inCourse && r.doneIds.includes(id),
+      playable: inCourse,   // 코스에 없으면 완료로 기록될 슬롯이 없다(pickGame과 같은 규칙)
+    };
+  }).sort((a, b) => rank(a.id) - rank(b.id));
+}
+
 export function gameReps(id, state = load()) {
   const g = getRoutineGuide(id, state);
   const step = g?.steps.find((st) => st.type === 'follow' && st.reps != null);

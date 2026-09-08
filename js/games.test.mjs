@@ -22,7 +22,7 @@ if (typeof localStorage === 'undefined') {
   };
 }
 
-import { GAME_REGISTRY, pickGame, gameReps } from './games/registry.js';
+import { GAME_REGISTRY, pickGame, listGames, gameReps } from './games/registry.js';
 import { getGuide } from './guide/guideData.js';
 import { createDetector, DETECTOR_TYPES } from './guide/stepEngine.js';
 import { getRoutineGuide } from './routine.js';
@@ -280,6 +280,53 @@ const mkRoutine = (ids, doneIds = []) => ({
     eq(r.t, 1, 'A4 feed가 range로 t를 옮긴다');
   }
 }
+// ── L1: 목록이 셋을 전부 돌려준다 — 안 고른 것도 사라지지 않는다 ──
+// ★이게 이 커밋의 핵심이다. 전에는 pickGame이 고른 하나만 화면에 닿아서, 만들어 둔
+//   셋 중 둘은 사용자가 존재조차 모른 채였다. "숨기지 않는다"를 테스트로 못 박는다.
+{
+  const all = listGames(mk({}, mkRoutine([...ROUTINE.course], [])));
+  eq(all.length, KEYS.length, `L1 등록된 게임 ${KEYS.length}개가 모두 목록에 있다`);
+  eq(new Set(all.map((g) => g.id)).size, KEYS.length, 'L1b 중복 없음');
+  for (const g of all) ok(g.title && g.exName, `L1c ${g.id}: 화면에 쓸 문구가 있다`);
+}
+
+// ── L2: 상태 — 코스 안/밖, 완료 ──
+{
+  const [a, b] = KEYS;
+  // a만 끝낸 상태
+  const some = listGames(mk({}, mkRoutine([...ROUTINE.course], [a])));
+  const byId = Object.fromEntries(some.map((g) => [g.id, g]));
+  eq(byId[a].done, true, `L2 ${a}: 끝냈으면 done`);
+  eq(byId[a].playable, true, 'L2b 끝냈어도 연습으로 다시 할 수 있다');
+  eq(byId[b].done, false, `L2c ${b}: 아직 안 했으면 done 아님`);
+
+  // ★코스를 직접 심어도 소용없다(getTodayRoutine이 다시 계산한다) — 순한 날 경로로 만든다.
+  //   순한 코스는 3종이라 게임 있는 운동 일부가 실제로 빠진다.
+  const yst = new Date(today); yst.setDate(today.getDate() - 1);
+  const pad = (n) => String(n).padStart(2, '0');
+  const yStr2 = `${yst.getFullYear()}-${pad(yst.getMonth() + 1)}-${pad(yst.getDate())}`;
+  const gentleSt = { ...mk(), conditions: [{ at: yStr2, condition: 'stiff' }] };
+  const gRows = listGames(gentleSt);
+  const gIds = pickGame(gentleSt).r.ids;
+  eq(gRows.length, KEYS.length, 'L2d 순한 날에도 목록은 셋 그대로 — 빠지지 않는다');
+  for (const g of gRows) {
+    eq(g.playable, gIds.includes(g.id), `L2e ${g.id}: playable은 '오늘 코스에 있는가'와 같다`);
+  }
+  ok(gRows.some((g) => !g.playable), 'L2f 순한 코스에서는 실제로 잠기는 게임이 생긴다');
+}
+
+// ── L3: pickGame이 고른 것은 목록에서도 playable이다 (두 규칙이 갈라지지 않게) ──
+// 갈라지면 화면이 "시작하기"를 띄워 놓고 옆줄에서는 잠긴 것으로 보이는 모순이 생긴다.
+{
+  for (const doneIds of [[], [KEYS[0]], [...ROUTINE.course]]) {
+    const st = mk({}, mkRoutine([...ROUTINE.course], doneIds));
+    const picked = pickGame(st);
+    if (picked.kind === 'absent') continue;
+    const row = listGames(st).find((g) => g.id === picked.id);
+    ok(row && row.playable, `L3 pickGame이 고른 ${picked.id}는 목록에서도 playable`);
+  }
+}
+
 
 console.log(`\n${fail === 0 ? '✅' : '❌'} games.test.mjs — ${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);

@@ -385,7 +385,9 @@
               <p class="soft">통증이 있으면 즉시 멈추세요. 회수를 다 못 채워도 오늘 한 것으로 인정돼요.</p>
             </div>
           </section>
-          <section class="box">
+          <!-- 인식 도움말 — 카메라를 쓰는 운동에서만 뜬다(main.js). 전완 스트레칭처럼
+                 인식을 아예 안 쓰는 운동에서 이게 떠 있으면 없는 문제를 걱정시킨다. -->
+            <section class="box" id="guideRecogHelp">
             <h2 class="box-head">💡 인식이 잘 안 돼요</h2>
             <div class="box-body">
               <p>① 손이 화면 안에 다 들어오게 놓아주세요</p>
@@ -567,6 +569,9 @@
                   <button type="button" class="btn btn-primary" id="gmStart">시작하기</button>
                   <button type="button" class="btn" id="gmQuit" hidden>그만하기</button>
                 </div>
+                <!-- 다른 게임 — 기본 경로는 위의 하나로 끝난다(고민하게 만들지 않는다).
+                     이 줄은 "셋이 있다"는 사실만 조용히 알린다. 채우는 건 games/session.js. -->
+                <div id="gmOthers" class="gm-others" role="group" aria-label="다른 게임" hidden></div>
                 <p class="gm-note">아프면 바로 멈추세요. 손이 잘 안 잡혀도 괜찮아요 — 언제든 그만둘 수 있습니다.</p>
               </div>
             </section>
@@ -637,7 +642,7 @@
                이 목록이 있어야 (1) 자세 게이트를 못 맞춘 기록(view:'off')을 사용자가
                구별하고 (2) 잘못 잰 기록을 지울 수 있다. 둘 다 판정에 영향을 주는데
                화면에서는 손댈 수 없던 것들이다. -->
-          <section class="box">
+          <section class="box" id="recMeasBox">
             <h2 class="box-head">📏 손목 체크 기록 <span class="more" id="recMeasCount"></span></h2>
             <div class="box-body">
               <ul id="recMeas" class="rec-history"></ul>

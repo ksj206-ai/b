@@ -293,6 +293,12 @@
 }
 
 .gc-badge--done{ background:var(--sage); box-shadow:none; }
+/* 카메라 없이 할 수 있는 운동 — 권한을 주기 싫은 날 고를 수 있게. 눌러 보기 전엔 알 수
+   없던 정보다(9개 중 2개만 카메라를 안 켠다). 배지가 아니라 정보라서 톤을 낮춘다. */
+.gc-cam{
+  font-size:.66rem; padding:2px 7px; border-radius:var(--r-pill);
+  color:var(--dim); border:1px dashed var(--line); white-space:nowrap;
+}
 
 /* 오늘의 포커스 — 상태 배지(보라, 채움)보다 한 단계 조용한 금빛 아웃라인 칩.
    "약함" 라벨이 아니라 권유라 위계를 낮춰 둔다(보이는_돌봄 §2③·§3 절제). */
@@ -588,6 +594,10 @@
 .rh-name{ font-size:var(--fs-base); color:var(--ink); }
 
 .rh-more{ font-size:var(--fs-xs); color:var(--muted); text-align:center; padding:var(--sp-2xs) 0; }
+.rh-more-btn{
+  background:none; border:0; padding:2px 0; cursor:pointer;
+  font:inherit; font-size:inherit; color:var(--accent); text-decoration:underline;
+}
 
 @keyframes breathe{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
 
@@ -641,4 +651,17 @@
 .gm-count{ margin:0 0 12px; font-size:2rem; font-weight:800; line-height:1.1; color:var(--accent); }
 .gm-count-of{ font-size:1rem; font-weight:600; color:var(--dim); }
 .gm-btns{ display:flex; gap:var(--sp-sm); flex-wrap:wrap; }
+/* 다른 게임 줄 — 주 버튼 아래의 조용한 한 줄. 격자 메뉴가 아니라서 작고 흐리다.
+   기본 경로(위의 시작하기 하나)를 시각적으로 이기면 "뭘 할까"를 다시 묻는 셈이 된다. */
+.gm-others{ display:flex; align-items:center; gap:var(--sp-xs); flex-wrap:wrap; margin:12px 0 0; }
+.gm-others-label{ font-size:.72rem; color:var(--dim); }
+.gm-other{
+  padding:4px 10px; border-radius:var(--r-pill); cursor:pointer;
+  background:var(--chip); border:1px solid var(--line); color:var(--ink);
+  font:inherit; font-size:.75rem; line-height:1.4;
+}
+.gm-other:hover:not(:disabled){ border-color:var(--accent); }
+.gm-other.is-done{ color:var(--dim); }
+.gm-other:disabled{ opacity:.45; cursor:not-allowed; }
+
 .gm-note{ margin:12px 0 0; font-size:.72rem; color:var(--dim); line-height:1.5; word-break:keep-all; }
