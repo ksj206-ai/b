@@ -24,7 +24,7 @@
 | 루틴 구성 · 적응형 조정 | `js/routine.js`, `js/store.js` |
 | 별자리 데이터 · 렌더 | `js/constellations.js`, `js/sky.js` |
 | 오늘의 별자리 한마디 | `js/routine.js` (dailyStarMessage), `js/config.js` (STAR_MESSAGE) |
-| 미니게임 | `js/games/` (registry · session · engine · starPick · moonPhase · meteorCatch) |
+| 미니게임 | `js/games/` (registry · session · engine · starPick · catRocket · meteorCatch) |
 | 낭독기 안내(live region) | `js/a11y.js`, `index.html`의 `#srLive`·`#srAlert` |
 | 상수 단일 출처 | `js/config.js` |
 | 데이터 관리 (내보내기·불러오기·삭제) | `js/store.js` (하단), `js/main.js` (wireDataTools) |
