@@ -2,7 +2,7 @@
 // store.js — localStorage 저장/조회 (영상 미저장, 좌표·수치만)
 // 하나의 루트 키(wristGarden) 아래 JSON 트리로 보관.
 // ═══════════════════════════════════════════════════════════
-import { STORAGE_KEYS, FUNCTIONAL_ROM, DEBUG_ADAPT, ROUTINE } from './config.js';
+import { STORAGE_KEYS, FUNCTIONAL_ROM, DEBUG_ADAPT, ROUTINE, SIGNAL_DEG } from './config.js';
 import { CONSTELLATIONS, getConstellation, constellationsBySeason } from './constellations.js';
 
 const ROOT = STORAGE_KEYS.ROOT;
@@ -170,7 +170,7 @@ export function deviationProgress(rec, target = FUNCTIONAL_ROM.deviationCombined
 //   · flexExtRel/deviationRel의 부호가 손마다 뒤집힌다
 //   · 옆모습에서 카메라를 향하는 신체 면이 반대다
 //   · 편위 개별 라벨은 아직 잠정(config.DEV_LABEL)
-// 이 셋이 만드는 겉보기 변화는 판정 문턱(RED_DROP_DEG·riseDeg = 8°)을 쉽게 넘는다.
+// 이 셋이 만드는 겉보기 변화는 판정 문턱(config.SIGNAL_DEG, 지금 8°)을 쉽게 넘는다.
 //
 // 규칙은 한 줄이다 — hand가 '같으면' 비교 가능. 손을 모르는 옛 기록(null)끼리는 서로
 // 비교되고(기존 동작 보존), 아는 손과는 비교되지 않는다(교차 비교를 새로 만들지 않는다).
@@ -550,8 +550,7 @@ export function refreshFocus(state = load(), date = todayStr()) {
 // 하지 않는다. 그리고 더 직접적이고 신선한 안전 채널(사용자 본인의 stiff 보고)은
 // 그대로 순한 코스를 발동시키므로, 여기서 끄는 건 자의적인 채널 하나뿐이다.
 //
-// ②가 없으면: RED_DROP_DEG 8°는 '급락' 판정인데 두 달에 걸친 8° 하락도 급락이 된다.
-// red(RED_DROP_DEG 8°)는 '급락' 판정인데 두 달에 걸친 8° 하락은 급성이 아니다.
+// ②가 없으면: RED_DROP_DEG는 '급락' 판정인데 두 달에 걸친 8° 하락도 급락이 된다.
 // 30일인 이유: measureEveryDays(7)의 3~4주기까지는 "인접 측정"으로 봐줄 만하고,
 // FOCUS_STALE_DAYS와 같은 값이라 "한 달 넘으면 옛날"이라는 시간 감각이 코드에서 하나로
 // 읽힌다. (두 상수를 합치지는 않는다 — 하나는 '최신이 오래됨', 하나는 '쌍이 벌어짐'으로
@@ -605,8 +604,9 @@ export function signalPair(state, date = todayStr()) {
 }
 
 // 측정이 직전 대비 이 각도(°) 이상 떨어지면 red 신호(순한 코스로 쉬어가기).
-// 측정 노이즈(ROM.stableBand=7° 흔들림 허용)보다 크게 잡아 오탐을 막는다.
-const RED_DROP_DEG = 8;
+// 값은 config.SIGNAL_DEG 한 곳에서 온다(= ROM.stableBand + 1, 측정 노이즈 위 한 칸).
+// 여기서 이름을 다시 붙이는 건 아래 판정을 읽기 위해서다 — 숫자를 다시 적는 게 아니다.
+const RED_DROP_DEG = SIGNAL_DEG;
 
 /**
  * red 신호(설계 §2 신호등 🔴 / §4.4) — 가장 최근 측정이 직전 측정 대비 크게

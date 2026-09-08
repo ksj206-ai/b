@@ -165,12 +165,29 @@ export const NEUTRAL = {
 // ─── ROM 측정 유지·판정 (원본 L1138, L1289) ───
 export const ROM = {
   holdMs: 2200,     // 끝범위 유지 시간 → 자동 저장
+  // ★잠정★ — 프로토타입(wrist-garden_32.html L1138)에서 주석 없이 이식된 맨 상수다.
+  // 실험으로 얻은 값이 아니고 근거 기록도 없다. 그런데 아래 SIGNAL_DEG가 여기서
+  // 파생되므로 이 한 값이 '유지 타이머 리셋'과 'red·improve 발동'을 동시에 좌우한다.
+  // 실측 절차(5분): 손목 체크를 연속 4회 하고 첫 회는 버린 뒤(오랜만이면 워밍업 효과로
+  // 낮게 나와 변동 폭이 부풀려진다) 나머지 3회의 flex/ext 최대−최소 = 재검사 변동.
+  // 그 값이 이 상수의 근거다. (절차는 docs/스모크_체크리스트.md)
   stableBand: 7,    // 이 각도(°) 이상 흔들리면 유지 타이머 리셋
   minExt: 8,        // 이 각도(°) 이상 벌어져야 측정 대상
   rearm: 5,         // |rel| < 이 값이면 래치 해제(반대쪽 측정 준비)
   neutralMs: 2500,  // 중립 측정 지속시간 (원본 L1167 DUR)
   neutralMinSamples: 3, // 중립 평균에 필요한 최소 표본 (원본 L828, L1169)
 };
+
+// ─── 판정 문턱 — 측정 노이즈 위 한 칸 (red 하락 · improve 상승 공용) ───
+// 하락(store.isRedSignal)과 상승(ROUTINE.adaptImprove.riseDeg)이 같은 문턱을 쓰는 건
+// 의도된 대칭이다 — "노이즈보다 큰 변화"의 정의는 방향에 따라 달라지지 않는다.
+// 근거는 커밋 980a474: "임계 8°는 측정 노이즈(ROM.stableBand 7°)보다 크게 잡아 오탐을 막음".
+// 그 파생 관계가 지금까지 코드에 없어서 8이 두 파일에 따로 적혀 있었다(config.js·store.js).
+//
+// ★stableBand가 잠정이라 이 값도 잠정이다. 실측이 끝나면 stableBand '한 곳만' 고친다 —
+// 두 신호가 같이 따라온다. 노이즈가 실제로 10°면 지금 순한 코스가 노이즈에 오발동
+// 중이고, 5°면 진짜 하락을 놓치는 중이다.
+export const SIGNAL_DEG = ROM.stableBand + 1;
 
 // ─── 데일리 루틴 ───
 export const ROUTINE = {
@@ -207,8 +224,8 @@ export const ROUTINE = {
   // 측정 기반 맞춤(설계 §4.5 긍정 신호) — 개선됐을 때만 가끔 격려 1회.
   // 유일하게 사용자에게 보이는 맞춤 신호. 악화·정체엔 아무것도 표시 안 함(부정 프레이밍 금지).
   adaptImprove: {
-    riseDeg: 8,            // 직전 대비 flex·ext·rom 중 하나가 이 각도(°) 이상 상승하면 "개선"
-                          // (측정 노이즈 ROM.stableBand=7°보다 크게 — isRedSignal과 대칭). 같은 값을
+    riseDeg: SIGNAL_DEG,   // 직전 대비 flex·ext·rom 중 하나가 이 각도(°) 이상 상승하면 "개선"
+                          // (= ROM.stableBand + 1 — 하락 신호와 같은 출처. 위 SIGNAL_DEG 참고). 같은 값을
                           // 하락 가드로도 쓴다: flex·ext 중 한 방향이라도 이만큼 하락하면 개선 아님.
     minToleratedStreak: 2, // "최근 잘 견딤" 기준 — toleratedStreak(§4.3)이 이 값 이상이어야 표시.
                           // (견딤은 streak'만' — condition≠stiff OR로 대체 금지: 하강한 날 통과 구멍)

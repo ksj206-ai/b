@@ -12,7 +12,8 @@ if (typeof localStorage === 'undefined') {
 }
 
 import { decideDose, updateDose, computeDose, getRoutineGuide, improveSignal } from './routine.js';
-import { getAdapt, freshComp } from './store.js';
+import { getAdapt, freshComp, isRedSignal, isImproving } from './store.js';
+import { ROM, ROUTINE, SIGNAL_DEG } from './config.js';
 
 let pass = 0, fail = 0;
 const eq = (got, want, msg) => {
@@ -118,7 +119,7 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
 }
 
 // ── T9: 긍정 신호(§4.5) — 개선 시에만, 견딤은 streak만, 하강한 날/도배 스킵 ──
-// riseDeg=8, minToleratedStreak=2, minGapDays=3. focus='flex'.
+// riseDeg=SIGNAL_DEG(8), minToleratedStreak=2, minGapDays=3. focus='flex'.
 {
   const mkI = (adaptPatch = {}, measurements = []) => ({
     adapt: { focus: 'flex', focusSoft: false, doseLevel: {}, toleratedStreak: 0, lastImproveShownAt: null, lastAdaptedAt: null, lastDoseAction: null, ...adaptPatch },
@@ -154,7 +155,7 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
 }
 
 // ── F1: red(측정 급락) 날 focus 운동 base 클램프 — 표시용, 상태 불변, 다음날 복귀 ──
-// isRedSignal: 최근 측정이 직전 대비 flex/ext ≥8° 하락. RED_DROP_DEG=8.
+// isRedSignal: 최근 측정이 직전 대비 flex/ext가 SIGNAL_DEG(8°) 이상 하락 — RED_DROP_DEG는 그 값을 그대로 쓴다.
 {
   const mkR = (measurements, doseLevel = { flex_ext: 1 }, patch = {}) => ({
     adapt: { focus: 'flex', focusSoft: false, doseLevel, toleratedStreak: 3, lastImproveShownAt: null, lastAdaptedAt: null, lastDoseAction: null, ...patch },
@@ -245,6 +246,30 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
   eq(freshComp(30, '2026-07-22', '2026-07-22'), 30, 'C4 오늘 잰 comp → 유지');
   eq(freshComp(30, '2026-07-21', '2026-07-22'), null, 'C4 어제 comp → 리셋(null)');
   eq(freshComp(30, null, '2026-07-22'), null, 'C4 스탬프 없음 → null');
+}
+
+// ── S1: 판정 문턱 단일 출처 — config.SIGNAL_DEG 하나가 red·improve를 동시에 움직인다 ──
+// ★숫자(8)를 여기 적지 않는다. 경계를 SIGNAL_DEG로 만들어 넣기 때문에, 누가 store.js나
+//   config.js에 8을 다시 하드코딩한 뒤 SIGNAL_DEG만 바꾸면 이 블록이 깨진다 — 그게 이
+//   테스트의 전부다. 문턱이 얼마인지가 아니라 "한 곳에서 온다"를 단언한다.
+{
+  eq(SIGNAL_DEG, ROM.stableBand + 1, 'S1a SIGNAL_DEG = 측정 노이즈 위 한 칸');
+  eq(ROUTINE.adaptImprove.riseDeg, SIGNAL_DEG, 'S1b 상승 문턱도 같은 출처');
+
+  const D = '2026-07-22';
+  // 쌍은 같은 손(둘 다 미상)·자세 통과·간격 7일 — signalPair를 통과시키고 문턱만 남긴다.
+  const pair = (dFlex, dRom) => ({ measurements: [
+    { at: '2026-07-15', flex: 40, ext: 40, rom: 80 },
+    { at: D, flex: 40 + dFlex, ext: 40, rom: 80 + dRom },
+  ] });
+
+  // 하락: 문턱 바로 아래는 침묵, 문턱에 닿으면 red (store.RED_DROP_DEG가 config에서 온다)
+  eq(isRedSignal(pair(-(SIGNAL_DEG - 1), -(SIGNAL_DEG - 1)), D), false, 'S1c 문턱 −1° 하락은 red 아님');
+  eq(isRedSignal(pair(-SIGNAL_DEG, -SIGNAL_DEG), D), true, 'S1d 문턱만큼 하락하면 red');
+
+  // 상승: 같은 문턱의 대칭 (config.adaptImprove.riseDeg)
+  eq(isImproving(pair(SIGNAL_DEG - 1, SIGNAL_DEG - 1), D), false, 'S1e 문턱 −1° 상승은 개선 아님');
+  eq(isImproving(pair(SIGNAL_DEG, SIGNAL_DEG), D), true, 'S1f 문턱만큼 상승하면 개선');
 }
 
 console.log(`\n맞춤 적응형 루틴 테스트: ${pass} pass, ${fail} fail`);
