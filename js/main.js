@@ -4,6 +4,7 @@
 // 지연 로드해 라이브 인식 프리뷰를 구동(파이프라인 확인용).
 // ═══════════════════════════════════════════════════════════
 import { initUI, onScreenChange, getCurrentScreen, navigate, pushView } from './ui.js';
+import { announce, announceError, screenMessage, stepMessage, countMessage } from './a11y.js';
 import {
   load, save, update, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
   assignTodayConstellation, syncStarsToProgress, getSky, lightStars,
@@ -393,6 +394,17 @@ function celebrateSky(con) {
 /** 밤하늘 도감 렌더 — 하나의 밤하늘에 16개 별자리를 흩뿌려 배치(좌표는 con.pos).
  *  완성=밝게+이름 / 미완성=아주 흐릿(이름 숨김·잠김). 크게보기·잠김안내는 openSkyDexModal. */
 let skyDexEls = null;
+// 모달을 연 별자리 버튼 — 닫을 때 포커스를 그 자리로 돌려준다(낭독기 커서가 처음으로
+// 튀지 않게). 데이터 관리 확인창이 쓰는 것과 같은 규칙이다.
+let openedSkyDexFrom = null;
+
+function closeSkyDexModal() {
+  if (skyDexEls) skyDexEls.modal.hidden = true;
+  if (openedSkyDexFrom && openedSkyDexFrom !== document.body && openedSkyDexFrom.isConnected) {
+    openedSkyDexFrom.focus();
+  }
+  openedSkyDexFrom = null;
+}
 function renderSkyDex() {
   const $ = (id) => document.getElementById(id);
   if (!skyDexEls) {
@@ -404,9 +416,9 @@ function renderSkyDex() {
       modalCond: $('skyDexModalCond'), modalCondRow: $('skyDexModalCondRow'),
       modalClose: $('skyDexModalClose'),
     };
-    skyDexEls.modalClose.addEventListener('click', () => { skyDexEls.modal.hidden = true; });
+    skyDexEls.modalClose.addEventListener('click', () => closeSkyDexModal());
     skyDexEls.modal.addEventListener('click', (e) => {
-      if (e.target === skyDexEls.modal) skyDexEls.modal.hidden = true;   // 배경 탭 → 닫기
+      if (e.target === skyDexEls.modal) closeSkyDexModal();   // 배경 탭 → 닫기
     });
   }
   const sky = getSky();
@@ -435,9 +447,9 @@ function renderSkyDex() {
       name.className = 'sky-map-name';
       name.textContent = con.name;
       item.appendChild(name);
-      item.addEventListener('click', () => openSkyDexModal(con, doneMap.get(con.id)));
+      item.addEventListener('click', () => openSkyDexModal(con, doneMap.get(con.id), item));
     } else {                                   // 미완성 → 라벨 숨김 + 잠김 안내
-      item.addEventListener('click', () => openSkyDexModal(con, null));
+      item.addEventListener('click', () => openSkyDexModal(con, null, item));
     }
     skyDexEls.map.appendChild(item);
     renderSky(box, con.id, done ? con.stars.map((_, i) => i) : []);
@@ -448,12 +460,15 @@ function renderSkyDex() {
 }
 
 /** 별자리 확대 — 완성이면 일기 카드(이름·설명·완성일·운동·컨디션), 미완성이면 잠김 안내(date=null) */
-function openSkyDexModal(con, date) {
+function openSkyDexModal(con, date, trigger = null) {
   const e = skyDexEls;
   if (!date) {                                // 미완성 → 잠김 한 줄 안내
     e.done.hidden = true;
     e.lock.hidden = false;
     e.modal.hidden = false;
+    openedSkyDexFrom = trigger || document.activeElement;
+    e.modalClose.focus();
+    announce('아직 만나지 못한 별자리예요');
     return;
   }
   e.lock.hidden = true;
@@ -475,6 +490,9 @@ function openSkyDexModal(con, date) {
     e.modalCondRow.hidden = true;
   }
   e.modal.hidden = false;
+  openedSkyDexFrom = trigger || document.activeElement;
+  e.modalClose.focus();
+  announce(`${con.name} — ${fmtMd(date)} 완성`);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -632,6 +650,8 @@ function boot() {
 
   onScreenChange((name, view) => {
     syncTabs(name);
+    // 낭독기에는 탭 색이 안 보인다 — 어느 화면에 왔는지 말로 알린다.
+    announce(screenMessage(name));
     // 화면을 벗어나면 그 화면이 띄운 오버레이도 같이 닫는다. 뷰포트에 고정된 판이라
     // 그냥 두면 다음 화면 위에 그대로 떠 있는다(측정 안내 팝업 -> 루틴 화면).
     closeScreenOverlays(name);
@@ -1244,6 +1264,9 @@ function setMeasurePhase(phase) {
   } else if (phase === 'result') {
     show(e.mGuide, false);
   }
+
+  // 단계가 바뀌면 할 일도 통째로 바뀐다 — 그 설명이 이 한 줄뿐이라 낭독기에도 보낸다.
+  if (e.mGuide && !e.mGuide.hidden) announce(e.mGuide.textContent);
 }
 
 function stopMeasure() {
@@ -1529,6 +1552,7 @@ async function startGuide(id, routineMode = false) {
   const engine = mods.createStepEngine(g, {
     onEnterStep: (step, i, total) => {
       els.step.textContent = `${i + 1}/${total}`;
+      announce(stepMessage(step.text, i, total));
       els.text.textContent = step.text;
       els.hint.textContent = '';
       els.idle.hidden = true;
@@ -1556,7 +1580,7 @@ async function startGuide(id, routineMode = false) {
         } else { stopArcDemo(); els.anim.src = guide.spriteStill; }
       }
     },
-    onCount: (count, reps) => { fillDots(count, reps); setCount(count, reps); if (count > 0) repFeedback(count); },
+    onCount: (count, reps) => { fillDots(count, reps); setCount(count, reps); if (count > 0) repFeedback(count); announce(countMessage(count, reps)); },
     // comp는 힌트를 덮지 않는다 — 감지만 집계(관대한 판정, 코칭 힌트는 추후)
     onStatus: ({ hint, idle, progress }) => {
       els.hint.textContent = hint || '';
@@ -1570,6 +1594,7 @@ async function startGuide(id, routineMode = false) {
     //   루프에서 commit (미감지 시 타임아웃까지 연기 — 허공 중립 방지)
     onNeedNeutral: () => {
       els.text.textContent = '준비… 손을 편하게 보여주세요';
+      announce(els.text.textContent);
       tracker.beginNeutral();
       guide.neutralWait = { frames: 0, started: performance.now() };
     },
@@ -1667,6 +1692,7 @@ async function startGuide(id, routineMode = false) {
     if (guide.startGen !== gen) return;                    // 이미 이탈했으면 안내 표시 안 함
     setCamChip('⚠', '오류', false);
     els.text.textContent = cameraErrorMessage(e);          // 원인별 한국어 안내 (원문은 콘솔로만)
+      announceError(els.text.textContent);
     console.error('[guide] 시작 실패:', e);
   }
 }
@@ -1917,6 +1943,7 @@ function onGuideComplete(g) {
     const ng = guide.mods.getGuide(nextId);
     e.doneEmoji.textContent = '🌟';
     e.doneText.textContent = `잘하셨어요! 오늘의 루틴 ${done}/${total}`;
+    announce(e.doneText.textContent);
     e.next.textContent = `다음: ${ng.name} →`;
     e.next.hidden = false;
     e.measureGo.hidden = true;
@@ -1934,6 +1961,7 @@ function onGuideComplete(g) {
   } else {
     e.doneEmoji.textContent = '⭐';
     e.doneText.textContent = '오늘의 루틴 완주! 밤하늘에 별을 더했어요';
+    announce(e.doneText.textContent);
     e.next.hidden = true;
     // 측정 "제안" — 괜찮을 때만, 판정 아님
     e.measureGo.hidden = !r.suggestMeasure;
@@ -1965,6 +1993,8 @@ function askCondition(r) {
   e.pip.hidden = true; e.count.hidden = true;
   e.done.hidden = true;
   e.condition.hidden = false;
+  // 화면이 바뀌었다는 신호. 버튼 라벨은 낭독기가 훑어서 읽으므로 여기선 묻기만 한다.
+  announce('오늘 손목 컨디션은 어땠나요? 아래에서 골라 주세요.');
 }
 
 /** 컨디션 탭/건너뛰기 → 완료 화면으로 */
@@ -1994,6 +2024,7 @@ function showRoutineDone(r, condition = null) {
   e.doneText.textContent = full
     ? '오늘 풀코스 완주! 밤하늘에 별을 더했어요 ⭐'
     : '오늘도 별을 켰어요 ⭐ 쉬엄쉬엄 가도 좋아요';
+  announce(e.doneText.textContent);
   // 격려 한 줄 — 스트릭이 쌓였으면 연속, 아니면 따뜻한 재회 인사 (부족 표현 없음)
   const streak = currentStreak();
   e.doneSub.textContent = streak >= 2
@@ -2155,7 +2186,9 @@ function wireDataTools() {
   if (!d.exp) return;
   // role="status"라 스크린리더에도 읽힌다 — 이 카드의 결과는 화면 변화가 거의 없어서
   // 문구가 유일한 피드백이다.
-  const say = (t) => { d.msg.textContent = t || ''; d.msg.hidden = !t; };
+  // ★role="status"가 붙어 있어도 이 문단은 안 읽힌다: hidden이었다가 글자를 받고
+  //   나타나는 순서라, 내용이 바뀌는 순간 화면에 없다. 늘 살아 있는 영역으로 함께 보낸다.
+  const say = (t) => { d.msg.textContent = t || ''; d.msg.hidden = !t; announce(t); };
 
   d.exp.addEventListener('click', () => {
     try {

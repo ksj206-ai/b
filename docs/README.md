@@ -25,9 +25,10 @@
 | 별자리 데이터 · 렌더 | `js/constellations.js`, `js/sky.js` |
 | 오늘의 별자리 한마디 | `js/routine.js` (dailyStarMessage), `js/config.js` (STAR_MESSAGE) |
 | 미니게임 | `js/games/` (registry · session · engine · starPick · starScoop · meteorCatch) |
+| 낭독기 안내(live region) | `js/a11y.js`, `index.html`의 `#srLive`·`#srAlert` |
 | 상수 단일 출처 | `js/config.js` |
 | 데이터 관리 (내보내기·불러오기·삭제) | `js/store.js` (하단), `js/main.js` (wireDataTools) |
 | 테스트 (단독 실행) | `js/*.test.mjs` — star · adapt · deviation · integration · tracking ·
-  guideDetect · measureCompare · timedStep · games · dataTools · reminder |
+  guideDetect · measureCompare · timedStep · games · dataTools · reminder · a11y |
 
 프로젝트 개요와 실행 방법은 [루트 README](../README.md)를 참고하세요.
