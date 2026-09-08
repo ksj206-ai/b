@@ -28,6 +28,6 @@
 | 상수 단일 출처 | `js/config.js` |
 | 데이터 관리 (내보내기·불러오기·삭제) | `js/store.js` (하단), `js/main.js` (wireDataTools) |
 | 테스트 (단독 실행) | `js/*.test.mjs` — star · adapt · deviation · integration · tracking ·
-  guideDetect · measureCompare · timedStep · games · dataTools |
+  guideDetect · measureCompare · timedStep · games · dataTools · reminder |
 
 프로젝트 개요와 실행 방법은 [루트 README](../README.md)를 참고하세요.
