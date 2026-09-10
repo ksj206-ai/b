@@ -1119,26 +1119,40 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
      두 줄로 접혀 59px을 먹는다(측정값). 테마 컨트롤만 남긴다. */
   .win-top{ padding:3px 10px; font-size:.62rem; justify-content:flex-end; }
   .win-top > .mono{ display:none; }
+  /* ★액자를 걷고 워드마크 한 줄이 된다. 제목 띠와 한마디 상자가 합쳐 약 112px로
+     홈 맨 위를 먹고 있었는데, 그 자리는 "오늘 뭘 할지"가 써야 하는 자리다.
+     문구는 하나도 안 지운다 — 액자만 걷어 인사줄 위로 내려앉힌다. */
   .banner{
-    grid-template-columns:1fr; gap:6px;
-    text-align:center; padding:8px 14px;
+    grid-template-columns:1fr; gap:1px;
+    text-align:left; padding:6px 12px 5px;
   }
   .banner .mascot-wrap{ display:none; }   /* 본문 마스코트와 겹친다 */
-  .banner-mark h1{ font-size:1.25rem; text-shadow:none; }
+  .banner-mark{ text-align:left; }
+  .banner-mark h1{ font-size:.95rem; text-shadow:none; text-align:left; }
   .banner-mark p{ display:none; }
-  .banner-note{ padding:5px 8px; font-size:.68rem; }
-  .banner-note b{ display:inline; margin:0 4px 0 0; }
+  /* 한마디 — 칩 안의 칩을 없앤다. 라벨(b)은 액자가 사라지면 군더더기가 된다:
+     이 자리에 다른 문구가 올 일이 없으므로 "오늘의 한마디"라고 이름표를 달 이유도 없다. */
+  .banner-note{
+    padding:0; font-size:.72rem; background:none; border:0; box-shadow:none;
+    color:var(--dim); text-align:left;
+  }
+  .banner-note b{ display:none; }
   .banner .deco{ display:none; }
 
   /* ── 하단 고정 탭 ── */
+  /* ★칸 사이에 여백을 준다. 6칸일 때는 360px을 60px씩 정확히 나눠 가져 **여백이 0**이었다.
+     칸 크기(60x49)는 44px 기준을 넘었으니 문제는 크기가 아니라 간격이었다 —
+     빗나간 탭이 아무 일도 안 하는 게 아니라 이웃 화면으로 데려간다.
+     라벨도 .6rem(9.6px)에서 .72rem(11.5px)로 올린다. 5칸이 되어 자리가 남는다. */
   .tabs{
     position:fixed; left:0; right:0; bottom:0; z-index:40;
     flex-wrap:nowrap; border-top:2px solid var(--frame); border-bottom:0;
-    padding-bottom:env(safe-area-inset-bottom);   /* 아이폰 홈 인디케이터 */
+    gap:5px; padding:4px 6px;
+    padding-bottom:calc(4px + env(safe-area-inset-bottom));   /* 아이폰 홈 인디케이터 */
   }
   .tabs button{
     flex:1 1 0; min-width:0; flex-direction:column; gap:1px;
-    padding:7px 2px; font-size:.6rem; border-right:0;
+    padding:6px 2px; font-size:.72rem; border-right:0; border-radius:10px;
     border-top:0; border-bottom:3px solid transparent;
   }
   .tabs button.on{ border-bottom-color:var(--accent); }
@@ -1151,7 +1165,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   .tabs .tab-label{ display:none; }
   .tabs .tab-short{ display:inline; }
   /* 본문이 탭 밑으로 숨지 않게 */
-  .stage{ padding-bottom:56px; }   /* 하단 탭 51px + 여유 5px */
+  .stage{ padding-bottom:64px; }   /* 하단 탭 약 59px(여백 8px 추가) + 여유 5px */
 
   /* ── 홈: 한 화면에 딱 ── */
   #screen-home{ height:100%; }
@@ -1175,10 +1189,30 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   body.home-expanded .cols.home > main.col > section.box,
   body.home-expanded .cols.home > .col:nth-child(3) > section.box{ display:block; }
 
-  /* 마스코트 칸 — 이 화면의 한가운데. 크게 띄운다 */
-  #homeHello .welcome-cat-sm{ max-width:88px; }
-  #homeHello .box-body{ padding:10px; }
+  /* ── 인사줄 — 마스코트를 가운데 크게 띄우던 것을 한 줄로 눕힌다 ──
+     세로로 쌓으면 마스코트만 100px 가까이 먹는다. 이 화면의 주인공은 별자리와 시작하기다.
+     마스코트를 없애지는 않는다(앱의 얼굴이다) — 인사 문구 옆으로 옮겨 같은 뜻을 덜 먹게 한다. */
+  #homeHello .box-body{
+    display:flex; align-items:center; gap:10px; text-align:left; padding:2px 6px;
+  }
+  #homeHello .welcome-cat-sm{ max-width:46px; margin:0; }
+  #homeHello .hi{ margin:0; font-size:.98rem; }
   #homeHello .btn.ghost{ display:none; }   /* [운동 목록 보기]는 하단 탭과 같은 자리 */
+
+  /* ── 별자리 이름을 그림 위로 ── 폰에서는 box-head가 숨으므로 여기가 카드 제목 자리다.
+     그림 아래 캡션으로 두면 "무엇을 채우는 중인지"를 그림을 다 보고 나서야 알게 된다. */
+  .cols.home > .col:nth-child(3) > section.box:nth-of-type(1) > .box-body{
+    display:flex; flex-direction:column;
+  }
+  .sky-label{ order:-1; margin:0 0 5px; text-align:left; font-size:.86rem; }
+
+  /* 회색 진행 바는 폰에서 걷는다 — 별자리가 이미 같은 것을 말한다(별이 하나씩 켜진다).
+     막대와 별이 나란히 있으면 둘 중 어느 쪽이 오늘의 진행인지 흐려지고,
+     막대 쪽은 아무 이야기도 안 하는 회색 띠라 자리값을 못 한다. 숫자(rpText)는 남긴다. */
+  #screen-home .bar{ display:none; }
+
+  /* 시작하기 — 이 화면에서 누를 것이 사실상 이것 하나다 */
+  #routineStart{ width:100%; padding:15px 12px; font-size:1.02rem; }
 
   /* 오늘의 루틴 칸 — 목록은 접고 헤드라인과 버튼만. 목록은 루틴 탭에 있다 */
   body:not(.home-expanded) #homeRoutineList{ display:none; }
@@ -1197,6 +1231,17 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   #screen-home .box{ border:0; background:none; box-shadow:none; margin:0; }
   #screen-home .box-body{ padding:4px 6px; }
 
+  /* ── 안내 두 줄 ── 폰에서만 산다. 위는 "오늘 할 일", 이 둘은 "다른 길".
+     ★체크 줄은 접히지 않는다 — 하단 탭에서 체크 칸을 뺐으므로 이게 폰의 유일한 진입로다. */
+  .home-quick{ display:flex; flex-direction:column; gap:7px; margin:8px 6px 0; }
+  .home-quick .quick{
+    display:flex; justify-content:space-between; align-items:center; gap:8px;
+    width:100%; padding:11px 12px; font:inherit; font-size:.82rem; cursor:pointer;
+    border:1px solid var(--line); border-radius:10px;
+    background:var(--panel); color:var(--ink); text-align:left;
+  }
+  .home-quick .arw{ color:var(--dim); flex:none; }
+
   /* 더 보기 손잡이 */
   .home-more{
     display:block; margin:4px auto 0;
@@ -1206,17 +1251,42 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
   body.home-expanded #screen-home{ height:auto; }
 }
 
-/* 폰이 아닐 때는 손잡이 자체가 없다 — 접는 규칙도 그때만 산다 */
+/* 폰이 아닐 때는 손잡이도 안내 줄도 없다 — 접는 규칙과 안내 줄은 그때만 산다.
+   넓은 화면에는 같은 내용이 이미 카드로 있다(게임=상단 탭, 체크=우측 손목 체크 카드). */
 .home-more{ display:none; }
-@media (max-width:620px){ .home-more{ display:block; } }
+.home-quick{ display:none; }
+/* ★되살리는 규칙은 반드시 위 두 줄 '뒤'에 온다 — 같은 특이도라 순서가 이긴다.
+   폰 블록 안에도 .home-quick{display:flex}가 있지만 그건 이 파일 위쪽이라 여기에 진다.
+   실제로 그렇게 걸려서 안내 줄이 폰에서 통째로 안 보였다. */
+@media (max-width:620px){
+  .home-more{ display:block; }
+  .home-quick{ display:flex; }
+}
+
+/* 큰 폰(높이 760px+, 아이폰 14/15급) — 위 액자를 걷어낸 만큼 높이가 남는다.
+   남는 자리는 별자리가 먹는다. 이 화면의 payoff이고, 칸을 더 늘리면 다시
+   "홈에서 뭘 할지 고르는" 화면이 되기 때문이다(그래서 안내 줄은 둘로 고정).
+   ★sky-stage는 legacy.css가 min-height·aspect-ratio를 걸어 둬서 height만으로는 안 먹는다.
+     위 폰 블록이 그 둘을 이미 눌렀으므로 여기서는 height·max-height만 바꾸면 된다. */
+@media (max-width:620px) and (min-height:760px){
+  .sky-stage{ height:212px; max-height:212px; }
+  #homeHello .welcome-cat-sm{ max-width:56px; }
+  #homeHello .hi{ font-size:1.04rem; }
+  .home-quick{ gap:9px; margin-top:12px; }
+  #routineStart{ padding:17px 12px; }
+}
 
 /* 작은 폰(iPhone SE급, 높이 667px) — 본문에 남는 높이가 533px뿐이라 기본 3칸이 넘친다.
    계산: 헤더 91 + 하단 탭 43 = 134px를 빼면 533px. 3칸 기본 합이 약 616px이라 83px 초과.
    마스코트와 별자리 무대를 줄여 맞춘다 — 칸을 빼지는 않는다(빼면 이 화면의 뜻이 사라진다). */
 @media (max-width:620px) and (max-height:700px){
-  #homeHello .welcome-cat-sm{ max-width:52px; }
-  #homeHello .box-body{ padding:6px; }
-  .sky-stage{ height:90px; min-height:0; max-height:90px; aspect-ratio:auto; }
+  #homeHello .welcome-cat-sm{ max-width:38px; }
+  #homeHello .box-body{ padding:2px 6px; }
+  .home-quick{ gap:6px; margin-top:6px; }
+  .home-quick .quick{ padding:9px 11px; }
+  /* 액자를 걷어 여유가 63px 생겼다(측정값) — 그중 35px을 별자리에 돌려준다.
+     90px에서는 페가수스자리 같은 4별 별자리가 점 네 개로 뭉개졌다. */
+  .sky-stage{ height:125px; min-height:0; max-height:125px; aspect-ratio:auto; }
   #screen-home .box-head{ padding:4px 8px; font-size:.72rem; }
   #screen-home .box-body{ padding:8px; }
   .banner-mark h1{ font-size:1.1rem; }

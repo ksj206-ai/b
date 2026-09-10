@@ -27,6 +27,9 @@ import {
   dailyStarMessage,
 } from './routine.js';
 import { getGuide } from './guide/guideData.js';
+// 홈 안내 줄이 "오늘 어떤 게임이 되는지"를 말하려면 그 표가 필요하다.
+// registry는 DOM·카메라를 안 부르므로(games/session.js와 갈라둔 이유) 여기서 불러도 안전하다.
+import { GAME_REGISTRY, pickGame } from './games/registry.js';
 import {
   REMINDER_PRESETS, REMINDER_MAX, getReminder, saveReminder,
   requestPermission, isBlocked, startReminderLoop,
@@ -157,6 +160,7 @@ function renderHome() {
   renderHomeDex();
   renderHomeMeasure();
   renderHomeCalendar();
+  renderHomeQuick();
 
   // 반가워요 칸은 말풍선과 같은 말을 두 번 하지 않는다 — 짧은 인사만.
   // ★이 규칙을 두 갈래에서 어기고 있었다: 완주하면 양쪽 다 "오늘 몫 끝! 내일 만나요"였고,
@@ -298,6 +302,34 @@ function renderHomeDex() {
  *  개선 판정의 게이트(14일 신선도·3일 간격·견딤)는 routine.improveSignal에 있고,
  *  말풍선이 그 경로를 탄다. 여기서 맨몸 isImproving()을 부르면 그 게이트를 전부
  *  건너뛰므로 — 문지기를 하나 더 세우는 대신 공급원을 하나 줄인다. */
+/**
+ * 폰 홈의 안내 두 줄 — "오늘 할 일" 아래 놓이는 다른 길 둘.
+ *
+ * ★체크 줄은 조건 없이 늘 보인다. 하단 탭에서 체크 칸을 뺐으므로(index.html 탭 주석)
+ *  이 줄이 폰에서 손목 체크로 가는 유일한 길이다. 숨기면 주 1회 기능에 아예 못 간다 —
+ *  그래서 '보인다/안 보인다'가 아니라 '문구'만 상태에 따라 바뀐다.
+ *
+ * 넓은 화면에서는 .home-quick이 display:none이라 이 렌더는 화면에 안 닿는다.
+ * 그래도 조건 없이 돌린다 — 폰인지 아닌지를 JS가 판단하기 시작하면 CSS와 두 곳에서
+ * 같은 결정을 하게 되고, 그게 갈라지는 순간 조용히 어긋난다.
+ */
+function renderHomeQuick() {
+  const g = document.getElementById('homeQuickGame');
+  const c = document.getElementById('homeQuickCheck');
+  if (g) {
+    const pick = pickGame();
+    const title = pick.id ? GAME_REGISTRY[pick.id].title : null;
+    g.textContent = pick.kind === 'absent' ? '🎮 오늘 코스에는 게임이 없어요'
+      : pick.kind === 'done' ? `${title} · 오늘 몫은 끝, 재미로 한 판`
+      : `${title} · 이걸로 해도 돼요`;
+  }
+  if (c) {
+    c.textContent = needMeasureSuggest()
+      ? '📊 이번 주 손목 체크 전이에요'
+      : '📊 손목 체크 · 이번 주 완료';
+  }
+}
+
 function renderHomeMeasure() {
   const box = document.getElementById('homeMetrics');
   const trend = document.getElementById('homeTrend');

@@ -105,11 +105,17 @@
 
     <!-- ─── ③ 탭 내비 ───
          [data-nav]이라 ui.js 라우터를 그대로 탄다(History 한 칸 쌓기 포함).
-         현재 탭 표시는 main.js의 onScreenChange가 .on을 옮겨 준다. -->
+         현재 탭 표시는 main.js의 onScreenChange가 .on을 옮겨 준다.
+
+         ★손목 체크는 여기 없다(6칸 → 5칸). 이유가 둘이다:
+           ① 체크는 measureEveryDays:7 — 주 1회짜리가 매일 쓰는 것들과 같은 급으로 서 있었다.
+           ② 360px에서 6칸이면 60px씩 정확히 화면을 채워 **칸 사이 여백이 0**이었다.
+              빗나간 탭이 아무 일도 안 하는 게 아니라 다른 화면으로 데려간다.
+         대신 홈의 .home-quick 줄이 폰의 진입로다 — 조건 없이 늘 보인다(아래 주석 참고).
+         데스크톱은 우측 '손목 체크' 카드의 [체크하러 가기]가 그대로 있다. -->
     <nav class="tabs" aria-label="주요 기능">
       <button type="button" data-nav="home" aria-label="홈"><span class="tab-ico" aria-hidden="true">🏠</span><span class="tab-label">홈</span><span class="tab-short" aria-hidden="true">홈</span></button>
       <button type="button" data-nav="guide" aria-label="오늘의 루틴"><span class="tab-ico" aria-hidden="true">🎬</span><span class="tab-label">오늘의 루틴</span><span class="tab-short" aria-hidden="true">루틴</span></button>
-      <button type="button" data-nav="measure" aria-label="손목 체크"><span class="tab-ico" aria-hidden="true">📊</span><span class="tab-label">손목 체크</span><span class="tab-short" aria-hidden="true">체크</span></button>
       <button type="button" data-nav="records" aria-label="기록"><span class="tab-ico" aria-hidden="true">📈</span><span class="tab-label">기록</span><span class="tab-short" aria-hidden="true">기록</span></button>
       <button type="button" data-nav="sky" aria-label="밤하늘 도감"><span class="tab-ico" aria-hidden="true">🌌</span><span class="tab-label">밤하늘 도감</span><span class="tab-short" aria-hidden="true">도감</span></button>
       <button type="button" data-nav="game" aria-label="게임"><span class="tab-ico" aria-hidden="true">🎮</span><span class="tab-label">게임</span><span class="tab-short" aria-hidden="true">게임</span></button>
@@ -273,6 +279,23 @@
 
           </aside>
         </div>
+        <!-- ─── 폰 홈의 안내 두 줄 ───
+             넓은 화면에서는 숨는다(같은 내용이 이미 카드로 있다 — 게임은 상단 탭,
+             체크는 우측 '손목 체크' 카드). 폰에서만 살아난다.
+             ★체크 줄은 조건 없이 늘 보인다. 하단 탭에서 체크 칸을 뺐으므로 이 줄이
+               폰의 유일한 진입로이고, 숨기면 주 1회 기능에 아예 못 간다.
+               문구만 상태에 따라 바뀐다(main.js renderHomeQuick). -->
+        <div class="home-quick">
+          <button type="button" class="quick" data-nav="game">
+            <span id="homeQuickGame">🎮 오늘은 게임으로 해도 돼요</span>
+            <span class="arw" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="quick" data-nav="measure">
+            <span id="homeQuickCheck">📊 이번 주 손목 체크 전이에요</span>
+            <span class="arw" aria-hidden="true">›</span>
+          </button>
+        </div>
+
         <!-- 폰 무스크롤 홈에서만 보이는 손잡이. 마스코트·별자리·시작하기 셋만 첫 화면에
              두고 나머지 카드(리마인더·안전 안내·기록 요약 등)는 접는데, 접은 것을 열 길이
              없으면 폰에서 알림 설정 같은 기능에 아예 못 간다. 열면 그때만 스크롤된다. -->
