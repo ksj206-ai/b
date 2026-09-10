@@ -721,6 +721,27 @@ td.num{text-align:right;font-variant-numeric:tabular-nums;}
 .cols > .col::-webkit-scrollbar-thumb{ background:var(--frame-2); border-radius:999px; }
 .cols > .col::-webkit-scrollbar-track{ background:transparent; }
 
+/* ─── 홈만 칸 스크롤을 푼다 ───
+   위 "한 화면 셸을 포기하는 조건" 블록이 이미 말한 것과 같은 판단이다 —
+   *한 화면에 넣는 건 넓은 화면에서의 이득이지 규칙이 아니다.* 다만 그 블록의 문턱
+   (max-height:620px)은 홈에 대해서는 너무 낮다. 홈만 카드가 11개라, 흔한 노트북
+   (1340×800)에서도 세 칸이 **동시에** 넘친다: 좌 81% · 가운데 70% · 우 74%만 보였다.
+
+   ★칸마다 스크롤바가 서면 화면에 스크롤 영역이 셋이 되고, 그러면 **순서가 사라진다** —
+     어느 칸을 굴려야 다음 내용이 나오는지 알 방법이 없다. 하나로 합치면 순서가 생긴다.
+
+   무대(.stage)는 계속 overflow:hidden이라 셸 자체는 그대로다. 넘칠 때만 홈이 제 안에서
+   한 번 스크롤한다 — 다른 화면(카메라 무대·시범)은 한 화면 규칙을 그대로 지킨다.
+   폰(<=620px)은 홈이 무스크롤이므로 이 규칙 밖에 둔다. */
+@media (min-width:981px){
+  #screen-home.is-active{ overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--frame-2) transparent; }
+  #screen-home .cols.home{ height:auto; align-items:start; }
+  #screen-home .cols > .col{ overflow:visible; }
+  #screen-home::-webkit-scrollbar{ width:7px; }
+  #screen-home::-webkit-scrollbar-thumb{ background:var(--frame-2); border-radius:999px; }
+  #screen-home::-webkit-scrollbar-track{ background:transparent; }
+}
+
 /* 화면 머리 — 탭이 있으니 크게 외치지 않는다 */
 .screen-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
 .screen-title{ margin:0; font-size:1.25rem; font-weight:700; color:var(--ink); }

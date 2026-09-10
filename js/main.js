@@ -360,10 +360,15 @@ function renderHomeMeasure() {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
   trend.hidden = false;
+  // ★색은 --accent를 쓴다. 전에는 --sh-accent였는데 그 토큰은 이 저장소에 정의된 적이 없다.
+  //   풀리지 않는 var()는 속성을 무효로 만들고, stroke·fill은 상속 속성이라 초깃값으로
+  //   떨어진다 — stroke:none(선이 통째로 안 보임) / fill:black(끝점만 검은 점).
+  //   그래서 3주간 오른 데이터가 있어도 화면에는 점 하나만 있었다.
+  //   측정이 2회 이상일 때만 그리는 요소라(위 list.length < 2) 빈 상태 확인으로는 안 걸린다.
   trend.innerHTML =
     `<svg viewBox="0 0 200 56" width="100%" height="50" role="img" aria-label="굽힘 추이">`
-    + `<polyline points="${pts}" fill="none" stroke="var(--sh-accent)" stroke-width="2.5" stroke-linecap="round"/>`
-    + `<circle cx="194" cy="${(46 - ((ys[ys.length - 1] - lo) / span) * 34).toFixed(1)}" r="3.5" fill="var(--sh-accent)"/>`
+    + `<polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>`
+    + `<circle cx="194" cy="${(46 - ((ys[ys.length - 1] - lo) / span) * 34).toFixed(1)}" r="3.5" fill="var(--accent)"/>`
     + `</svg>`;
 }
 
