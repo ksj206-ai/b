@@ -1589,6 +1589,11 @@ async function startGuide(id, routineMode = false) {
   // 애니 APNG+호. 시작(=intro)은 정지 프레임으로 두고, 애니↔호는 onEnterStep에서 스텝별로 켠다.
   // 정지 프레임 경로는 handSprite가 직접 준다 — src 문자열을 여기서 변형하지 않는다.
   stopArcDemo();
+  // ★캔버스는 앞 운동의 마지막 프레임을 그대로 쥐고 있다. 스프라이트 운동은 캔버스를 다시
+  //   그리지 않으므로(호 없는 손가락 운동은 끝까지, 호 있는 운동도 intro 동안) 앞의 스켈레톤
+  //   손이 APNG 밑에 겹쳐 남는다 — 오늘 코스의 엄지 대립 → 손가락 벌리기가 정확히 그 순서다.
+  //   stopArcDemo는 호 루프가 돌 때만 지우므로 여기서 무조건 비운다.
+  ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
   if (guide.spriteOn) {
     guide.spriteStill = guide.sprite.still();
     els.anim.src = guide.spriteStill;
