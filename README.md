@@ -210,7 +210,7 @@ MediaPipe 모델 URL/옵션, 카메라 설정, 랜드마크 인덱스, 스무딩
   중심에 물리게 얹기(`pivot`·`k` 는 프레임 실측값, %로 배치해 캔버스가 늘어나도
   정렬 유지). 호·화살표는 그대로 캔버스가 그린다.
   ⚠ 에셋을 새로 뽑으면 `w/h/pivot/k` 를 다시 재고 `ASSET_V` 를 올린다(디스크 캐시).
-  편위·힘줄활주는 `assets/make_guide_sprites.py` 가 영상에서 뽑고 그 값을 출력한다
+  여섯 개 모두 `assets/make_guide_sprites.py` 가 영상에서 뽑고 그 값을 출력한다
 - **`guideHand.js`** — 손을 이미지가 아니라 **파라미터 인형**으로 그리는 스켈레톤 손.
   `wristAngle`, `devAngle`, `curl`, `curlTip`, `spread`, `pinchGap`.
   `side`(굽힘·폄) / `front`(편위·손가락·핀치) 2뷰.

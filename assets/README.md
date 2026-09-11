@@ -33,9 +33,12 @@
 운동 화면의 손 그림. 480×270 투명 APNG + `-static` 정지 프레임(intro·outro·모션 최소화용).
 화풍 기준은 `guide-grip.png`다 — 맨팔, 얇은 갈색 외곽선, 살색 `#EBB996` 안팎.
 
-- `guide-deviation` · `guide-tendon`은 `make_guide_sprites.py`가 Flow(Veo) 영상에서 뽑는다.
-  원본 파일명·쓸 구간·시간표가 스크립트에 적혀 있다. 영상 자체는 저장소에 넣지 않는다.
-  `python assets/make_guide_sprites.py [영상 폴더]` (opencv-python·numpy·Pillow 필요)
+- 여섯 개 모두 `make_guide_sprites.py`가 Flow(Veo) 영상에서 뽑는다. 원본 파일명·쓸 구간·
+  시간표가 스크립트에 적혀 있다(8월 제작분 셋은 옛 프레임을 영상과 색으로 대조해 역산했다).
+  영상 자체는 저장소에 넣지 않는다.
+  `python assets/make_guide_sprites.py [영상 폴더] [이름...]` (opencv-python·numpy·Pillow·scipy 필요)
+- 배경은 흰색이든 초록이든 **손가락 사이에 갇힌 틈까지** 뺀다. 틈(무채색 흰색)과 손바닥
+  하이라이트(노르스름한 흰색)는 채도로 가른다 — 스크립트의 `enclosed_gaps` 주석.
 - 새로 뽑으면 **반드시** `js/guide/handSprite.js`의 `w·h·pivot·k`를 스크립트가 출력한 값으로
   고치고 `ASSET_V`를 올린다. 안 올리면 브라우저가 옛 그림을 계속 보여 준다.
 - Flow에 넣을 때: grip 그림을 초록 배경에 얹은 1920×1080을 시작·끝 프레임으로 같이 준다
