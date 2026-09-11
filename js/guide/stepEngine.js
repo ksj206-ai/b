@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════
 // stepEngine.js — 스텝 진행·텍스트·인식 카운트·완료 처리 (명세서 §5·§6)
-// 스텝 type: intro(자동 dur초) / follow(인식 카운트로 진행, 건너뛰기) / outro(자동)
+// 스텝 type: intro(자동 dur초) / follow(인식 카운트로 진행, 막히면 15초 뒤 멈춤 안내) / outro(자동)
 //            timed(카메라 없이 holdSec초 × reps라운드 — 스트레칭·유지 동작용)
 // 인식은 measurement.js 지표(rel/grip/tipMCP/pinch/fanSpan)를 재사용해 판정.
 // UX(명세서 §6): 시범과 카운트 독립, 관대한 목표, 조용한 피드백,
@@ -129,7 +129,7 @@ function gripHoldDetector({ thresh = 1.2, holdMs = 2500, neutralBand = 14 } = {}
  *
  *  extendedT 게이트: 손가락을 '굽혀도' 손끝 폭은 줄어든다 → 굽힘을 '모음'으로 오인해
  *    엉뚱한 카운트가 생긴다. 그래서 편 상태(grip ≥ extendedT)에서만 판정한다.
- *    이건 진행을 막는 게 아니라 오탐만 막는 것 — 못 맞춰도 [건너뛰기]와 15초 탈출구는 그대로다(§6).
+ *    이건 진행을 막는 게 아니라 오탐만 막는 것 — 못 맞춰도 15초 탈출구([손동작 없이 진행])는 그대로다(§6).
  *
  *  ★임계값은 기하학 추정치다(모음 ~0.8 / 활짝 ~1.4). 실기기 실측으로 확정할 것 —
  *    콘솔 `__rec.on()`이 fanSpan·grip 분포를 모은다(절차: docs/스모크_체크리스트.md). */
@@ -253,7 +253,7 @@ export const DETECTOR_TYPES = Object.freeze(Object.keys(DETECTORS));
 
 export function createDetector(type, opts) {
   const make = DETECTORS[type];
-  // 모르는 이름이면 무동작 판정기 — 화면이 죽는 것보다 낫다(진행은 [건너뛰기]로 가능).
+  // 모르는 이름이면 무동작 판정기 — 화면이 죽는 것보다 낫다(15초 뒤 [손동작 없이 진행]으로 진행).
   // 대신 "이름이 진짜인가"는 배선표 테스트가 DETECTOR_TYPES로 막는다.
   return make ? make(opts) : { feed: () => ({ justCounted: false, hint: '' }), reset() {} };
 }
@@ -297,8 +297,9 @@ export function createStepEngine(guide, handlers = {}) {
 
   function start(now) { done = false; enter(0, now); }
 
-  /** 중립 준비 완료 → follow 카운트 시작 (컨트롤러가 호출) */
-  function arm(now) { armed = true; lastCountAt = now ?? stepStart; if (detector) detector.reset(); }
+  /** 중립 준비 완료 → follow 카운트 시작 (컨트롤러가 호출). 중립 대기 중에 떴던 멈춤 안내는
+   *  거두고 15초를 새로 센다 — 이제부터는 "카운트가 안 오르는가"를 본다. */
+  function arm(now) { armed = true; lastCountAt = now ?? stepStart; idleShown = false; if (detector) detector.reset(); }
 
   function next(now) {
     if (i + 1 >= steps.length) {
@@ -308,7 +309,7 @@ export function createStepEngine(guide, handlers = {}) {
     enter(i + 1, now);
   }
 
-  /** follow 강제 진행(건너뛰기 / 손동작 없이 진행) */
+  /** 한 단계 강제 진행 — 지금은 멈춤 안내의 [손동작 없이 진행]만 부른다 */
   function skip(now) { next(now ?? performance.now()); }
 
   function update(now, snap) {
@@ -343,7 +344,14 @@ export function createStepEngine(guide, handlers = {}) {
     }
 
     // follow
-    if (!armed) { handlers.onStatus?.({ hint: '준비… 손을 편하게 보여주세요', comp: false, idle: false }); return; }
+    // 중립을 못 잡은 채(손이 한 번도 안 보임)로 15초가 지나도 멈춤 안내를 띄운다. 예전엔 화면에
+    // [건너뛰기]가 늘 떠 있어서 필요 없었는데, 그 버튼을 없앤 뒤로(안 한 운동이 완료로 쳐지던
+    // 문제) 손을 못 찾는 사람에겐 이 안내의 [손동작 없이 진행]이 유일한 탈출구다.
+    if (!armed) {
+      if (!idleShown && (now - stepStart) >= IDLE_MS) idleShown = true;
+      handlers.onStatus?.({ hint: '준비… 손을 편하게 보여주세요', comp: false, idle: idleShown });
+      return;
+    }
 
     const res = detector.feed(snap, now) || {};
     if (res.justCounted) {

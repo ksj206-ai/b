@@ -369,11 +369,12 @@
 
             <!-- 재생 중 조작. "이전 운동"·"다음 운동"은 오늘의 루틴 순서에서 한 칸 앞·뒤 — 첫/마지막
                  운동이거나 코스 밖 운동이면 main.js가 숨긴다(운동 전환일 뿐 history는 안 쌓는다).
-                 "건너뛰기"는 지금 운동 안의 한 단계를 넘기는 것이라 운동 자체를 바꾸는 둘과 다르다. -->
+                 [건너뛰기]는 없앴다(2026-09-11). 운동 안의 단계를 하나씩 넘기는 버튼이라 눌러도 운동이
+                 안 넘어가는 것처럼 보였고, 세 번 누르면 안 한 운동이 완료로 쳐졌다. 넘기기는 [다음 운동],
+                 인식이 안 될 때는 멈춤 안내의 [손동작 없이 진행]이 맡는다. -->
             <div class="gp-btns">
               <button class="btn btn-back" id="gpPrev" hidden>← 이전 운동</button>
               <button class="btn btn-back" id="gpQuit">그만두기</button>
-              <button class="btn btn-back" id="gpSkip">건너뛰기</button>
               <button class="btn btn-back" id="gpNextEx" hidden>다음 운동 →</button>
             </div>
 
@@ -399,6 +400,8 @@
               <p class="gp-rest" id="gpRest" hidden>오늘은 무리하지 않아도 괜찮아요. 뻐근함이 계속되면 충분히 쉬어주세요.</p>
               <div id="gpRoutineProg" class="gp-routine-prog" hidden></div>
               <button class="btn" id="gpNext" hidden>다음 운동 →</button>
+              <!-- 루틴 연속 재생의 자동 넘김을 멈춘다 — 그 뒤엔 [다음]을 눌러야 넘어간다 -->
+              <button class="btn btn-back" id="gpHold" hidden>잠깐 쉴게요</button>
               <button class="btn" id="gpMeasureGo" data-nav="measure" hidden>📏 손목 상태도 기록해 볼까요?</button>
               <div class="gp-done-btns">
                 <button class="btn btn-back" id="gpToList">다른 운동 보기</button>

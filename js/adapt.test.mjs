@@ -11,7 +11,7 @@ if (typeof localStorage === 'undefined') {
   };
 }
 
-import { decideDose, updateDose, computeDose, getRoutineGuide, improveSignal } from './routine.js';
+import { decideDose, updateDose, computeDose, getRoutineGuide, improveSignal, nextRoutineExercise, nextRoutineExerciseAfter } from './routine.js';
 import { getAdapt, freshComp, isRedSignal, isImproving } from './store.js';
 import { ROM, ROUTINE, SIGNAL_DEG } from './config.js';
 
@@ -270,6 +270,20 @@ const good = (at, comp) => ({ at, condition: 'good', ...(comp != null ? { comp }
   // 상승: 같은 문턱의 대칭 (config.adaptImprove.riseDeg)
   eq(isImproving(pair(SIGNAL_DEG - 1, SIGNAL_DEG - 1), D), false, 'S1e 문턱 −1° 상승은 개선 아님');
   eq(isImproving(pair(SIGNAL_DEG, SIGNAL_DEG), D), true, 'S1f 문턱만큼 상승하면 개선');
+}
+
+// ─── N1: 운동을 마친 직후의 '다음' — 방금 넘긴 운동이 곧바로 되돌아오지 않는다 ───
+// [다음 운동]은 완료로 치지 않는다. 그런데 다음을 '맨 앞의 남은 것'으로 고르면, 1번을 넘기고
+// 2번을 마친 순간 다음이 다시 1번이 됐다(2026-09-11 흐름 검토에서 발견).
+{
+  const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
+  const R = (done) => ({ ids, doneIds: done });
+  eq(nextRoutineExerciseAfter(R(['b']), 'b'), 'c', 'N1a 1번 넘기고 2번 마침 → 다음은 3번(1번 아님)');
+  eq(nextRoutineExercise(R(['b'])), 'a', 'N1b 홈 [이어하기]는 여전히 맨 앞의 남은 것(1번)');
+  eq(nextRoutineExerciseAfter(R(['b', 'c', 'd', 'e', 'f']), 'f'), 'a', 'N1c 끝까지 가면 넘겼던 1번으로 돌아온다');
+  eq(nextRoutineExerciseAfter(R(['a', 'c']), 'c'), 'd', 'N1d 중간(3번) 마침 → 그 뒤(4번)부터');
+  eq(nextRoutineExerciseAfter(R(ids), 'f'), null, 'N1e 완주면 null');
+  eq(nextRoutineExerciseAfter(R([]), 'zz'), 'a', 'N1f 코스 밖 운동을 마쳤으면 맨 앞부터(= nextRoutineExercise)');
 }
 
 console.log(`\n맞춤 적응형 루틴 테스트: ${pass} pass, ${fail} fail`);

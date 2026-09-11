@@ -9,6 +9,7 @@
 //   ④ fingerSpread는 벌림·모음 왕복 1세트를 1회로 센다.
 //   ⑤ 손가락을 굽히면 손끝 폭도 줄지만 grip 게이트가 오탐을 막는다.
 //   ⑥ guideData의 finger_spread가 실제로 fingerSpread에 배선돼 있다.
+//   ⑦ 멈춤 안내는 중립을 못 잡은 채로도 15초면 뜨고, arm하면 거둔 뒤 새로 센다.
 //
 // 합성 손 랜드마크로 검증한다 — 카메라·MediaPipe 없이 fingerMetrics가 읽는 10개 점만
 // 해부학적 비율에 맞춰 만든다. 절대 좌표가 아니라 '비율'을 재는 지표라 이걸로 충분하다.
@@ -219,6 +220,36 @@ const snapOf = (opts) => ({ detected: true, rel: 0, comp: false, fingers: finger
   ok(counts.length && counts[counts.length - 1] === 5, `8 follow 5회 카운트 (실제 ${counts.join(',')})`);
   for (let i = 0; i < 40; i++) step(idle);              // outro 3초 통과
   ok(completed, '8 outro까지 자동 완주');
+}
+
+// 9: 멈춤 안내(idle) — 손을 한 번도 못 찾아 중립을 못 잡은 채로도 15초면 뜬다.
+//    세는 단계에서 [건너뛰기]를 거둔 뒤로(안 한 운동이 완료로 쳐지던 문제) 이 안내의
+//    [손동작 없이 진행]이 손을 못 찾는 사람의 유일한 탈출구다. arm하면 거두고 15초를 새로 센다.
+//    카운트가 아니라 엔진이 내보내는 idle 상태를 매 구간 단언한다.
+{
+  const g = getGuide('finger_spread');
+  let last = null;
+  const engine = createStepEngine(g, { onStatus: (s) => { last = s; }, onNeedNeutral: () => {} });
+  let t = 0;
+  engine.start(t);
+  const step = (snap) => { t += 100; engine.update(t, snap); };
+  const noHand = { detected: false, rel: 0, comp: false, fingers: null };
+  while (engine.step?.type !== 'follow') step(noHand);    // intro 3초 → follow 진입(중립 대기)
+  const followAt = t;
+  while (t < followAt + 14900) step(noHand);
+  ok(last && last.idle === false, `9 중립 대기 14.9초 — 아직 안내 없음 (idle=${last && last.idle})`);
+  step(noHand); step(noHand);
+  ok(last && last.idle === true, `9 중립 대기 15초 — 손을 못 찾아도 멈춤 안내 (idle=${last && last.idle})`);
+  step(noHand);
+  ok(last && last.idle === true, '9 한 번 뜬 안내는 중립을 잡을 때까지 유지');
+  engine.arm(t);
+  step(snapOf({ fan: 0 }));
+  ok(last && last.idle === false, `9 arm하면 안내를 거둔다 (idle=${last && last.idle})`);
+  const armedAt = t;
+  while (t < armedAt + 14800) step(snapOf({ fan: 0 }));   // 손은 보이지만 카운트 0
+  ok(last && last.idle === false, '9 arm 뒤 14.8초 — 아직 안내 없음');
+  while (t < armedAt + 15100) step(snapOf({ fan: 0 }));
+  ok(last && last.idle === true, `9 arm 뒤 15초 카운트 0 → 다시 안내 (idle=${last && last.idle})`);
 }
 
 console.log(`\n손가락 벌리기 판정기 테스트: ${pass} pass, ${fail} fail`);

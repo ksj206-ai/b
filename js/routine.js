@@ -133,9 +133,23 @@ export function isRoutineComplete(r) {
   return r.ids.every((id) => r.doneIds.includes(id));
 }
 
-/** 다음에 할 운동 id — 코스 순서상 첫 미완료. 완주면 null */
+/** 다음에 할 운동 id — 코스 순서상 첫 미완료. 완주면 null.
+ *  홈의 [이어하기]가 쓴다 — 나중에 돌아온 사람에겐 맨 앞의 남은 것부터가 맞다. */
 export function nextRoutineExercise(r) {
   return r.ids.find((id) => !r.doneIds.includes(id)) ?? null;
+}
+
+/** 방금 끝낸 운동 '뒤'의 첫 미완료 — 끝까지 가면 앞으로 돌아온다. 완주면 null.
+ *  운동을 마친 직후 [다음]·자동 넘김이 쓴다. 맨 앞부터 고르면 방금 [다음 운동]으로 넘긴
+ *  운동이 곧바로 되돌아왔다(1번 넘기고 2번을 마치면 다음이 다시 1번). 넘긴 운동은 코스를
+ *  한 바퀴 돈 끝에 다시 권한다. 코스 밖 운동(id가 없으면)은 nextRoutineExercise와 같다. */
+export function nextRoutineExerciseAfter(r, id) {
+  const n = r.ids.length, at = r.ids.indexOf(id);
+  for (let k = 1; k <= n; k++) {
+    const cand = r.ids[(at + k) % n];
+    if (!r.doneIds.includes(cand)) return cand;
+  }
+  return null;
 }
 
 /** 운동 완료 반영 + 오늘 진행(N/6) 로그 업서트 (자정 넘김 안전) */

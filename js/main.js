@@ -3,7 +3,7 @@
 // UI 초기화 → 홈 상태 반영. 측정 화면 진입 시 tracking/measurement를
 // 지연 로드해 라이브 인식 프리뷰를 구동(파이프라인 확인용).
 // ═══════════════════════════════════════════════════════════
-import { initUI, onScreenChange, getCurrentScreen, navigate, pushView } from './ui.js';
+import { initUI, onScreenChange, getCurrentScreen, navigate, pushView, replaceView } from './ui.js';
 import { announce, announceError, screenMessage, stepMessage, countMessage } from './a11y.js';
 import {
   load, save, update, recordActivity, currentStreak, freezeUsedThisWeek, todayStr,
@@ -21,7 +21,7 @@ import {
 } from './config.js';
 import { rec } from './debugRec.js';
 import {
-  getTodayRoutine, markRoutineDone, nextRoutineExercise,
+  getTodayRoutine, markRoutineDone, nextRoutineExercise, nextRoutineExerciseAfter,
   routineProgress, isRoutineComplete, isSlotDone, estimateGuideSec,
   needMeasureSuggest, conditionOf, recordCondition, getRoutineGuide, updateDose,
   dailyStarMessage,
@@ -638,11 +638,13 @@ function renderRemindEntry() {
     : '⏰ 알림 시간 정하기';
 }
 
-/** 홈/알림 → 루틴 원탭 진입 (중간 화면 없이 바로 재생) */
+/** 홈/알림 → 루틴 원탭 진입 (중간 화면 없이 바로 재생).
+ *  플레이어 칸 하나로 바로 들어간다 — 전에는 목록 칸 위에 플레이어를 얹어서, 홈에서 시작한
+ *  사람이 [← 뒤로]를 누르면 본 적도 없는 운동 목록(9개)으로 떨어졌다. 이제 뒤로 한 번 = 홈. */
 function startRoutineDeep() {
   const r = getTodayRoutine();
   pendingGuideId = nextRoutineExercise(r) || r.ids[0]; // 완주 후 "한 번 더"는 처음부터
-  navigate(SCREENS.GUIDE);
+  navigate(SCREENS.GUIDE, VIEWS.PLAYER);
 }
 
 // ─── 첫 실행 환영 오버레이 ───
@@ -1388,10 +1390,10 @@ async function initGuide() {
     text: $('gpText'), dots: $('gpDots'), hint: $('gpHint'), idle: $('gpIdle'),
     prog: $('gpProg'), progBar: $('gpProgBar'),
     prev: $('gpPrev'), nextEx: $('gpNextEx'),
-    skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
+    quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
     retry: $('gpRetry'), proceed: $('gpProceed'),
     doneEmoji: $('gpDoneEmoji'), doneText: $('gpDoneText'), rest: $('gpRest'),
-    routineProg: $('gpRoutineProg'), next: $('gpNext'), measureGo: $('gpMeasureGo'),
+    routineProg: $('gpRoutineProg'), next: $('gpNext'), hold: $('gpHold'), measureGo: $('gpMeasureGo'),
     doneSub: $('gpDoneSub'),
     condition: $('gpCondition'), condSkip: $('gpCondSkip'),
     safe: document.querySelector('.gp-safe'), btns: document.querySelector('.gp-btns'),
@@ -1408,7 +1410,8 @@ async function initGuide() {
     spriteStill: null,                  // 시범 손 정지 프레임 경로 (intro/outro 표시용)
     engine: null, tracker: null, anim: null, cur: null, running: false, neutralTimer: null,
     lastParams: null, poseBlend: null,
-    routineMode: false, autoNextTimer: null, // 루틴 연속 재생 상태
+    routineMode: false, autoNextTimer: null, autoNextTick: null, // 루틴 연속 재생 상태
+    fromList: false,                         // 목록에서 연 운동인가 (openPlayer 참고)
     handSeen: false, seenN: 0, lostN: 0,     // 손 감지 칩 히스테리시스
     lmCtx: null, diagAt: 0,
     compN: 0, frameN: 0, lastCompRatio: null, lastCompAt: null, // 세션 comp 비율 + 잰 날(신선도 리셋용)
@@ -1426,17 +1429,24 @@ async function initGuide() {
                   `<span class="gc-tags">${needsCamera(g) ? '' : '<span class="gc-cam">카메라 없이</span>'}` +
                   `<span class="gc-focus" hidden>🎯 오늘의 포커스</span>` +
                   `<span class="gc-badge" hidden></span></span>`;
-    b.addEventListener('click', () => openPlayer(g.id, false));
+    b.addEventListener('click', () => openPlayer(g.id, false, true));
     els.list.appendChild(b);
   }
 
   // 버튼
   els.quit.addEventListener('click', () => {
-    // 루틴 모드: [오늘은 여기까지] — 중간에 끝내도 그날 완료로 인정 (관대함)
+    // 루틴 모드: [오늘은 여기까지] — 한 만큼 마무리(컨디션 → 완료 화면), 남은 건 홈에서 이어하기
     if (guide.routineMode) endRoutineToday();
-    else history.back(); // 플레이어 엔트리를 벗는다 = 목록 (기기 뒤로와 같은 경로)
+    else if (guide.fromList) history.back(); // 플레이어 엔트리를 벗는다 = 목록 (기기 뒤로와 같은 경로)
+    else { replaceView(null); showGuideList(); }
   });
-  els.toList.addEventListener('click', () => history.back());
+  // [다른 운동 보기] — 목록에서 연 운동이면 한 칸 아래가 목록이라 뒤로 간다. 홈에서 바로 시작한
+  // 운동은 아래가 홈이므로, 뒤로 가면 버튼 말과 달리 홈이 떠 버린다 → 이 칸을 목록으로 바꾼다.
+  els.toList.addEventListener('click', () => {
+    if (guide.fromList) { history.back(); return; }
+    replaceView(null);
+    showGuideList();
+  });
   // 이전 운동 — 오늘의 루틴 순서 기준. 운동 전환이라 history는 건드리지 않는다.
   els.prev.addEventListener('click', () => {
     if (guide.prevId) startGuide(guide.prevId, guide.routineMode);
@@ -1445,11 +1455,31 @@ async function initGuide() {
   els.nextEx.addEventListener('click', () => {
     if (guide.nextId) startGuide(guide.nextId, guide.routineMode);
   });
-  els.skip.addEventListener('click', () => { if (guide.engine) guide.engine.skip(performance.now()); });
-  els.proceed.addEventListener('click', () => { if (guide.engine) guide.engine.skip(performance.now()); });
-  els.retry.addEventListener('click', () => { guide.els.idle.hidden = true; });
+  // [손동작 없이 진행] — 인식이 안 돼도 진행을 막지 않는다(기획서 원칙). 세는 단계를 넘기며, 완료로 친다.
+  // 카메라가 아예 안 열려 프레임 루프가 없으면 마무리 단계도 저절로 안 끝나므로 끝까지 넘긴다.
+  els.proceed.addEventListener('click', () => {
+    const en = guide.engine;
+    if (!en) return;
+    const now = performance.now();
+    guide.els.idle.hidden = true;
+    if (guide.running) { en.skip(now); return; }
+    for (let k = 0; k <= en.total && guide.els.done.hidden; k++) en.skip(now);
+  });
+  // [계속 시도] — 안내를 15초 접는다. 전에는 숨겨도 다음 프레임의 onStatus가 곧바로 다시 띄워서
+  // 누르나 마나였다(엔진은 한 번 뜬 안내를 카운트가 오를 때까지 계속 idle로 보낸다).
+  els.retry.addEventListener('click', () => {
+    guide.idleSnoozeUntil = performance.now() + 15000;   // stepEngine IDLE_MS와 같은 간격
+    guide.els.idle.hidden = true;
+  });
   els.next.addEventListener('click', () => {
     if (guide.routineNextId) startGuide(guide.routineNextId, guide.routineMode);
+  });
+  // [잠깐 쉴게요] — 자동 넘김만 멈춘다. 숫자를 뗀 [다음: ○○ →]가 남아 준비되면 누르면 된다.
+  els.hold.addEventListener('click', () => {
+    stopAutoNext();
+    const ng = guide.routineNextId && guide.mods.getGuide(guide.routineNextId);
+    if (ng) els.next.textContent = `다음: ${ng.name} →`;
+    announce('자동으로 넘어가지 않아요. 준비되면 다음을 눌러 주세요.');
   });
   // 컨디션 기록: 탭 즉시 저장 → 완료 화면 (추가 질문 없음).
   // 기록 직후 진행/후퇴 판정(§4.3·§4.4)을 1회 반영 — 세션 comp를 함께 넘겨
@@ -1478,19 +1508,21 @@ async function initGuide() {
  * (버튼 핸들러에 흩어두면 기기 뒤로가 정리를 건너뛴다).
  */
 function enterGuide(view) {
-  // 플레이어 복원(뒤로/앞으로) — 현재 운동은 가이드 모듈이 들고 있으므로 그대로 재개.
-  // 이미 떠 있는 엔트리로 돌아온 것이라 push는 하지 않는다.
-  if (view === VIEWS.PLAYER && guide?.wired && guide.cur) {
-    startGuide(guide.cur.id, guide.routineMode);
-    return;
-  }
-  initGuide(); // 최초 배선(+홈 원탭 딥스타트 소비) 또는 목록 복귀
+  // 홈 원탭 딥스타트는 플레이어 칸으로 바로 들어온다 — 배선 후 consumeAutoStart가 튼다.
+  if (pendingGuideId) { initGuide(); return; }
+  // 뒤로/앞으로로 옛 플레이어 칸에 돌아온 경우 — ★운동을 저절로 다시 틀지 않는다.
+  //   전에는 여기서 startGuide를 불렀다. 그래서 운동을 끝내고(또는 그만두고) 다른 화면으로 간 뒤
+  //   뒤로를 한 번 누르면 방금 운동이 처음부터 돌고 카메라가 켜졌다. 그 칸은 목록으로 접는다.
+  if (view === VIEWS.PLAYER) replaceView(null);
+  initGuide(); // 최초 배선 또는 목록 복귀
 }
 
-/** 목록 → 플레이어 '진입' — 이때만 history에 1회 얹는다(운동 전환은 push 없음).
- *  플레이어가 목록 위에 얹힌 상태가 되어, 재생 중 뒤로가 어느 쪽이든 목록으로 떨어진다. */
-function openPlayer(id, routineMode = false) {
-  pushView(VIEWS.PLAYER);
+/** 플레이어 '진입' — 이때만 history에 1회 얹는다(운동 전환은 push 없음).
+ *  fromList: 목록에서 골랐나(→ 한 칸 아래가 목록) · 홈에서 바로 왔나(→ 한 칸 아래가 홈).
+ *  [다른 운동 보기]가 이 차이로 뒤로 갈지 제자리를 목록으로 바꿀지 정한다. */
+function openPlayer(id, routineMode = false, fromList = false) {
+  guide.fromList = fromList;
+  pushView(VIEWS.PLAYER); // 딥스타트는 이미 플레이어 칸이라 여기서 안 쌓인다
   startGuide(id, routineMode);
 }
 
@@ -1567,7 +1599,7 @@ async function startGuide(id, routineMode = false) {
   if (recogHelp) recogHelp.hidden = !guide.mods.needsCamera(g);
   const { els, ctx, mods } = guide;
   const gen = ++guide.startGen; // 이 시작 시도의 세대 — 로딩 중 이탈 시 stopGuideSession이 올림
-  clearTimeout(guide.autoNextTimer);
+  stopAutoNext();
   guide.routineMode = routineMode;
   // 루틴 모드에선 그만두기 대신 [오늘은 여기까지] — 언제 끝내도 괜찮다는 신호
   els.quit.textContent = routineMode ? '오늘은 여기까지' : '그만두기';
@@ -1629,6 +1661,7 @@ async function startGuide(id, routineMode = false) {
       els.text.textContent = step.text;
       els.hint.textContent = '';
       els.idle.hidden = true;
+      guide.idleSnoozeUntil = 0;
       // timed도 라운드를 센다(양쪽 손 스트레칭 = 2라운드) — dots·카운트 UI를 그대로 쓴다
       const reps = (step.type === 'follow' || step.type === 'timed') ? (step.reps ?? 1) : 0;
       buildDots(reps);
@@ -1658,7 +1691,7 @@ async function startGuide(id, routineMode = false) {
     onStatus: ({ hint, idle, progress }) => {
       els.hint.textContent = hint || '';
       els.hint.classList.remove('warn');
-      els.idle.hidden = !idle;
+      els.idle.hidden = !idle || performance.now() < (guide.idleSnoozeUntil || 0);
       // 유지 진행 바 — 엔진은 예전부터 progress를 내보냈지만 그리는 쪽이 없었다.
       // timed(라운드 유지)와 pinch/grip(유지 카운트)이 같은 배관을 쓴다.
       setStepProgress(progress ?? 0);
@@ -1728,7 +1761,7 @@ async function startGuide(id, routineMode = false) {
 
       // ⓑ 중립 대기: 손이 보이는 프레임이 모여야 commit.
       //   손을 전혀 못 본 채 타임아웃되면 commit하지 않고(중립=null 방지) 창만 갱신해
-      //   계속 기다린다 — 진행을 원하면 [건너뛰기]가 항상 있다.
+      //   계속 기다린다 — 15초가 지나면 엔진이 멈춤 안내([손동작 없이 진행])를 띄운다.
       const nw = guide.neutralWait;
       if (nw) {
         if (snap.detected) nw.frames++;
@@ -1766,6 +1799,9 @@ async function startGuide(id, routineMode = false) {
     setCamChip('⚠', '오류', false);
     els.text.textContent = cameraErrorMessage(e);          // 원인별 한국어 안내 (원문은 콘솔로만)
       announceError(els.text.textContent);
+    // 카메라가 안 열려도 시범을 보며 따라 할 수는 있다 — [손동작 없이 진행]을 바로 내민다.
+    // (예전엔 늘 떠 있던 [건너뛰기]가 이 자리를 맡았는데, 그 버튼을 없앴다 — index.html gp-btns 주석.)
+    els.idle.hidden = false;
     console.error('[guide] 시작 실패:', e);
   }
 }
@@ -2004,7 +2040,7 @@ function onGuideComplete(g) {
 
   // 루틴 진행 반영 → 완료 패널: 다음 운동 제안 or 완주 축하
   const r = markRoutineDone(g.id, s);
-  const nextId = nextRoutineExercise(r);
+  const nextId = nextRoutineExerciseAfter(r, g.id); // 방금 [다음 운동]으로 넘긴 운동이 곧바로 되돌아오지 않게
   const { done, total } = routineProgress(r);
   guide.routineNextId = nextId;
 
@@ -2016,19 +2052,12 @@ function onGuideComplete(g) {
     const ng = guide.mods.getGuide(nextId);
     e.doneEmoji.textContent = '🌟';
     e.doneText.textContent = `잘하셨어요! 오늘의 루틴 ${done}/${total}`;
-    announce(e.doneText.textContent);
     e.next.textContent = `다음: ${ng.name} →`;
     e.next.hidden = false;
     e.measureGo.hidden = true;
-    // 루틴 모드: 연속 재생 — 잠깐의 완료 비트 후 자동으로 다음 운동
-    if (guide.routineMode) {
-      clearTimeout(guide.autoNextTimer);
-      guide.autoNextTimer = setTimeout(() => {
-        if (guide.routineMode && guide.routineNextId && getCurrentScreen() === SCREENS.GUIDE) {
-          startGuide(guide.routineNextId, true);
-        }
-      }, ROUTINE.nextAutoMs);
-    }
+    // 루틴 모드: 연속 재생 — 남은 초를 보여 주며 자동으로 다음 운동 ([잠깐 쉴게요]로 멈춤)
+    if (guide.routineMode) startAutoNext(ng);
+    else announce(e.doneText.textContent);
   } else if (guide.routineMode) {
     askCondition(r);           // 풀코스 완주 — 컨디션 한 화면 → 마스코트 완료 멘트
   } else {
@@ -2041,7 +2070,38 @@ function onGuideComplete(g) {
   }
 }
 
-/** [오늘은 여기까지] — 중간에 끝내도 그날 완료. 한 것이 없으면 조용히 홈으로 */
+/** 루틴 연속 재생 — [다음: ○○ → 3]처럼 남은 초를 보여 주고 0에서 다음 운동을 튼다.
+ *  전에는 2.2초 뒤 말없이 넘어가서, 손을 털며 쉬려던 순간 다음 운동이 갑자기 시작됐다.
+ *  [잠깐 쉴게요]로 멈추면 그 뒤엔 [다음]을 눌러야 넘어간다. */
+function startAutoNext(ng) {
+  const e = guide.els;
+  stopAutoNext();
+  let left = Math.max(1, Math.round(ROUTINE.nextAutoMs / 1000));
+  const paint = () => { e.next.textContent = `다음: ${ng.name} → ${left}`; };
+  paint();
+  e.hold.hidden = false;
+  announce(`${e.doneText.textContent}. ${left}초 뒤 ${ng.name}을 시작해요.`);
+  guide.autoNextTick = setInterval(() => {
+    left -= 1;
+    if (left > 0) { paint(); return; }
+    stopAutoNext();
+    if (guide.routineMode && guide.routineNextId && getCurrentScreen() === SCREENS.GUIDE) {
+      startGuide(guide.routineNextId, true);
+    }
+  }, 1000);
+}
+
+/** 자동 넘김 정지 — 운동 전환·세션 정리·[잠깐 쉴게요]가 부른다 */
+function stopAutoNext() {
+  if (!guide) return;
+  clearInterval(guide.autoNextTick);
+  clearTimeout(guide.autoNextTimer);
+  guide.autoNextTick = null;
+  guide.autoNextTimer = null;
+  if (guide.els && guide.els.hold) guide.els.hold.hidden = true;
+}
+
+/** [오늘은 여기까지] — 한 만큼 마무리. 한 것이 없으면 조용히 홈으로 */
 function endRoutineToday() {
   const r = getTodayRoutine();
   if (routineProgress(r).done === 0) { navigate(SCREENS.HOME); return; }
@@ -2098,9 +2158,14 @@ function showRoutineDone(r, condition = null) {
     ? '오늘 풀코스 완주! 밤하늘에 별을 더했어요 ⭐'
     : '오늘도 별을 켰어요 ⭐ 쉬엄쉬엄 가도 좋아요';
   announce(e.doneText.textContent);
-  // 격려 한 줄 — 스트릭이 쌓였으면 연속, 아니면 따뜻한 재회 인사 (부족 표현 없음)
+  // 격려 한 줄 — 스트릭이 쌓였으면 연속, 아니면 따뜻한 재회 인사 (부족 표현 없음).
+  // 중간에 끝낸 날([오늘은 여기까지])은 "내일 만나요" 대신 이어할 수 있다는 말 — 홈이 바로
+  // "이어하기 (N번째부터)"를 권하는데 여기서 내일을 말하면 둘이 엇갈렸다.
   const streak = currentStreak();
-  e.doneSub.textContent = streak >= 2
+  const left = r.ids.length - routineProgress(r).done;
+  e.doneSub.textContent = !full
+    ? `남은 ${left}개는 홈에서 언제든 이어서 할 수 있어요${streak >= 2 ? ` · 🔥 ${streak}일 연속` : ''}`
+    : streak >= 2
     ? `🔥 ${streak}일 연속 — 잘 돌보고 있어요`
     : '내일 또 별 켜러 만나요 🌙';
   e.doneSub.hidden = false;
@@ -2119,7 +2184,7 @@ function stopGuideSession() {
   guide.startGen++;              // 진행 중이던 시작(모델 로딩·카메라 열기)을 무효화
   flushCompRatio();
   clearTimeout(guide.neutralTimer);
-  clearTimeout(guide.autoNextTimer);
+  stopAutoNext();
   guide.tracking.stopTracking(); // 로딩 중 이탈이라도 카메라를 확실히 끈다 (백그라운드 점등 방지)
   stopFrameLoop();               // 카메라 없는 프레임 루프 정지 — 어느 경로로 시작했든 무조건.
                                  // 정지는 비대칭이면 안 된다: 한쪽만 끄면 다음 세션에서 루프가
