@@ -29,15 +29,21 @@ const WRIST = { side: { x: 4, y: 14 }, front: { x: 0, y: 70 } };
 // ─── 손가락 운동(핀치·악력·벌리기·힘줄활주) — pivot = 손목 배치 기준점 ───
 // 손목은 고정이고 손가락만 움직여 "회전축"이 없다. 호도 띄우지 않으므로(main.js
 // ARC_GUIDES) pivot은 순수 배치 기준 — 프레임 전체에서 잰 손목 목(최소 단면)의
-// 중심을 쓴다. x는 팔뚝 중심(측정 표준편차 0.25px 미만), y는 네 에셋 공통 178.
-// 넷이 같은 값을 쓰므로 운동이 이어져 재생돼도 손목이 제자리에 머문다.
+// 중심을 쓴다. x는 팔뚝 중심(측정 표준편차 0.25px 미만), y는 grip·pinch·spread 공통 178.
+// 같은 값을 쓰므로 운동이 이어져 재생돼도 손목이 제자리에 머문다.
+// 힘줄활주는 원본 영상의 구도가 달라(손이 3% 크고 6px 위) grip 정지 프레임에 손바닥
+// 아래~팔뚝 실루엣을 겹쳐(IoU 0.986) 크기·자리를 맞춘 값이다 — 화면에서는 같은 자리에 온다.
+//
+// ─── 에셋 제작 ───
+// 편위·힘줄활주는 assets/make_guide_sprites.py가 Flow 영상에서 뽑는다(원본 파일명·구간·
+// 시간표가 거기 적혀 있다). 그 스크립트가 출력하는 pivot·k를 아래에 그대로 옮긴다.
 // ─── 에셋 버전 ───
 // 같은 파일명으로 그림만 갈아끼우면 브라우저 디스크 캐시가 옛 그림을 계속 내준다.
 // 특히 정지 프레임은 JS가 나중에 <img>.src로 붙이는 이미지라 하드 리로드(Ctrl+Shift+R)로도
 // 갱신되지 않는다 — 실제로 굽힘·폄이 intro/outro에선 옛 손, follow에선 새 손으로 갈렸다.
 // 게다가 프레임 크기가 바뀌면 아래 w/h 배치까지 어긋난다.
 // ⚠ 에셋을 새로 뽑을 때마다 이 숫자를 올린다 (고정 쿼리라 캐시는 정상 동작 — 매번 재요청 아님).
-const ASSET_V = 2;
+const ASSET_V = 3;   // 3: 편위·힘줄활주를 grip 화풍으로 교체 (2026-09-11)
 const asset = (name) => `assets/${name}.png?v=${ASSET_V}`;
 
 const SPRITES = {
@@ -47,9 +53,12 @@ const SPRITES = {
     w: 480, h: 270, pivot: { x: 252, y: 138 }, k: 0.90,
   },
   deviation: {
+    // grip의 주먹 프레임에서 시작한 영상이라 크기(k)가 grip과 같다. pivot은 프레임별 회전을
+    // 첫 프레임에 맞춰 푼 고정점(90프레임 중앙값). 새끼 쪽 기울기는 영상에서 10°뿐이라
+    // 제작 때 25°까지 덧돌렸다 — 호 화살표(+25°)와 손이 같이 가게.
     view: 'front',
     anim: asset('guide-deviation'), still: asset('guide-deviation-static'),
-    w: 317, h: 568, pivot: { x: 171.0, y: 309.5 }, k: 0.60,
+    w: 480, h: 270, pivot: { x: 240.8, y: 179.9 }, k: 0.99,
   },
   pinch_hold: {
     view: 'front',
@@ -69,7 +78,7 @@ const SPRITES = {
   tendon_glide: {
     view: 'front',
     anim: asset('guide-tendon'), still: asset('guide-tendon-static'),
-    w: 480, h: 270, pivot: { x: 241.0, y: 178 }, k: 0.99,
+    w: 480, h: 270, pivot: { x: 240.3, y: 177.1 }, k: 0.96,
   },
 };
 

@@ -26,3 +26,17 @@
 - 저장소 루트에서 `python assets/make_og.py` (Pillow 필요). 같은 그림이 다시 나온다.
 - 색은 앱 토큰(`css/app.css`)에서 그대로 가져왔다 — 밤하늘 `#2c3468→#4b5497`, 별빛 `#fff4d2`.
 - 아이콘 그림이 고양이가 아니라 별인 이유: 16px에서 마스코트는 뭉개져 아무것도 안 보인다.
+
+
+## 시범 손 애니 (`guide-*.png`)
+
+운동 화면의 손 그림. 480×270 투명 APNG + `-static` 정지 프레임(intro·outro·모션 최소화용).
+화풍 기준은 `guide-grip.png`다 — 맨팔, 얇은 갈색 외곽선, 살색 `#EBB996` 안팎.
+
+- `guide-deviation` · `guide-tendon`은 `make_guide_sprites.py`가 Flow(Veo) 영상에서 뽑는다.
+  원본 파일명·쓸 구간·시간표가 스크립트에 적혀 있다. 영상 자체는 저장소에 넣지 않는다.
+  `python assets/make_guide_sprites.py [영상 폴더]` (opencv-python·numpy·Pillow 필요)
+- 새로 뽑으면 **반드시** `js/guide/handSprite.js`의 `w·h·pivot·k`를 스크립트가 출력한 값으로
+  고치고 `ASSET_V`를 올린다. 안 올리면 브라우저가 옛 그림을 계속 보여 준다.
+- Flow에 넣을 때: grip 그림을 초록 배경에 얹은 1920×1080을 시작·끝 프레임으로 같이 준다
+  (처음과 끝이 같아야 이음새 없이 돈다). 동영상은 투명이 안 되고, 검정 배경은 갈색 외곽선까지 빠진다.

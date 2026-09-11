@@ -456,6 +456,10 @@
   flex:none; width:96px; height:96px; object-fit:contain;
   border-radius:var(--r-md); background:var(--paper);
 }
+/* 편위 그림은 가로 480×270 가운데에 주먹이 좁게 서 있어 contain이면 콩알만 해진다.
+   가운데를 잘라 채운다 — 잘리는 건 양옆 빈 여백뿐이고 좌우로 기울어도 폭 안에 든다.
+   (굽힘·폄은 손이 가로로 누워 있어 contain 그대로.) */
+#measureIntroImgDev{ object-fit:cover; }
 
 .m-intro-cap{ font-size:var(--fs-sm); color:var(--ink-soft); line-height:var(--lh); word-break:keep-all; margin:0; }
 
