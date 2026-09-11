@@ -1387,7 +1387,8 @@ async function initGuide() {
     priv: $('gpPriv'),
     text: $('gpText'), dots: $('gpDots'), hint: $('gpHint'), idle: $('gpIdle'),
     prog: $('gpProg'), progBar: $('gpProgBar'),
-    prev: $('gpPrev'), skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
+    prev: $('gpPrev'), nextEx: $('gpNextEx'),
+    skip: $('gpSkip'), quit: $('gpQuit'), done: $('gpDone'), toList: $('gpToList'),
     retry: $('gpRetry'), proceed: $('gpProceed'),
     doneEmoji: $('gpDoneEmoji'), doneText: $('gpDoneText'), rest: $('gpRest'),
     routineProg: $('gpRoutineProg'), next: $('gpNext'), measureGo: $('gpMeasureGo'),
@@ -1439,6 +1440,10 @@ async function initGuide() {
   // 이전 운동 — 오늘의 루틴 순서 기준. 운동 전환이라 history는 건드리지 않는다.
   els.prev.addEventListener('click', () => {
     if (guide.prevId) startGuide(guide.prevId, guide.routineMode);
+  });
+  // 다음 운동 — 같은 코스 순서에서 한 칸 뒤. 지금 운동은 완료로 치지 않는다(넘긴 것이지 한 게 아니다).
+  els.nextEx.addEventListener('click', () => {
+    if (guide.nextId) startGuide(guide.nextId, guide.routineMode);
   });
   els.skip.addEventListener('click', () => { if (guide.engine) guide.engine.skip(performance.now()); });
   els.proceed.addEventListener('click', () => { if (guide.engine) guide.engine.skip(performance.now()); });
@@ -1575,6 +1580,8 @@ async function startGuide(id, routineMode = false) {
   const slot = courseIds.indexOf(id);
   guide.prevId = slot > 0 ? courseIds[slot - 1] : null;
   els.prev.hidden = !guide.prevId;
+  guide.nextId = slot >= 0 && slot < courseIds.length - 1 ? courseIds[slot + 1] : null;
+  els.nextEx.hidden = !guide.nextId;
   // 연속 진행(다음 운동): 카메라·스트림은 유지하고 감지 루프만 교체.
   // startLoop는 기존 rAF를 멈추지 않고 startCamera는 스트림을 누수하므로
   // 반드시 stopLoop 후 재시작하고 카메라 재호출은 건너뛴다.

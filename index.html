@@ -367,12 +367,14 @@
               </div>
             </div>
 
-            <!-- 재생 중 조작. "이전 운동"은 오늘의 루틴 순서에서 한 칸 앞 — 첫 운동이거나
-                 코스 밖 운동이면 main.js가 숨긴다(운동 전환일 뿐 history는 안 쌓는다). -->
+            <!-- 재생 중 조작. "이전 운동"·"다음 운동"은 오늘의 루틴 순서에서 한 칸 앞·뒤 — 첫/마지막
+                 운동이거나 코스 밖 운동이면 main.js가 숨긴다(운동 전환일 뿐 history는 안 쌓는다).
+                 "건너뛰기"는 지금 운동 안의 한 단계를 넘기는 것이라 운동 자체를 바꾸는 둘과 다르다. -->
             <div class="gp-btns">
               <button class="btn btn-back" id="gpPrev" hidden>← 이전 운동</button>
               <button class="btn btn-back" id="gpQuit">그만두기</button>
               <button class="btn btn-back" id="gpSkip">건너뛰기</button>
+              <button class="btn btn-back" id="gpNextEx" hidden>다음 운동 →</button>
             </div>
 
             <!-- 통증 안내 — 상시 유지하되 차분한 회색 작은 글씨로 하단에 -->
